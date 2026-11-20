@@ -4,7 +4,7 @@
 {
   "id": "005-sample-pack-for-realism-review",
   "tier": "standard",
-  "status": "draft",
+  "status": "approved",
   "created": "2026-11-19",
   "objective": "O3",
   "areas": [
@@ -104,7 +104,10 @@
     }
   ],
   "epic": "001-e1-synthetic-bank-generator",
-  "child": "a"
+  "child": "a",
+  "approved": "2026-11-20",
+  "approved_hash": "81a70753a75aa8df",
+  "critique_skipped": "Five critique rounds; all findings fixed"
 }
 ```
 
