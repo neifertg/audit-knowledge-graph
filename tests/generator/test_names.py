@@ -67,7 +67,10 @@ class NameTests(unittest.TestCase):
             entry = json.loads(line)
             self.assertEqual(added_systems(entry["text"], drafts[entry["key"]]), [],
                              f"{entry['key']}: AI text names a system its draft does not")
-        # the sample pack is checked here too once it exists (slice 7)
+        # a freshly generated sample pack names no real institution
+        from .test_sample_pack import generate_pack
+
+        self.assertEqual(denied_in(generate_pack(), deny), [], "real name in the sample pack")
 
 
 if __name__ == "__main__":
