@@ -184,7 +184,12 @@ def answer_key_rules(test, out) -> None:
     cross_c = [m for m in clusters(cc, "control_id").values() if {x["source"] for x in m} == {"ERM", "IA"}]
     test.assertGreaterEqual(len(cross_c), 5, "fewer than 5 cross-source control matches")
 
-    test.assertEqual(answer_key(out, "scenarios"), [])
+    # scenarios: empty at sample size; at full size child d writes shared_system rows (e appends more)
+    known_ids = {r[f"{k}_id"] for k in ("system", "risk", "control", "issue", "audit", "auditable_entity")
+                 for name in ([k] if k in ("system", "issue", "audit", "auditable_entity") else [f"{k}_erm", f"{k}_ia"])
+                 for r in read(out, name)}
+    for row in answer_key(out, "scenarios"):
+        test.assertIn(row["item_id"], known_ids, f"scenario {row['scenario']} names an unknown item")
     test.assertTrue(hard_negative_exists(out, "risk", rc), "no hard negative among risks")
     test.assertTrue(hard_negative_exists(out, "control", cc), "no hard negative among controls")
 
@@ -224,8 +229,13 @@ def leakage(test, out, kind: str) -> None:
 
     pair_sims = []
     for cluster, items in members.items():
-        for i, (_, a) in enumerate(items):
-            for _, b in items[i + 1:]:
+        for i, (source_a, a) in enumerate(items):
+            for source_b, b in items[i + 1:]:
+                if source_a == source_b == "IA":
+                    # Two IA documents of one enterprise control (008: one ERM control, several IA
+                    # controls per cluster) are copies of each other by design; leakage concerns the
+                    # pairs a matcher must find: ERM to IA, and ERM duplicates.
+                    continue
                 test.assertFalse(set(re.findall(r"\d+", a)) & set(re.findall(r"\d+", b)),
                                  f"{a} and {b} share an ID number")
                 shared = sentences(by_id[a]["description"]) & sentences(by_id[b]["description"])
