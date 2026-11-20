@@ -4,7 +4,7 @@
 {
   "id": "001-e1-synthetic-bank-generator",
   "tier": "epic",
-  "status": "approved",
+  "status": "draft",
   "created": "2026-11-19",
   "objective": "O3",
   "children": [
@@ -40,11 +40,16 @@
       "depends_on": [
         "d"
       ]
+    },
+    {
+      "key": "f",
+      "title": "Full-size AI text in one batch",
+      "depends_on": [
+        "e"
+      ]
     }
   ],
-  "approved": "2026-11-19",
-  "approved_hash": "f070f9db7fba40bf",
-  "critique_skipped": "Four critique rounds; all major findings fixed; remaining items are minor"
+  "revised": "2026-11-20"
 }
 ```
 
@@ -95,11 +100,13 @@ CANONICAL_* and maps_to / ia_maps_to_erm are E2 output; E1 writes only their tru
 
 **Data model (rule 6).** Each child adds to `docs/data-model.md` the definitions it introduces: answer-key schema, level-mapping and misfiled-risk rules (c, d), ratings (c, e), issue-linking rule and stale-coverage definition (e).
 
-**Determinism (INV-7).** AI text (if R2 picks it) is generated once by a separate script (`src/features/generator/write_text.py`), keyed by each item's internal key (assigned by the seeded generator before shuffling and never published), and committed with a hash of the item's template inputs. The build fails loudly if an item has no text or its stored hash no longer matches, and a test fails on committed text whose key no item uses. If AI text is chosen, each child generates it at full size for what it adds (c risks, d controls, e issues) and then freezes its counts; a later count change is a revision that regenerates that text, the baseline F1 and the checksums together. The build never imports `anthropic` or touches the network (test). Writers emit UTF-8 without BOM and `\n` line endings; `.gitattributes` pins committed text and CSVs to LF.
+**Determinism (INV-7).** AI text (if R2 picks it) is generated once by a separate script (`src/features/generator/write_text.py`), keyed by each item's internal key (assigned by the seeded generator before shuffling and never published), and committed with a hash of the item's template inputs. The build fails loudly if an item has no text or its stored hash no longer matches, and a test fails on committed text whose key no item uses. Full-size AI text (revision 1, 2026-11-20, owner decision): children c-e build full size with templated text only; child f generates all full-size AI text (risks, controls, issues) in one Message Batch with claude-opus-5-5 after e has replaced positional issue keys with natural keys, within a budget the owner approves (measured 2026-11-20: about $0.0039 per item at batch prices, about $5 for ~1,280 items). f re-validates every result against the L-002 rules, resubmits failures once, removes 006's full-size AI-text guard, and regenerates the full golden and baseline F1. Until f, sample size uses AI text and full size uses templated text. The build never imports `anthropic` or touches the network (test). Writers emit UTF-8 without BOM and `\n` line endings; `.gitattributes` pins committed text and CSVs to LF.
 
 **Byte identity across machines.** A committed `tests/golden/checksums.sha256` lists the SHA-256 of every output file for the default seed; the INV-7 test regenerates and compares, so Windows and Linux are both checked against the same bytes. Locally it runs on Windows now; it runs on Linux once E3's CI job exists. A change that intentionally alters output regenerates the checksum file in the same commit.
 
 **Names (INV-9).** Name lists are checked against a committed deny-list of real US bank, vendor and core-system names (test, from a), plus a one-time owner review in a.
+
+**f (full-size AI text).** One batch, one budget approval, one guard removal; AI text stored apart from the sample text (`text/ai_text_full.jsonl`) so each size's orphan check stays exact.
 
 **Invariant tests.** Each child names the tests for its invariants (a: INV-9, INV-7 checksums; b: INV-1 taxonomy part, INV-2; c: INV-1 risk part; e: INV-4, INV-5; every child after a refreshes the checksums) and replaces the matching `TBD (E1)` in `docs/data-model.md`.
 

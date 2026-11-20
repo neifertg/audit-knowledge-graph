@@ -10,11 +10,9 @@
   "areas": [
     "src/features/generator/**",
     "tests/**",
-    "docs/data-model.md",
-    "akg/**",
-    "research/r2-synthetic-text-realism/**"
+    "docs/data-model.md"
   ],
-  "timebox": "2.5 working days of build time, not counting the owner's cost approval or batch turnaround. Past this, stop and re-plan with `capitan revise` (e.g. split AI text into its own change); never drop criteria silently.",
+  "timebox": "2.5 working days of build time. Checkpoint after 2 hours: at least 10 themes written in the library, or re-plan. Past the timebox, stop and re-plan with `capitan revise`; never drop criteria silently.",
   "criteria": [
     {
       "id": "AC-1",
@@ -26,7 +24,7 @@
     {
       "id": "AC-2",
       "when": "either size is built",
-      "then": "every risk is classified by exactly one L3 node of its own source's taxonomy (INV-1, risk part), and is exposed to at least one auditable entity; at full size at least 70% of auditable entities are exposed to at least one risk",
+      "then": "every risk is classified by exactly one L3 node of its own source's taxonomy (INV-1, risk part) and is exposed to at least one auditable entity; at full size at least 70% of auditable entities are exposed to at least one risk",
       "test": "generator.test_invariants.InvariantTests.test_ac2_inv1_each_risk_under_one_l3_of_its_source",
       "status": "pending"
     },
@@ -39,37 +37,30 @@
     },
     {
       "id": "AC-4",
-      "when": "the full build has run, with templated text and with AI text",
-      "then": "matching risks is realistically hard: exact-text match scores F1 below 0.5; a scikit-learn TF-IDF cosine baseline at its best threshold scores F1 between 0.40 and 0.75; at least 10% of IA risks have a hard negative (a cross-source non-match at or above the median cosine of true matches); and child a's leakage rules hold (matched items share no ID number or sentence, cosine below 0.90, matched median below 0.70, row-order Spearman below 0.8)",
+      "when": "the full build has run (templated text, the full-size default until child f)",
+      "then": "matching risks is realistically hard: exact-text match scores F1 below 0.5; a scikit-learn TF-IDF cosine baseline at its best threshold scores F1 between 0.40 and 0.75; at least 10% of IA risks have a hard negative (a cross-source non-match at or above the median cosine of true matches); child a's leakage rules hold for risks and controls (no shared ID number or sentence, cosine below 0.90, matched median below 0.70, row-order Spearman below 0.8, matched controls never equal on all of owner, frequency and type)",
       "test": "generator.test_risks.RiskTests.test_ac4_risk_matching_is_hard_but_possible",
       "status": "pending"
     },
     {
       "id": "AC-5",
-      "when": "the build runs after this change",
-      "then": "sample output is unchanged (`git log main.. -- tests/golden/checksums.sha256` shows no commit and the sample golden test passes); tests/golden/checksums_full.sha256 is regenerated for the new full output",
-      "test": "generator.test_determinism.DeterminismTests.test_ac3_inv7_output_matches_golden_checksums and test_ac5_full_build_matches_full_golden",
+      "when": "the full build has run",
+      "then": "structure does not give matches away: an exposure baseline that pairs an ERM and an IA risk whenever the IA risk's auditable entity is among the ERM risk's exposed entities scores F1 below 0.5, and so does that baseline combined with same-ERM-L1 filing; ERM records exposure at business-unit breadth with some stale links, IA at the specific entity",
+      "test": "generator.test_risks.RiskTests.test_ac5_exposure_structure_does_not_leak_matches",
       "status": "pending"
     },
     {
       "id": "AC-6",
-      "when": "`build --size full --text ai` runs",
-      "then": "every row of risk_erm.csv and risk_ia.csv takes its description from committed AI text (none falls back to templated); files without full-size AI coverage (controls, issues) stay templated and the build prints which files used AI text; a missing or stale risk entry fails the build naming its key; `--size full` now defaults to `--text ai`. This replaces 006's all-or-nothing guard (AC-9) with per-file coverage",
-      "test": "generator.test_risks.RiskTests.test_ac6_full_size_ai_text_covers_risk_files",
+      "when": "the build runs after this change",
+      "then": "sample output is unchanged (`git log main.. -- tests/golden/checksums.sha256` shows no commit, and the sample golden test passes); tests/golden/checksums_full.sha256 is regenerated for the new full output; 006's full-size AI-text guard (AC-9) stays in place until child f",
+      "test": "generator.test_determinism.DeterminismTests.test_ac3_inv7_output_matches_golden_checksums and test_ac5_full_build_matches_full_golden; generator.test_full_build.FullBuildTests.test_ac9_full_size_explicit_ai_text_fails_loudly",
       "status": "pending"
     },
     {
       "id": "AC-7",
-      "when": "the full-size AI risk text is committed",
-      "then": "it passes child a's AI-text rules: no deny-list name, no capitalized word outside the name lists and allow-list, no system its draft lacks; keys are natural (theme, context entity, ordinal), never positional",
-      "test": "generator.test_names.NameTests.test_ac4_inv9_names_from_lists_and_no_denied_name_anywhere",
-      "status": "pending"
-    },
-    {
-      "id": "AC-8",
-      "when": "`write_text --batch --budget <USD>` is asked to generate text whose estimated batch cost (items x measured per-item usage at batch prices) exceeds the budget",
-      "then": "it refuses before contacting the API and prints the estimate; with a sufficient budget it submits one Message Batch, and records the actual tokens and cost in research/r2-synthetic-text-realism/cost_log.md",
-      "test": "generator.test_ai_text.AiTextTests.test_ac8_batch_refuses_over_budget_without_calling_api",
+      "when": "`python -m akg sample-pack --size full` runs",
+      "then": "the pack's introduction describes the full-size bank (no '~15 rows' wording) and, when no AI text is shown, drops the text-choice prompt and the AI column instead of showing '(not generated)'",
+      "test": "generator.test_sample_pack.SamplePackTests.test_ac7_full_size_pack_describes_full_size",
       "status": "pending"
     }
   ],
@@ -79,41 +70,38 @@
 ```
 
 ## Why
-E2's precision and recall only mean something if the risk populations look like a real bank's: two registers of different size and style, overlapping unevenly, with duplicates, misfiling and near-misses. This change scales risks from 15 per source to the epic's targets and sets the difficulty of the reconciliation problem.
+E2's precision and recall only mean something if the risk populations look like a real bank's: two registers of different size and style, overlapping unevenly, with duplicates, misfiling and near-misses, and no structural shortcut to the answer. This change scales risks from 15 per source to the epic's targets and sets the difficulty of the reconciliation problem.
 
 ## Data impact
-- **Risk themes x context.** The 22 risk concepts become themes (about 45 by the end) with a context slot. A concept instance is a theme applied to one auditable entity ("Fraudulent wire transfers" for Wire Transfer Operations vs Real-Time Payments). ERM and IA write each instance in their own voice. Same theme, different entity is the natural hard negative.
-- **Sample unchanged.** Sample mode keeps today's 22 concepts and code path; full size uses the theme library.
+- **Risk themes x context.** The 22 risk concepts become themes (about 45) with a context slot. A concept instance is a theme applied to one auditable entity ("Fraudulent wire transfers" for Wire Transfer Operations vs Real-Time Payments). ERM and IA write each instance in their own voice; same theme, different entity is the natural hard negative.
+- **Exposure differs by source (AC-5).** IA links a risk to its specific auditable entity. ERM links at business-unit breadth (every entity in the owning business unit), and about 15% of ERM links point to a sibling unit's entity, as a stale register would.
+- **Sample unchanged.** Sample mode keeps today's 22 concepts and code path; full size uses the theme library. 006's taxonomies have 50 ERM L3 nodes for about 45 themes; a theme may add an L3 node only through this plan's data-model update.
 - **Answer key.** `risk_clusters.csv` at full size; `taxonomy_map.csv` is b's. Misfiling counts risks under unmapped IA nodes (parked note from 006).
-- **Controls at full size** follow risk instances one-to-one with templated text until child d resizes them. Audits and issues stay at sample size (e).
-- **Text.** Per-file AI coverage replaces 006's guard. AI text keys become natural keys. Full-size risk text is generated once through the Message Batches API with claude-opus-5-5 (R2 update): measured 2026-11-20 at 971 input and 199 output tokens per item, about $0.0039 per item at batch prices, so about **$1.30 for ~330 risks**. Nothing is submitted until the owner approves that budget (relay rule applies).
-- **docs/data-model.md** gains the risk answer-key schema, the misfiling rule, the theme-by-context model and the ratings bands; INV-1's risk part gets its test name.
-- New stream for every per-row choice (L-005).
+- **Controls at full size** follow risk instances one-to-one, templated, with owners always differing between matched ERM and IA controls, until child d resizes them. Audits and issues stay at sample size (e).
+- **Text.** Templated at full size. All full-size AI text moves to child f (epic revision 1); nothing here calls an API.
+- **docs/data-model.md** gains the risk answer-key schema, the misfiling rule, the theme-by-context model, ERM vs IA exposure, and the ratings bands; INV-1's risk part gets its test name.
+- Every per-row choice draws from its own stream (L-005).
 
 ## Test plan
 - Done check: `.venv\Scripts\python -m unittest discover -s tests -v`; every named test `ok`.
-- Real builds into temp dirs; the batch test never calls the API (refusal happens before any client is made).
-- Child a's sample tests keep running unchanged.
-- Not tested: E2's matcher (E2), control and issue volumes (d, e).
+- Real builds into temp dirs; child a's sample tests keep running unchanged.
+- Not tested: E2's matcher (E2), control and issue volumes (d, e), AI text at full size (f).
 
 ## Risks
-- **Hard-negative rate at full size** (L-003): measure on templated text before writing more themes; tune themes, not thresholds.
-- **AI text making matches too easy** (L-002): the AI-variant run of AC-4 catches it; regenerate the guarded way.
-- **Content volume** (45 themes): stop at half a day of writing and re-plan if behind.
-- **Batch turnaround** (up to 24h): the build and tests use templated text until results arrive.
+- **Hard-negative rate at full size** (L-003): measured on templated text after slice 1, before writing the remaining themes; tune themes, not thresholds.
+- **Content volume**: the 2-hour checkpoint in the timebox.
+- **The TF-IDF band at full size** may conflict with the hard-negative rate; if so, report the measurements and re-plan rather than loosen a band silently.
 
 ## Out of scope
-- Controls at full size, attribute disagreement (d, parked); audits, issues, planted scenarios, rising-L1 trend, issue text keys (e, parked).
-- Making full size the default build (e).
+- Full-size AI text (child f); controls at full size and attribute disagreement beyond owners (d, parked); audits, issues, planted scenarios, rising-L1 trend, issue text keys (e, parked); full size as the default build (e).
 
 ## Relevant lessons
-- L-002: AI rules enforced in code and tests (AC-7), one prompt for the whole set.
 - L-003: hard negatives measured at full size first (Risks).
 - L-005: every per-row choice gets its own stream.
-- L-006: sample output is frozen (AC-5); no criterion here needs it to change.
+- L-006: sample output is frozen (AC-6); no criterion here needs it to change.
+- L-002: no AI text here; child f carries the guards.
 
 ## Slices
-1. Theme library and full-size risk populations (templated); AC-1, AC-2.
-2. Answer key at full size; difficulty measured and tuned; AC-3, AC-4 (templated).
-3. Per-file AI coverage, natural keys, `write_text --batch --budget`; AC-6, AC-8.
-4. Owner approves the budget; submit the batch; commit text; AC-4 (AI), AC-7; regenerate full golden; data model; AC-5.
+1. Theme library (first 10 themes) and full-size populations with source-specific exposure; measure difficulty; AC-1, AC-2, AC-5.
+2. Remaining themes; answer key at full size; tune difficulty; AC-3, AC-4.
+3. Full-size pack wording, full golden, data model; AC-6, AC-7.
