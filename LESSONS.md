@@ -29,3 +29,7 @@ Source: 006-organization-regulations-taxonomies-and
 ### L-006 (2026-11-20) [workflow] Check new criteria against output-freezing criteria before approval
 006's AC-5 froze sample output while AC-6 demanded a --count PERSON independence that could only be reached by changing sample output; the conflict surfaced mid-build and cost a plan revision. Next time: when a plan freezes existing output, check every other criterion for whether it needs that output to change, and probe the code (one quick run) before approval.
 Source: 006-organization-regulations-taxonomies-and
+
+### L-007 (2026-11-20) [src/features/generator] Measure difficulty early and tune content, not thresholds
+007's 2-hour checkpoint measured all 12 difficulty bands on the first 80 instances. Only within-ERM duplicate detection failed (0.10 vs 0.30 floor): same-theme siblings were near-copies (cosine 0.87), so no duplicate could stand out. Realistic variation fixed it (team-specific sentence frames and wording, duplicates keeping their original's statement), raising it to 0.375 at full size without loosening any band. Next time: build the measurement helper first (tests/generator/difficulty.py), run it at the checkpoint, and use one sorted sweep for best-threshold F1 (the naive loop timed out at 27,000 pairs).
+Source: 007-erm-and-ia-risk-populations-with-answer

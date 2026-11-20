@@ -4,7 +4,7 @@
 {
   "id": "007-erm-and-ia-risk-populations-with-answer",
   "tier": "standard",
-  "status": "approved",
+  "status": "done",
   "created": "2026-11-20",
   "objective": "O3",
   "areas": [
@@ -19,55 +19,57 @@
       "when": "`python -m akg build --size full --seed 42` runs",
       "then": "ERM has 162-198 risks and IA 135-165 (epic targets ±10%); 55-65% of IA risks share a true cluster with an ERM risk; within-ERM duplicates are 5-10% of ERM risks; 10-20% of IA risks are misfiled (true ERM node not under their IA node's mapped target, counting risks under unmapped IA nodes); inherent ratings fall within High 15-35%, Medium 40-60%, Low 15-35% per source",
       "test": "generator.test_risks.RiskTests.test_ac1_full_risk_counts_and_quotas",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-2",
       "when": "either size is built",
       "then": "every risk is classified by exactly one L3 node of its own source's taxonomy (INV-1, risk part) and is exposed to at least one auditable entity; at full size IA risks are exposed across at least 60% of auditable entities and ERM risks across at least 70%",
       "test": "generator.test_invariants.InvariantTests.test_ac2_inv1_each_risk_under_one_l3_of_its_source",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-3",
       "when": "the full build has run",
       "then": "child a's size-independent answer-key rules (every risk in risk_clusters.csv exactly once, clusters share one ERM L3, true nodes are ERM L3s, cross-source IA risks carry the ERM risk's node), moved from test_answer_key into a shared helper in tests/generator/checks.py that a's test also calls, plus referential integrity (INV-10), data dictionary and name checks (INV-9), all hold at full size; and, at both sizes: no two risks, and no two controls, of one source share an identical title plus description (each instance's context appears in its text: IA names its audit area, ERM describes the context in its own business terms and never names the auditable entity), every control an audit tests mitigates a risk that one of its covered entities is exposed to, IA issues link only to controls their audit tested and risks those controls mitigate, and other issues link to ERM controls and risks",
       "test": "generator.test_risks.RiskTests.test_ac3_answer_key_and_linking_rules_hold_at_both_sizes",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-4",
       "when": "the full build has run (templated text, the full-size default until child f)",
       "then": "matching risks is realistically hard: exact-text match scores F1 below 0.5; a scikit-learn TF-IDF cosine baseline at its best threshold scores F1 between 0.40 and 0.75; at least 10% of IA risks have a hard negative (a cross-source non-match at or above the median cosine of true matches); child a's leakage rules hold for risks and controls (no shared ID number or sentence, cosine below 0.90, matched median below 0.70, row-order Spearman below 0.8, matched controls never equal on all of owner, frequency and type); and within-ERM duplicate detection is hard but possible: a TF-IDF baseline pairing ERM risks with each other scores F1 between 0.30 and 0.80 at its best threshold",
       "test": "generator.test_risks.RiskTests.test_ac4_risk_matching_is_hard_but_possible",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-5",
       "when": "the full build has run",
       "then": "structure does not give matches away, using only published files (never the answer key): (a) an exposure baseline that pairs an ERM and an IA risk whenever the IA risk's auditable entity is among the ERM risk's exposed entities scores F1 below 0.5; (b) a combined baseline that, for each IA risk, ranks the ERM risks exposed to any entity in the IA risk's business unit by TF-IDF cosine and keeps the best one above a threshold, scores F1 at most 0.80 at the threshold that maximizes its own F1; (c) of the IA risks that have at least one hard negative, at least 20% have one sharing their business unit; (d) 10-20% of ERM exposure links point to an entity in a different business unit of the same segment (stale links); (e) an entity-mention baseline that keeps only the ERM risks whose text contains the IA risk's auditable entity name, then takes the best TF-IDF match above a threshold, scores F1 at most 0.80 at its best threshold (measured at the 2-hour checkpoint)",
       "test": "generator.test_risks.RiskTests.test_ac5_exposure_structure_does_not_leak_matches",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-6",
       "when": "the build runs after this change",
       "then": "sample output is unchanged (`git log main.. -- tests/golden/checksums.sha256` shows no commit, and the sample golden test passes); tests/golden/checksums_full.sha256 is regenerated for the new full output; 006's full-size AI-text guard (AC-9) stays in place until child f; 006's test_ac1 assertion that risks and controls stay at sample size at full size is narrowed to audits and issues, with a note (an intended change, not a regression)",
       "test": "generator.test_determinism.DeterminismTests.test_ac3_inv7_output_matches_golden_checksums and test_ac5_full_build_matches_full_golden; generator.test_full_build.FullBuildTests.test_ac9_full_size_explicit_ai_text_fails_loudly; the reviewer also runs `git log --oneline main.. -- tests/golden/checksums.sha256` (no commits expected)",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-7",
       "when": "`python -m akg sample-pack --size full` runs",
       "then": "the pack's introduction describes the full-size bank (no '~15 rows' wording) and, when no AI text is shown, drops the text-choice prompt and the AI column instead of showing '(not generated)'",
       "test": "generator.test_sample_pack.SamplePackTests.test_ac7_full_size_pack_describes_full_size",
-      "status": "pending"
+      "status": "pass"
     }
   ],
   "epic": "001-e1-synthetic-bank-generator",
   "child": "c",
   "approved": "2026-11-20",
-  "approved_hash": "a2e19070c4a3aed6"
+  "approved_hash": "a2e19070c4a3aed6",
+  "in_progress": "2026-11-20",
+  "done": "2026-11-20"
 }
 ```
 
