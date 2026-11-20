@@ -1,0 +1,10 @@
+# Pin line endings so generated output and committed text are byte-identical
+# on Windows and Linux (INV-7). Binary files are detected automatically.
+* text=auto eol=lf
+*.csv text eol=lf
+*.jsonl text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.py text eol=lf
+*.sha256 text eol=lf
+*.txt text eol=lf
