@@ -4,7 +4,7 @@
 {
   "id": "001-e1-synthetic-bank-generator",
   "tier": "epic",
-  "status": "draft",
+  "status": "approved",
   "created": "2026-11-19",
   "objective": "O3",
   "children": [
@@ -49,7 +49,9 @@
       ]
     }
   ],
-  "revised": "2026-11-20"
+  "revised": "2026-11-20",
+  "approved": "2026-11-20",
+  "approved_hash": "cfb0dea0463effb7"
 }
 ```
 
