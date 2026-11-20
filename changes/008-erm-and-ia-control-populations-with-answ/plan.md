@@ -17,14 +17,14 @@
     {
       "id": "AC-1",
       "when": "`python -m akg build --size full --seed 42` runs",
-      "then": "ERM has 270-330 controls and IA 360-440 (epic targets ±10%); 55-65% of IA controls share a true cluster with an ERM control; orphan controls (mitigating no risk) are 3-6% of each source's controls; every matched pair differs in level of detail (the IA description has at least twice the ERM description's words); no matched pair is equal on all of owner, frequency and type, and at least 15% of matched pairs disagree on frequency or type",
+      "then": "ERM has 270-330 controls and IA 360-440 (epic targets ±10%); 55-65% of IA controls share a true cluster with an ERM control; no cluster holds two ERM controls; orphan controls (mitigating no risk) are 3-6% of each source's controls; every matched pair differs in level of detail (the IA description has at least twice the ERM description's words); owners always differ within a matched pair and 15-30% of matched pairs record a different frequency (control type always agrees)",
       "test": "generator.test_controls.ControlTests.test_ac1_full_control_counts_and_quotas",
       "status": "pending"
     },
     {
       "id": "AC-2",
       "when": "either size is built",
-      "then": "every non-orphan control mitigates at least one risk of its own source and every risk is mitigated by at least one control; every control has exactly one owner; at full size at least 3 systems are depended on by controls of 3 or more auditable entities (the shared-system scenario), and answer_key/scenarios.csv lists those systems under `shared_system` (d writes these rows; e appends the rest)",
+      "then": "every non-orphan control mitigates at least one risk of its own source and every risk is mitigated by at least one control (an ERM duplicate shares its original's controls); every control has exactly one owner; at full size answer_key/scenarios.csv lists under `shared_system` the 3 systems whose dependent controls reach the most auditable entities through control -> mitigates -> risk -> exposed entity (own source's links), each reaching at least 3 entities in at least 2 business units, and the test recomputes that path from published files and checks the rows match (d writes these rows; e appends the rest)",
       "test": "generator.test_controls.ControlTests.test_ac2_control_links_and_shared_system_scenario",
       "status": "pending"
     },
@@ -45,7 +45,7 @@
     {
       "id": "AC-5",
       "when": "the full build has run",
-      "then": "attributes and links do not give matches away, using only published files: (a) pairing ERM and IA controls with the same type, nature and frequency scores F1 below 0.5; (b) pairing controls that depend on the same set of systems scores F1 below 0.5; (c) for each IA control, taking the best TF-IDF match among ERM controls that share a system, at its best threshold, scores F1 at most 0.80. Matching controls through already-matched risks is the intended graph strategy for E2, not a leak, and is not capped",
+      "then": "attributes, links and text cues do not give matches away, using only published files and never the answer key: (a) pairing ERM and IA controls equal on type, nature and frequency scores F1 below 0.5; (b) pairing controls whose system sets intersect scores F1 below 0.5 (controls listing no system are never predicted, so their true pairs count as misses); (c) pairing controls required by the same regulation scores F1 below 0.5; (d) for each IA control, the best TF-IDF match among ERM controls that share a system with it, at its best threshold, scores F1 at most 0.80 (IA controls with no candidate predict nothing); (e) the same for ERM controls mitigating a risk exposed to the IA control's business unit, at most 0.80; (f) the entity-mention baseline (ERM controls whose title or description contains a distinctive word of the IA control's entity name, then best TF-IDF) scores at most 0.80. Matching controls through already-matched risks is E2's intended graph strategy, not a leak, and is not capped. The number of controls on an ERM risk does not depend on whether IA holds the same risk instance (kinds are drawn independently per source)",
       "test": "generator.test_controls.ControlTests.test_ac5_attributes_and_systems_do_not_leak_matches",
       "status": "pending"
     },
@@ -73,11 +73,11 @@
 E2 reconciles controls as well as risks, and the epic's shared-system scenario (E3's blast-radius round) lives in control dependencies. Controls reach the epic's targets only with several per risk, written the way each team writes them: ERM's RCSA is brief and leans on generic controls (policies, management review, training), IA's RCM is detailed and specific.
 
 ## Data impact
-- **Control instances.** Each risk instance gets its theme's specific control plus generic controls drawn from a small library (policy and procedures, management review, reconciliation, segregation of duties, training, exception reporting, system access restriction, key risk indicator), each worded with the theme's subject ("outgoing wire transfers") and the instance's context. A control instance is (risk instance, control kind). ERM keeps about 1.6 per risk, IA about 2.6, so IA documents controls ERM never lists.
-- **Matching truth.** A control cluster is the same (risk instance, control kind) in both sources. Generic controls across themes are the natural hard negatives.
-- **Attributes.** Matched pairs disagree realistically: owners always differ (as now), and IA records a different frequency or type for some pairs (parked from 005's review). ERM lists systems for only some controls (RCSAs rarely name systems), so system overlap is not a shortcut (AC-5 b).
-- **Orphans.** 3-6% of each source's controls mitigate no risk (controls written for instances that source does not hold).
-- **Shared systems (scenario).** d writes `shared_system` rows to `answer_key/scenarios.csv`; e appends its scenarios (parked decision, now made).
+- **Control instances at two levels.** Each risk instance gets its theme's specific control in each source that holds it. Generic controls come from a small library of kinds (policy and procedures, management review, exception reporting, reconciliation, segregation of duties, training, access restriction, key risk indicator), each worded with the theme's subject ("outgoing wire transfers") and context; ERM and IA word every kind separately. **ERM records generic controls per theme per business unit**, mitigating every ERM risk of that theme in the unit; **IA records them per auditable entity**. Kinds are drawn independently by each source from one skewed mix (policies and management review common, key risk indicators rare), so the count and kinds of controls on a risk say nothing about whether the other source holds it (AC-5).
+- **Matching truth.** Specific controls match when both sources hold the risk instance. An IA generic control matches the ERM generic control of the same kind for its theme and business unit, so one ERM control can sit in a cluster with several IA controls; no cluster holds two ERM controls. Generic controls across themes are the natural hard negatives. An ERM duplicate risk shares its original's controls.
+- **Attributes.** Owners always differ within a matched pair; IA records a different frequency for 15-30% of matched pairs (parked from 005's review); control type always agrees. ERM lists systems for only some controls (RCSAs rarely name systems).
+- **Orphans.** 3-6% of each source's controls mitigate no risk (controls kept for risk instances that source no longer holds); an orphan may still sit in a cross-source cluster.
+- **Shared systems (scenario).** The path is control -> mitigates -> risk -> exposed entity, within one source. d writes the top 3 systems by entity reach as `shared_system` rows in `answer_key/scenarios.csv`; e appends its scenarios (parked decision, now made).
 - **Context in text.** Each control's text carries its instance context (ERM business terms, IA audit area), so no two controls of one source are identical (AC-3).
 - **Sample unchanged**: sample mode keeps today's one control per concept. Audits and issues stay at sample size (e) and keep the epic's linking rules.
 - **docs/data-model.md** gains the control model, the generic library, the attribute and system rules, and the scenarios.csv split.
