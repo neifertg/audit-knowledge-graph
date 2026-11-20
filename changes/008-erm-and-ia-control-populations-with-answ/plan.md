@@ -4,7 +4,7 @@
 {
   "id": "008-erm-and-ia-control-populations-with-answ",
   "tier": "standard",
-  "status": "draft",
+  "status": "approved",
   "created": "2026-11-20",
   "objective": "O3",
   "areas": [
@@ -65,7 +65,9 @@
     }
   ],
   "epic": "001-e1-synthetic-bank-generator",
-  "child": "d"
+  "child": "d",
+  "approved": "2026-11-20",
+  "approved_hash": "924c9d797a9f3de7"
 }
 ```
 
