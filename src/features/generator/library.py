@@ -1720,6 +1720,19 @@ CONTROL_KINDS = [
 ]
 FREQUENCIES = ["Per transaction", "Daily", "Weekly", "Monthly", "Quarterly", "Annual", "Per event"]
 
+# How IA cites the enterprise control in its own words (never ERM's exact label, so ERM's
+# title is not a lookup key inside IA text; 008 review).
+IA_CITATION = {
+    "policy": "enterprise policy",
+    "mgmt_review": "enterprise oversight standard",
+    "exception": "enterprise escalation standard",
+    "reconciliation": "enterprise balancing standard",
+    "sod": "enterprise separation-of-duties standard",
+    "training": "enterprise learning requirement",
+    "access": "enterprise access standard",
+    "kri": "enterprise indicator framework",
+}
+
 # auditable entity -> (ERM context in business terms, IA context in audit wording).
 # ERM never reuses a distinctive word of the entity's name (AC-5 e); the two phrases
 # overlap a little, so text can tell a true match from its same-theme siblings sometimes.

@@ -310,6 +310,18 @@ class Controls:
                 predicted.add((e, i))
         return _f1(predicted, self.truth)
 
+    def title_in_description_f1(self) -> float:
+        """Pair an IA control with the only ERM control whose title words all appear in its description."""
+        words = lambda text: set(re.findall(r"[a-z]+", text.lower()))
+        titles = {e: words(self.row[e]["title"]) for e in self.erm_ids}
+        predicted = set()
+        for i in self.ia_ids:
+            desc = words(self.row[i]["description"])
+            hits = [e for e, t in titles.items() if t <= desc]
+            if len(hits) == 1:
+                predicted.add((hits[0], i))
+        return _f1(predicted, self.truth)
+
     def count_cue(self, source: str) -> float:
         """|mean controls per risk on matched risks - on unmatched risks| for one source."""
         ids = self.erm_ids if source == "erm" else self.ia_ids

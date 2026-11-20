@@ -80,6 +80,20 @@ class ControlTests(unittest.TestCase):
                     owners = Counter(r["control_id"] for r in read(out, f"control_owned_by_person_{source}"))
                     self.assertEqual(set(owners), controls, f"{source}: controls without an owner")
                     self.assertEqual({k for k, v in owners.items() if v != 1}, set(), f"{source}: one owner each")
+                # an ERM duplicate shares its original's controls
+                controls_of = defaultdict(set)
+                for r in read(out, "control_mitigates_risk_erm"):
+                    controls_of[r["risk_id"]].add(r["control_id"])
+                dup_groups = defaultdict(list)
+                for r in answer_key(out, "risk_clusters"):
+                    if r["source"] == "ERM" and r["cluster_id"] != "none":
+                        dup_groups[r["cluster_id"]].append(r["risk_id"])
+                for risks_ in dup_groups.values():
+                    if len(risks_) > 1:
+                        self.assertEqual(len({frozenset(controls_of[r]) for r in risks_}), 1,
+                                         "an ERM duplicate must share its original's controls")
+                if not size:
+                    self.assertEqual(answer_key(out, "scenarios"), [], "sample size plants no scenarios")
         out = build(*FULL)
         exposed = defaultdict(set)
         risks_of = defaultdict(set)
@@ -133,6 +147,7 @@ class ControlTests(unittest.TestCase):
         self.assertLessEqual(c.unit_text_f1(), 0.80, "(e) same business unit then best text")
         self.assertLessEqual(c.entity_mention_f1(), 0.80, "(f) entity-name words")
         self.assertLessEqual(c.subject_kind_f1(kind_labels()), 0.80, "(h) subject and kind in titles")
+        self.assertLess(c.title_in_description_f1(), 0.5, "ERM titles quoted inside IA text (008 review)")
         for source in ("erm", "ia"):
             self.assertLess(c.count_cue(source), 0.3, f"(g) control counts reveal matches in {source}")
 

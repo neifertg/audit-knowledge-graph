@@ -231,7 +231,7 @@ def leakage(test, out, kind: str) -> None:
     for cluster, items in members.items():
         for i, (source_a, a) in enumerate(items):
             for source_b, b in items[i + 1:]:
-                if source_a == source_b == "IA":
+                if kind == "control" and source_a == source_b == "IA":
                     # Two IA documents of one enterprise control (008: one ERM control, several IA
                     # controls per cluster) are copies of each other by design; leakage concerns the
                     # pairs a matcher must find: ERM to IA, and ERM duplicates.

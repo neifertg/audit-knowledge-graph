@@ -616,7 +616,7 @@ def _full_controls(seed, t, concepts, erm_items, erm_risk_ids, ia_concepts, ia_r
         entity = by_instance[left].entities[0]
         desc = k.ia.format(entity=entity, subject=ia_subject)
         # IA RCMs cite the enterprise standard a local procedure implements, in ERM's wording
-        desc += f" The procedure implements the enterprise {k.erm_label} on {erm_subject}."
+        desc += f" The procedure implements the {lib.IA_CITATION[kind]} on {erm_subject}."
         return f"{_cap(k.ia_label)} for {ia_subject} ({entity})", desc
 
     def attributes(key: str):
