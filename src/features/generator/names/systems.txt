@@ -1,0 +1,10 @@
+Corvessa Core Banking
+Halbrook Loan Origination
+Pellmark ALM
+Quorvane Payments Hub
+Brisance Wire Manager
+Ylvara Data Warehouse
+Merrow AML Monitor
+Okrin Identity Gateway
+Velistra General Ledger
+Tessaly Case Manager
