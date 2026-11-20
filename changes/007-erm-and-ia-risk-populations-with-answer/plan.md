@@ -24,14 +24,14 @@
     {
       "id": "AC-2",
       "when": "either size is built",
-      "then": "every risk is classified by exactly one L3 node of its own source's taxonomy (INV-1, risk part) and is exposed to at least one auditable entity; at full size at least 70% of auditable entities are exposed to at least one risk",
+      "then": "every risk is classified by exactly one L3 node of its own source's taxonomy (INV-1, risk part) and is exposed to at least one auditable entity; at full size IA risks are exposed across at least 60% of auditable entities and ERM risks across at least 70%",
       "test": "generator.test_invariants.InvariantTests.test_ac2_inv1_each_risk_under_one_l3_of_its_source",
       "status": "pending"
     },
     {
       "id": "AC-3",
       "when": "the full build has run",
-      "then": "child a's answer-key consistency rules (every risk in risk_clusters.csv exactly once, clusters share one ERM L3, true nodes are ERM L3s, cross-source IA risks carry the ERM risk's node), referential integrity (INV-10), data dictionary and name checks (INV-9) all hold, run through the shared helpers in tests/generator/checks.py",
+      "then": "child a's size-independent answer-key rules (every risk in risk_clusters.csv exactly once, clusters share one ERM L3, true nodes are ERM L3s, cross-source IA risks carry the ERM risk's node), moved from test_answer_key into a shared helper in tests/generator/checks.py that a's test also calls, plus referential integrity (INV-10), data dictionary and name checks (INV-9), all hold at full size",
       "test": "generator.test_risks.RiskTests.test_ac3_child_a_answer_key_rules_hold_at_full_size",
       "status": "pending"
     },
@@ -45,15 +45,15 @@
     {
       "id": "AC-5",
       "when": "the full build has run",
-      "then": "structure does not give matches away: an exposure baseline that pairs an ERM and an IA risk whenever the IA risk's auditable entity is among the ERM risk's exposed entities scores F1 below 0.5, and so does that baseline combined with same-ERM-L1 filing; ERM records exposure at business-unit breadth with some stale links, IA at the specific entity",
+      "then": "structure does not give matches away, using only published files (never the answer key): (a) an exposure baseline that pairs an ERM and an IA risk whenever the IA risk's auditable entity is among the ERM risk's exposed entities scores F1 below 0.5; (b) a combined baseline that, for each IA risk, ranks the ERM risks exposed to any entity in the IA risk's business unit by TF-IDF cosine and takes the best one above the best global threshold, scores F1 at most 0.80; (c) at least 30% of IA risks' hard negatives share the IA risk's business unit; (d) 10-20% of ERM exposure links point to an entity in a different business unit of the same segment (stale links)",
       "test": "generator.test_risks.RiskTests.test_ac5_exposure_structure_does_not_leak_matches",
       "status": "pending"
     },
     {
       "id": "AC-6",
       "when": "the build runs after this change",
-      "then": "sample output is unchanged (`git log main.. -- tests/golden/checksums.sha256` shows no commit, and the sample golden test passes); tests/golden/checksums_full.sha256 is regenerated for the new full output; 006's full-size AI-text guard (AC-9) stays in place until child f",
-      "test": "generator.test_determinism.DeterminismTests.test_ac3_inv7_output_matches_golden_checksums and test_ac5_full_build_matches_full_golden; generator.test_full_build.FullBuildTests.test_ac9_full_size_explicit_ai_text_fails_loudly",
+      "then": "sample output is unchanged (`git log main.. -- tests/golden/checksums.sha256` shows no commit, and the sample golden test passes); tests/golden/checksums_full.sha256 is regenerated for the new full output; 006's full-size AI-text guard (AC-9) stays in place until child f; 006's test_ac1 assertion that risks and controls stay at sample size at full size is narrowed to audits and issues, with a note (an intended change, not a regression)",
+      "test": "generator.test_determinism.DeterminismTests.test_ac3_inv7_output_matches_golden_checksums and test_ac5_full_build_matches_full_golden; generator.test_full_build.FullBuildTests.test_ac9_full_size_explicit_ai_text_fails_loudly; the reviewer also runs `git log --oneline main.. -- tests/golden/checksums.sha256` (no commits expected)",
       "status": "pending"
     },
     {
@@ -74,7 +74,9 @@ E2's precision and recall only mean something if the risk populations look like 
 
 ## Data impact
 - **Risk themes x context.** The 22 risk concepts become themes (about 45) with a context slot. A concept instance is a theme applied to one auditable entity ("Fraudulent wire transfers" for Wire Transfer Operations vs Real-Time Payments). ERM and IA write each instance in their own voice; same theme, different entity is the natural hard negative.
-- **Exposure differs by source (AC-5).** IA links a risk to its specific auditable entity. ERM links at business-unit breadth (every entity in the owning business unit), and about 15% of ERM links point to a sibling unit's entity, as a stale register would.
+- **Exposure differs by source (AC-5).** IA links a risk to its specific auditable entity. ERM links at business-unit breadth (every entity in the owning business unit), and 10-20% of ERM links point to an entity in another business unit of the same segment, as a stale register would.
+- **Where same-theme risks sit.** A theme's instances are placed mostly on sibling entities of one business unit (wire and real-time payments both under Payment Operations), so the near-misses survive a business-unit filter (AC-5 b, c).
+- **Audits and issues at full size** keep sample counts but draw from the full-size risk and control instances, with the epic's linking rules intact (IA issues link only to controls their audit tested).
 - **Sample unchanged.** Sample mode keeps today's 22 concepts and code path; full size uses the theme library. 006's taxonomies have 50 ERM L3 nodes for about 45 themes; a theme may add an L3 node only through this plan's data-model update.
 - **Answer key.** `risk_clusters.csv` at full size; `taxonomy_map.csv` is b's. Misfiling counts risks under unmapped IA nodes (parked note from 006).
 - **Controls at full size** follow risk instances one-to-one, templated, with owners always differing between matched ERM and IA controls, until child d resizes them. Audits and issues stay at sample size (e).
