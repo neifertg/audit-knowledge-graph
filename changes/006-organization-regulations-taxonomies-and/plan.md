@@ -11,14 +11,14 @@
     "src/features/generator/**",
     "tests/**",
     "docs/data-model.md",
-    "requirements.txt"
+    "akg/**"
   ],
   "timebox": "2 working days of build time. Past this, stop and re-plan with `capitan revise` (e.g. split the taxonomies from the organization); never drop criteria silently.",
   "criteria": [
     {
       "id": "AC-1",
       "when": "`python -m akg build --size full --seed 42 --out <dir>` runs",
-      "then": "b's entities are at full size within the epic's ±10%: auditable entities 72-88, people 108-132, systems 27-33, regulations 14-16; plus segments exactly the 7 in docs/data-model.md, business units 20-40, processes 80-160; every auditable entity performs at least one process; at least 80% of processes run on a system; every relationship file b owns (has, owns, performs, runs_on, parent_of x2) has rows. Entities c-e own stay at sample size in this change",
+      "then": "b's entities are at full size within the epic's ±10%: auditable entities 72-88, people 108-132, systems 27-33, regulations 14-16; plus segments exactly the 7 in docs/data-model.md, business units 25-35, processes 80-160; every auditable entity performs at least one process; at least 80% of processes run on a system; every relationship file b owns (has, owns, performs, runs_on, parent_of x2) has rows. Entities c-e own stay at sample size in this change",
       "test": "generator.test_full_build.FullBuildTests.test_ac1_full_build_org_counts_within_targets",
       "status": "pending"
     },
@@ -39,22 +39,36 @@
     {
       "id": "AC-4",
       "when": "the full build has run",
-      "then": "answer_key/taxonomy_map.csv covers every IA node exactly once at an allowed level (child a's consistency rules), and maps unevenly: at least 1 IA L1 branch unmapped throughout, at least 4 IA nodes mapped to a shallower ERM level, of which at least 2 are IA L3 nodes mapped to an ERM L2",
+      "then": "answer_key/taxonomy_map.csv covers every IA node exactly once at an allowed level (child a's consistency rules), and maps unevenly: at least 1 IA L1 branch unmapped throughout, at least 4 IA nodes mapped to a shallower ERM level, of which at least 2 are IA L3 nodes mapped to an ERM L2; and stays mostly mappable: unmapped IA nodes are at most 20% of IA nodes, and shallower-level mappings at most 40%",
       "test": "generator.test_full_build.FullBuildTests.test_ac4_full_taxonomy_map_consistent_and_uneven",
       "status": "pending"
     },
     {
       "id": "AC-5",
       "when": "the default build runs (sample size) after this change",
-      "then": "the default text is AI-written (`--text ai`, per R2); every sample-size file is byte-identical to what `--text ai` produced before this change (checked against checksums recorded from the pre-change build), so b changes no sample output beyond the text default; tests/golden/checksums.sha256 is regenerated for the new default, and a new tests/golden/checksums_full.sha256 covers the full build (INV-7 at both sizes)",
-      "test": "generator.test_determinism.DeterminismTests.test_ac5_golden_checksums_at_both_sizes",
+      "then": "the default text is AI-written (`--text ai`, per R2). In slice 1, before any content change, only the CLI default switches and tests/golden/checksums.sha256 is regenerated from that otherwise unmodified code; it is not regenerated again in this change, so the final sample build matching it proves b changed no sample output beyond the text default. A new tests/golden/checksums_full.sha256 (written by `python -m tests.generator.golden --size full`) covers the full build (INV-7 at both sizes)",
+      "test": "generator.test_determinism.DeterminismTests.test_ac3_inv7_output_matches_golden_checksums and generator.test_determinism.DeterminismTests.test_ac5_full_build_matches_full_golden; plus `git log --oneline main.. -- tests/golden/checksums.sha256` shows exactly one commit (slice 1)",
       "status": "pending"
     },
     {
       "id": "AC-6",
       "when": "the full build has run",
-      "then": "child a's size-independent checks hold at full size too: referential integrity and no cross-source links (INV-10), data dictionary matches output, name columns come from their lists and no text names a real institution (INV-9), and changing `--count REGULATION` or `--count PERSON` leaves every file not naming that type unchanged",
+      "then": "child a's size-independent checks, moved into shared helpers that a's existing tests and this test both call, hold at full size too: referential integrity and no cross-source links (INV-10), data dictionary matches output, name columns come from their lists and no text names a real institution (INV-9), and changing `--count REGULATION` or `--count PERSON` leaves every file not naming that type unchanged",
       "test": "generator.test_full_build.FullBuildTests.test_ac6_child_a_checks_hold_at_full_size",
+      "status": "pending"
+    },
+    {
+      "id": "AC-7",
+      "when": "either size is built",
+      "then": "titles that a bank has one of (Chief Credit Officer, Chief Risk Officer, Chief Audit Executive, Chief Information Security Officer, Treasurer, Controller, BSA Officer, General Counsel) appear at most once each in person.csv; other titles may repeat",
+      "test": "generator.test_invariants.InvariantTests.test_ac7_one_per_bank_titles_are_unique",
+      "status": "pending"
+    },
+    {
+      "id": "AC-8",
+      "when": "the full build has run",
+      "then": "no system is orphaned (each runs at least one process); at least 8 systems run processes of auditable entities in 3 or more business units, and at least 3 of those span 2 or more segments, so E3's shared-system round has real blast radius",
+      "test": "generator.test_full_build.FullBuildTests.test_ac8_systems_are_shared_across_units",
       "status": "pending"
     }
   ],
@@ -72,12 +86,15 @@ The milestone needs a bank that reads as real at full size: an audit universe of
 - **Text default.** Per R2's decision, `--text` defaults to `ai`; `--text templated` stays. Golden checksums regenerate for that one reason.
 - **Taxonomy answer key.** The epic gives `taxonomy_map.csv` to child c, but a's consistency rules require every IA node in it, so b extends the true IA-to-ERM mapping for every node it adds. c still owns risk-level truth (`risk_clusters.csv`, misfiled risks).
 - **Content** lives in `library.py` and `names/*.txt`: about 80 auditable entities grouped under 25-35 business units, about 120 processes with their systems, 30 systems with fictional vendors and criticality, 15 real US regulations, an ERM taxonomy (Basel-style L1, banking L2/L3) and a legacy IA taxonomy organized by audit area. New fictional names (vendors, systems, titles) pass the deny-list.
-- **Invariants.** INV-1 (taxonomy part) and INV-2 get named tests, replacing `TBD (E1)` in `docs/data-model.md`. INV-7 gains a full-size golden. No new entities, columns or relationships.
+- **Invariants.** INV-1 (taxonomy part) and INV-2 get named tests, replacing `TBD (E1)` in `docs/data-model.md`. INV-7 gains a full-size golden: its "Enforced by" lists both the sample test (AC-3 of 005) and `test_ac5_full_build_matches_full_golden`. No new entities, columns or relationships.
+- **Areas.** `akg/**` is needed because `--size` choices and the `--text` default are defined in `akg/__main__.py` (the epic listed it for child a only because a created it); the edit is limited to those two options. `requirements.txt` is not touched: no package changes.
+- **Titles.** One-per-bank titles (C-suite, Treasurer, Controller, BSA Officer, General Counsel) are assigned at most once; other titles repeat (AC-7). Sample mode keeps its current 20 people and titles.
+- **Shared systems.** Process-to-system links are b's alone, so b makes them dense enough for E3's blast-radius round (AC-8).
 
 ## Test plan
 - Done check: `.venv\Scripts\python -m unittest discover -s tests -v`; every named test shows `ok`.
 - Real builds through the CLI into temp directories; no mocks.
-- Child a's tests keep running unchanged at sample size; AC-6 runs their size-independent checks again on the full build (shared helpers, not copies).
+- Child a's tests keep the same names and assertions at sample size; their size-independent check logic moves into shared helpers in `tests/generator/`, which a's tests and AC-6 both call (no copies).
 - Not tested here: risk, control, audit and issue volumes and quotas (c-e), AI text at full size (c-e, after the owner approves the cost per R2).
 
 ## Risks
@@ -98,7 +115,7 @@ The milestone needs a bank that reads as real at full size: an audit universe of
 - L-004 (capitan rescue sequence): followed for any knowledge that lands on the branch.
 
 ## Slices
-1. `--size full` plumbing; text default to `ai`; regenerate sample golden; AC-5 (sample part).
-2. Organization at full size: segments, business units, auditable entities, processes, systems, people, regulations, new names; AC-1, AC-3.
+1. `--size full` plumbing in `akg/__main__.py`; text default to `ai`; regenerate the sample golden once, from otherwise unmodified code; AC-5 (sample part).
+2. Organization at full size: segments, business units, auditable entities, processes, systems, people, regulations, new names; AC-1, AC-3, AC-7, AC-8.
 3. Taxonomies at full size and the extended IA-to-ERM map; AC-2, AC-4.
-4. Full-size golden, child a's checks at full size, data-model test names; AC-5 (full part), AC-6.
+4. `golden.py --size full`, full-size golden, child a's checks moved to shared helpers and run at full size, data-model test names; AC-5 (full part), AC-6.
