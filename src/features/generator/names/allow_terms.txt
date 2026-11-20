@@ -1,0 +1,42 @@
+# Capitalized domain terms AI text may use besides the project's name lists (AC-4).
+ACH
+ALCO
+ALM
+AML
+BSA
+CDD
+EVE
+FHLB
+NII
+OFAC
+QA
+RCSA
+SAR
+SARs
+SOC
+SoD
+UDAAP
+MRA
+IT
+Board
+Board Risk Committee
+Compliance
+Compliance Committee
+Controller
+Credit Administration
+Chief Credit Officer
+BSA Officer
+Complaints Manager
+Information Security
+Internal Audit
+Market Risk
+Model Risk
+New Product Committee
+Operational Risk
+Payment Operations
+Deposit Operations
+Procurement
+Technology Risk Committee
+Treasury
+Federal Home Loan Bank
+Federal Reserve

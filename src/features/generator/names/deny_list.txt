@@ -1,0 +1,121 @@
+# Real US banks, bank-tech vendors and core systems. Generated names must never match these
+# (case-insensitive, whole-token sequence). Distinctive forms only: never a single common word.
+JPMorgan
+JPMorgan Chase
+Chase Bank
+Bank of America
+Wells Fargo
+Citibank
+Citigroup
+Goldman Sachs
+Morgan Stanley
+U.S. Bank
+U.S. Bancorp
+PNC
+Truist
+Capital One
+TD Bank
+Fifth Third
+KeyBank
+KeyCorp
+Regions Bank
+Regions Financial
+Citizens Financial
+Citizens Bank
+M&T Bank
+Huntington Bank
+Huntington Bancshares
+Comerica
+Zions Bancorporation
+First Horizon
+Synovus
+Webster Bank
+Western Alliance
+East West Bank
+Popular Bank
+Valley National
+Cullen/Frost
+Frost Bank
+BOK Financial
+Associated Banc-Corp
+Old National
+Pinnacle Financial
+Wintrust
+Cadence Bank
+Hancock Whitney
+UMB Financial
+Prosperity Bank
+First Citizens
+BMO Harris
+Santander Bank
+HSBC
+Ally Bank
+Discover Financial
+American Express
+Charles Schwab
+Northern Trust
+State Street
+BNY Mellon
+Silicon Valley Bank
+Signature Bank
+First Republic
+Flagstar
+New York Community Bank
+Umpqua
+Columbia Banking
+Glacier Bank
+Banner Bank
+Simmons Bank
+Arvest
+Fulton Bank
+Atlantic Union
+Texas Capital
+Bank OZK
+SouthState
+Ameris Bank
+Trustmark
+Commerce Bancshares
+First Interstate
+Fiserv
+FIS Global
+Jack Henry
+Temenos
+Finastra
+nCino
+Q2 Holdings
+Alkami
+Verafin
+NICE Actimize
+Actimize
+Kyriba
+Workiva
+AuditBoard
+RSA Archer
+MetricStream
+ServiceNow
+SailPoint
+Okta
+CyberArk
+Abrigo
+Experian
+Equifax
+TransUnion
+Bottomline Technologies
+Moody's Analytics
+Wolters Kluwer
+Diebold Nixdorf
+Finacle
+Oracle FLEXCUBE
+LexisNexis
+Thomson Reuters
+Bloomberg L.P.
+Murex
+Broadridge
+Black Knight
+ICE Encompass
+Salesforce
+Workday Inc.
+Splunk
+Palantir
+Snowflake Inc.
+Databricks
