@@ -48,13 +48,13 @@ Rules that must always hold. Each has an ID and a test that enforces it (tests n
 
 | ID | Invariant | Enforced by |
 |---|---|---|
-| INV-1 | Each taxonomy is a strict tree; every L4 risk sits under exactly one L3 node of its own source's taxonomy. | TBD (E1) |
-| INV-2 | Every auditable entity belongs to exactly one business unit. | TBD (E1) |
+| INV-1 | Each taxonomy is a strict tree; every L4 risk sits under exactly one L3 node of its own source's taxonomy. | Taxonomy part: `generator.test_invariants.InvariantTests.test_ac2_inv1_taxonomies_are_strict_trees`; risk part: TBD (E1 child c) |
+| INV-2 | Every auditable entity belongs to exactly one business unit. | `generator.test_invariants.InvariantTests.test_ac3_inv2_each_entity_has_exactly_one_owner` |
 | INV-3 | Each source risk or control maps to at most one canonical item, or is in the review queue; nothing below the confidence threshold is merged silently. | TBD (E2) |
 | INV-4 | Every IA issue links to exactly one audit; every issue links to at least one control or risk, and has exactly one owner and one source. | TBD (E1) |
 | INV-5 | Dates are consistent: closure never before open; audits within the 3-year window; an issue never before the audit that raised it. | TBD (E1) |
 | INV-6 | The reconciliation pipeline never reads the answer key; it is used only for scoring. | TBD (E2) |
-| INV-7 | The same seed produces byte-identical output. | `generator.test_determinism.DeterminismTests.test_ac3_inv7_output_matches_golden_checksums` |
+| INV-7 | The same seed produces byte-identical output. | Sample: `generator.test_determinism.DeterminismTests.test_ac3_inv7_output_matches_golden_checksums`; full: `generator.test_determinism.DeterminismTests.test_ac5_full_build_matches_full_golden` |
 | INV-8 | SQLite and Neo4j hold the same facts (row counts reconcile with node and edge counts). | TBD (E3) |
 | INV-9 | Institution, people, vendor and system names come only from the project's fictional name lists. | `generator.test_names.NameTests.test_ac4_inv9_names_from_lists_and_no_denied_name_anywhere` |
 | INV-10 | No relationship crosses sources: ERM controls mitigate ERM risks, IA controls IA risks, each taxonomy is its own tree, and so on. ERM-IA links exist only in the answer key (truth) and the canonical layer (E2 output). | `generator.test_referential.ReferentialTests.test_ac12_relationship_ids_exist_and_never_cross_sources` |
