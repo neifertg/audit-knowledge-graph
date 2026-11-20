@@ -42,7 +42,7 @@
     {
       "id": "AC-4",
       "when": "the sample build has run, the AI text is committed, and the test has generated a sample pack to a temp path",
-      "then": "every column the data dictionary marks with `name_list: <list>` takes its values only from that list in src/features/generator/names/; no list entry, and no token sequence in any text cell of any output CSV, the committed AI text or the generated pack, matches (case-insensitive, whole-token sequence) the committed deny-list of real US bank, vendor and core-system names (INV-9). Deny-list entries are distinctive forms (e.g. 'KeyBank', 'Regions Bank', 'Citizens Financial'), never a single common word, so 'key control' does not match. Also, every run of two or more capitalized words in the AI text (ignoring the sentence-initial word) is on a name list or on a committed allow-list of domain terms (e.g. 'General Ledger'), so the AI cannot invent unlisted names",
+      "then": "every text column in the data dictionary is marked either `name_list: <list>` or `free_text` (the test fails on an unmarked text column); every `name_list` column takes its values only from that list in src/features/generator/names/; no list entry, and no token sequence in any text cell of any output CSV, the committed AI text or the generated pack, matches (case-insensitive, whole-token sequence) the committed deny-list of real US bank, vendor and core-system names (INV-9). Deny-list entries are distinctive forms (e.g. 'KeyBank', 'Regions Bank', 'Citizens Financial'), never a single common word, so 'key control' does not match. Also, every capitalized word or run of capitalized words in the AI text (ignoring the sentence-initial word) is on a name list or on a committed allow-list of domain terms (e.g. 'General Ledger', 'ACH', 'SOX'), so the AI cannot invent unlisted one-word or multi-word names",
       "test": "generator.test_names.NameTests.test_ac4_inv9_names_from_lists_and_no_denied_name_anywhere",
       "status": "pending"
     },
@@ -90,9 +90,16 @@
     },
     {
       "id": "AC-11",
-      "when": "the build runs with seed 42 and `--count REGULATION=5` (an early type with few dependents), and separately with `--count ISSUE=5` (the last type)",
-      "then": "in the first run every CSV whose file name does not contain `regulation`, and in the second every CSV whose name contains no `issue`, is byte-identical to the default run, proving per-type random streams are independent",
+      "when": "the build runs with seed 42 and `--count REGULATION=5` (sample default 8; an early type with few dependents), and separately with `--count ISSUE=5` (sample default 15; the last type)",
+      "then": "the test first asserts each override differs from the default, then that in the first run every CSV whose file name does not contain `regulation`, and in the second every CSV whose name contains no `issue`, is byte-identical to the default run, proving per-type and per-relationship random streams are independent",
       "test": "generator.test_determinism.DeterminismTests.test_ac11_changing_one_type_count_leaves_other_types_unchanged",
+      "status": "pending"
+    },
+    {
+      "id": "AC-12",
+      "when": "the sample build has run",
+      "then": "every ID in every relationship CSV exists in the entity file its column names, and in that source's file when the relationship file has a source suffix; no relationship row links an ERM item to an IA item (the new no-cross-source rule)",
+      "test": "generator.test_referential.ReferentialTests.test_ac12_relationship_ids_exist_and_never_cross_sources",
       "status": "pending"
     }
   ],
@@ -109,13 +116,13 @@ The milestone's riskiest assumption is that the synthetic bank reads as real to 
   - Shared entities, one file each: `segment`, `business_unit`, `auditable_entity`, `process`, `system`, `person`, `regulation`, `audit`, `issue`.
   - Sourced entities, one file per source: `taxonomy_node_erm` / `_ia`, `risk_erm` / `_ia`, `control_erm` / `_ia`. IDs and row order are shuffled independently per file.
   - Relationships, named `<from>_<label>_<to>.csv`, with a source suffix when either end is sourced (e.g. `control_mitigates_risk_erm.csv`, `issue_against_control_ia.csv`, `control_owned_by_person_erm.csv`).
-  - **New rule: no relationship crosses sources.** ERM controls mitigate ERM risks, IA controls IA risks; ERM-IA links exist only in the answer key. Added to `docs/data-model.md` in this change.
+  - **New rule: no relationship crosses sources.** ERM controls mitigate ERM risks, IA controls IA risks; ERM-IA links exist only in the answer key. Added to `docs/data-model.md` in this change as an invariant enforced by AC-12.
+- **Random streams:** each entity type and each relationship file draws from its own stream, sub-seeded from the master seed and the type or file name. Sample default counts per type are fixed in the generator's config and listed in the data dictionary.
 - Columns are provisional; b-e may add columns and update the data dictionary.
 - **Committed AI text:** `src/features/generator/text/ai_text.jsonl`, one JSON object per line (`key`, `input_hash`, `text`), sorted by key, UTF-8, LF. That folder is the `--text-dir` default.
 - **Published description:** the build writes templated text by default (`--text templated`). `--text ai` swaps in the committed AI text. All criteria and golden checksums use the default until R2 is GO; if R2 picks AI text, child b switches the default and regenerates the checksums.
 - First answer-key files, in the epic's schema.
 - Invariants enforced here: INV-7 (golden checksums), INV-9 (names + deny-list over all text). Replaces their `TBD (E1)` in `docs/data-model.md` with the AC-3 and AC-4 test names. INV-1, 2, 4, 5 are left to b-e.
-- Random streams are sub-seeded per entity type from the start (epic rule; AC-11), so b-e can extend without changing a's output.
 - The generator itself uses only the standard library (`random`, `csv`, `hashlib`), so output bytes never depend on numpy or pandas versions; scikit-learn is used only in tests.
 - `akg/` sits at the repo root; `python -m akg` run from the root imports the generator as `src.features.generator` (namespace package, no packaging files needed).
 
@@ -123,7 +130,7 @@ The milestone's riskiest assumption is that the synthetic bank reads as real to 
 - Done check: `python -m unittest discover -s tests -v`. Tests are `unittest.TestCase` methods; `tests/` and `tests/generator/` have `__init__.py`; the names in the criteria are the dotted names that verbose output prints, and each must appear there as `ok` (not skipped) before its criterion is marked pass.
 - Real files, real build, no mocks; tests build into a temp directory and never write committed files.
 - TF-IDF settings are fixed in one test helper used by AC-2 and AC-7: scikit-learn `TfidfVectorizer(lowercase=True, ngram_range=(1, 2))`, fit per comparison on all ERM and IA descriptions of that kind (risks or controls).
-- `.venv/` and `__pycache__/` are not in `.gitignore` (governance; owner's to change). Until the owner adds them, the builder lists them in `.git/info/exclude` locally and never stages them.
+- `.venv/` and `__pycache__/` must be ignored by `.gitignore` (governance; the owner's change). The builder never stages either.
 - AC-5 blocks network with a socket guard in the subprocess only; it is a guard, not a mock of our code.
 - The AI-text script (`write_text.py`) is not run by tests; it is run once by hand (key read at runtime from `~/.claude/secrets.yaml` with PyYAML, approved by the owner 2026-11-20 for script-only use; AC-5 proves the build never needs it), and its committed output is what AC-4 and AC-6 check.
 - Not tested here: F1 bands, quotas, hard-negative rates, planted scenarios and full sizes (meaningless at ~15 rows; c-e own them). The owner's realism verdict is a manual gate recorded in R2's decision.md, not a test.
@@ -151,7 +158,7 @@ When every criterion passes, `sample_pack.md` (generated by the command at its d
 ## Slices
 1. `.venv`, `requirements.txt`, `akg` package with `build` (flags `--size`, `--seed`, `--out`, `--count TYPE=N`, `--text`, `--text-dir`), `sample-pack` and `check-text` commands, `.gitattributes`; AC-10.
 2. Name lists and deny-list; AC-4 (name-column part).
-3. Entity and edge generators at sample size with sub-seeded streams, plus the answer key; AC-1, AC-2, AC-7 (templated).
+3. Entity and edge generators at sample size with sub-seeded streams, plus the answer key; AC-1, AC-2, AC-7 (templated), AC-12.
 4. Writer encoding and golden checksums; AC-3, AC-5, AC-11.
 5. Data dictionary README; AC-9.
 6. `write_text.py`, run once, committed text with input hashes; AC-6; AC-2, AC-4 and AC-7 on the AI variant.
