@@ -45,8 +45,8 @@
     },
     {
       "id": "AC-5",
-      "when": "the default build runs (sample size) after this change",
-      "then": "the default text is AI-written (`--text ai`, per R2) at sample size; at full size it defaults to templated until c-e generate full-size AI text, and an explicit `--size full --text ai` fails loudly instead of mixing. In slice 1, before any content change, only the CLI default switches and tests/golden/checksums.sha256 is regenerated from that otherwise unmodified code; it is not regenerated again in this change, so the final sample build matching it proves b changed no sample output beyond the text default. A new tests/golden/checksums_full.sha256 (written by `python -m tests.generator.golden --size full`) covers the full build (INV-7 at both sizes)",
+      "when": "the build runs at either size after this change",
+      "then": "the default text is AI-written (`--text ai`, per R2) at sample size; at full size it defaults to templated until c-e generate full-size AI text (the explicit `--size full --text ai` case is AC-9). In slice 1, before any content change, only the CLI default switches and tests/golden/checksums.sha256 is regenerated from that otherwise unmodified code; it is not regenerated again in this change, so the final sample build matching it proves b changed no sample output beyond the text default. A new tests/golden/checksums_full.sha256 (written by `python -m tests.generator.golden --size full`) covers the full build (INV-7 at both sizes)",
       "test": "generator.test_determinism.DeterminismTests.test_ac3_inv7_output_matches_golden_checksums and generator.test_determinism.DeterminismTests.test_ac5_full_build_matches_full_golden; plus `git log --oneline main.. -- tests/golden/checksums.sha256` shows exactly one commit (slice 1)",
       "status": "pending"
     },
@@ -69,6 +69,13 @@
       "when": "the full build has run",
       "then": "no system is orphaned (each runs at least one process); at least 8 systems run processes of auditable entities in 3 or more business units, and at least 3 of those span 2 or more segments, so E3's shared-system round has real blast radius",
       "test": "generator.test_full_build.FullBuildTests.test_ac8_systems_are_shared_across_units",
+      "status": "pending"
+    },
+    {
+      "id": "AC-9",
+      "when": "`python -m akg build --size full --text ai` runs before children c-e generate full-size AI text",
+      "then": "it exits non-zero before writing any file, with a message saying AI text exists only at sample size so far and to use `--text templated`; the refusal is a deliberate size check in the generator, not the per-item stale-text check, so no item can silently receive sample AI text at full size and the message never suggests regenerating (which would spend unapproved API budget). Children c-e remove the check when they add full-size AI text.",
+      "test": "generator.test_full_build.FullBuildTests.test_ac9_full_size_explicit_ai_text_fails_loudly",
       "status": "pending"
     }
   ],
@@ -121,3 +128,4 @@ The milestone needs a bank that reads as real at full size: an audit universe of
 2. Organization at full size: segments, business units, auditable entities, processes, systems, people, regulations, new names; AC-1, AC-3, AC-7, AC-8.
 3. Taxonomies at full size and the extended IA-to-ERM map; AC-2, AC-4.
 4. `golden.py --size full`, full-size golden, child a's checks moved to shared helpers and run at full size, data-model test names; AC-5 (full part), AC-6.
+5. (Revision 1) Drop the PERSON sub-test from AC-6's test; deliberate full-size AI-text guard and its test; AC-9.
