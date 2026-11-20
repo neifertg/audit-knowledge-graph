@@ -14,4 +14,5 @@ Timebox: half a day. Past this, decide with what you have. Cost approved: a few 
 ## Decision
 Decision: GO
 Why: The owner found every entity type realistic. AI-written descriptions are chosen: they read like records written by different people, avoid the repeated frames that would make reconciliation artificially easy, and are guarded and committed, so the build stays offline and deterministic. Templated text remains available (`--text templated`) as a fallback.
+Update 2026-11-20 (owner): full-size AI text is generated through the Message Batches API (50% off, asynchronous), still with claude-opus-5-5. Child c measures real per-item usage on a few sample items first and states the measured full-size cost in its plan for the owner to approve.
 Next: Child b (E1) switches the build default to `--text ai` and regenerates the golden checksums. Before children c-e generate full-size AI text, the owner approves the estimated $10-15 cost (or picks a cheaper model or keeps templated text for some files). Parked review findings for c-e apply (positional issue keys; matched controls sharing all attributes).
