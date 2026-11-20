@@ -4,7 +4,7 @@
 {
   "id": "006-organization-regulations-taxonomies-and",
   "tier": "standard",
-  "status": "approved",
+  "status": "in-progress",
   "created": "2026-11-20",
   "objective": "O3",
   "areas": [
@@ -75,7 +75,8 @@
   "epic": "001-e1-synthetic-bank-generator",
   "child": "b",
   "approved": "2026-11-20",
-  "approved_hash": "8bad9366be64cc17"
+  "approved_hash": "8bad9366be64cc17",
+  "in_progress": "2026-11-20"
 }
 ```
 
