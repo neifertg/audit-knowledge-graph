@@ -109,8 +109,8 @@ def render_text(templated: Dataset, ai: Dataset | None) -> str:
 
 
 def render(args) -> None:
-    templated = build(args.seed, dict(args.count), "templated")
-    ai = build(args.seed, dict(args.count), "ai", args.text_dir)
+    templated = build(args.seed, dict(args.count), "templated", size=args.size)
+    ai = build(args.seed, dict(args.count), "ai", args.text_dir, args.size)
     path = Path(args.out)
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8", newline="\n") as f:

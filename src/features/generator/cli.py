@@ -6,14 +6,18 @@ from .writer import write
 
 
 def run(args) -> int:
+    if getattr(args, "text", "") is None:
+        # R2 chose AI text; full-size AI text arrives with children c-e, so full size
+        # defaults to templated until then. An explicit --text ai always applies strictly.
+        args.text = "templated" if args.size == "full" else "ai"
     try:
         if args.command == "build":
-            dataset = build(args.seed, dict(args.count), args.text, args.text_dir)
+            dataset = build(args.seed, dict(args.count), args.text, args.text_dir, args.size)
             write(dataset, args.out)
             print(f"wrote {len(dataset.tables)} tables and {len(dataset.answer_key)} answer-key files to {args.out}")
             return 0
         if args.command == "check-text":
-            orphans = orphan_ai_keys(build(args.seed), args.text_dir)
+            orphans = orphan_ai_keys(build(args.seed, size=args.size), args.text_dir)
             if orphans:
                 print("AI text keys that no item uses: " + ", ".join(orphans), file=sys.stderr)
                 return 1

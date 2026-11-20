@@ -11,3 +11,5 @@ Interagency Appraisal and Evaluation Guidelines
 UCC Article 4A (Funds Transfers)
 Nacha Operating Rules
 Dodd-Frank UDAAP Provisions
+Regulation CC (Availability of Funds)
+Fair Credit Reporting Act

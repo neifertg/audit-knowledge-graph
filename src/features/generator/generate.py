@@ -20,6 +20,14 @@ SAMPLE_COUNTS = {
     "RISK_ERM": 15,
     "RISK_IA": 15,
 }
+FULL_COUNTS = {
+    **SAMPLE_COUNTS,  # risks, controls, audits and issues reach full size in children c-e
+    "REGULATION": 15,
+    "PERSON": 120,
+}
+SIZES = {"sample", "full"}
+SAMPLE_NAME_POOL = 30   # sample mode draws people from the first 30 first and last names
+SAMPLE_TITLE_POOL = 20  # and cycles through the first 20 titles
 OVERRIDABLE = {"REGULATION", "PERSON", "AUDIT", "ISSUE"}
 WINDOW_START = date(2023, 1, 1)
 WINDOW_END = date(2025, 12, 31)
@@ -74,11 +82,14 @@ def _lc_first(text: str) -> str:
 
 
 def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "templated",
-          text_dir: Path | None = None) -> Dataset:
-    n = dict(SAMPLE_COUNTS)
+          text_dir: Path | None = None, size: str = "sample") -> Dataset:
+    if size not in SIZES:
+        raise GenerationError(f"unknown size {size}; choose from {sorted(SIZES)}")
+    full = size == "full"
+    n = dict(FULL_COUNTS if full else SAMPLE_COUNTS)
     for name, value in (counts or {}).items():
         if name not in OVERRIDABLE:
-            raise GenerationError(f"--count {name} is fixed at sample size; overridable: {sorted(OVERRIDABLE)}")
+            raise GenerationError(f"--count {name} is fixed; overridable: {sorted(OVERRIDABLE)}")
         n[name] = value
 
     t: dict[str, Table] = {}
@@ -86,47 +97,65 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
     texts: list[TextItem] = []
 
     # --- organization ------------------------------------------------------------------
+    # Full size reads the FULL_* structures; sample reads the original ones, so sample
+    # output does not change when full-size content is added.
+    business_units = lib.FULL_BUSINESS_UNITS if full else lib.BUSINESS_UNITS
+    entities = lib.FULL_AUDITABLE_ENTITIES if full else lib.AUDITABLE_ENTITIES
+    processes = lib.FULL_PROCESSES if full else lib.PROCESSES
+    systems_info = lib.FULL_SYSTEMS if full else lib.SYSTEMS
+
     seg_id = dict(zip(lib.SEGMENTS, _ids(seed, "segment", "SEG-", len(lib.SEGMENTS), 10, 100)))
     t["segment"] = Table(["segment_id", "name"], [(seg_id[s], s) for s in lib.SEGMENTS])
 
-    bu_names = list(lib.BUSINESS_UNITS)
+    bu_names = list(business_units)
     bu_id = dict(zip(bu_names, _ids(seed, "business_unit", "BU-", len(bu_names), 100, 1000)))
     t["business_unit"] = Table(["business_unit_id", "name"], [(bu_id[b], b) for b in bu_names])
     t["segment_has_business_unit"] = Table(
         ["segment_id", "business_unit_id"],
-        [(seg_id[s], bu_id[b]) for b, s in lib.BUSINESS_UNITS.items()])
+        [(seg_id[s], bu_id[b]) for b, s in business_units.items()])
 
-    ae_names = list(lib.AUDITABLE_ENTITIES)
+    ae_names = list(entities)
     ae_id = dict(zip(ae_names, _ids(seed, "auditable_entity", "AE-", len(ae_names), 100, 1000)))
     t["auditable_entity"] = Table(["auditable_entity_id", "name"], [(ae_id[a], a) for a in ae_names])
     t["business_unit_owns_auditable_entity"] = Table(
         ["business_unit_id", "auditable_entity_id"],
-        [(bu_id[b], ae_id[a]) for a, b in lib.AUDITABLE_ENTITIES.items()])
+        [(bu_id[b], ae_id[a]) for a, b in entities.items()])
 
-    system_names = list(load("systems"))
+    system_names = [s for s in load("systems") if s in systems_info]
     sys_id = dict(zip(system_names, _ids(seed, "system", "SYS-", len(system_names), 100, 1000)))
     t["system"] = Table(
         ["system_id", "name", "vendor", "criticality"],
-        [(sys_id[s], s, *lib.SYSTEMS[s]) for s in system_names])
+        [(sys_id[s], s, *systems_info[s]) for s in system_names])
 
-    proc_names = list(lib.PROCESSES)
+    proc_names = list(processes)
     proc_id = dict(zip(proc_names, _ids(seed, "process", "PRC-", len(proc_names), 100, 1000)))
     t["process"] = Table(["process_id", "name"], [(proc_id[p], p) for p in proc_names])
     t["auditable_entity_performs_process"] = Table(
         ["auditable_entity_id", "process_id"],
-        [(ae_id[a], proc_id[p]) for p, (a, _) in lib.PROCESSES.items()])
+        [(ae_id[a], proc_id[p]) for p, (a, _) in processes.items()])
     t["process_runs_on_system"] = Table(
         ["process_id", "system_id"],
-        [(proc_id[p], sys_id[s]) for p, (_, systems) in lib.PROCESSES.items() for s in systems])
+        [(proc_id[p], sys_id[s]) for p, (_, systems) in processes.items() for s in systems])
 
     # --- people ------------------------------------------------------------------------
     rng = stream(seed, "person")
-    pairs = [(f, l) for f in load("first_names") for l in load("last_names")]
+    pool = None if full else SAMPLE_NAME_POOL
+    pairs = [(f, l) for f in load("first_names")[:pool] for l in load("last_names")[:pool]]
     if n["PERSON"] > len(pairs):
         raise GenerationError("not enough name combinations for --count PERSON")
     people = [f"{f} {l}" for f, l in rng.sample(pairs, n["PERSON"])]
     titles = list(load("titles"))
-    person_titles = [titles[i % len(titles)] for i in range(len(people))]
+    if full:
+        # one-per-bank titles (C-suite, heads, Treasurer, Controller...) go to exactly one person each
+        unique = [x for x in titles if lib.one_per_bank(x)]
+        repeatable = [x for x in titles if not lib.one_per_bank(x)]
+        if len(people) < len(unique):
+            raise GenerationError(f"--count PERSON must be at least {len(unique)} at full size")
+        trng = stream(seed, "person/titles")
+        person_titles = unique + [trng.choice(repeatable) for _ in range(len(people) - len(unique))]
+        trng.shuffle(person_titles)
+    else:
+        person_titles = [titles[i % SAMPLE_TITLE_POOL] for i in range(len(people))]
     person_ids = _ids(seed, "person", "P-", len(people), 1000, 10000)
     t["person"] = Table(["person_id", "name", "title"], list(zip(person_ids, people, person_titles)))
 
@@ -138,7 +167,7 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
     reg_id = dict(zip(reg_names, _ids(seed, "regulation", "REG-", len(reg_names), 100, 1000)))
     t["regulation"] = Table(
         ["regulation_id", "name", "citation"],
-        [(reg_id[r], r, lib.REGULATIONS[r]) for r in reg_names])
+        [(reg_id[r], r, lib.FULL_REGULATIONS[r]) for r in reg_names])
 
     # --- taxonomies --------------------------------------------------------------------
     def taxonomy(source: str, paths: list, prefix: str, lo: int, hi: int) -> dict:

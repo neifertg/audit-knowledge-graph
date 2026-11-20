@@ -18,3 +18,39 @@ Complaints Manager
 New Product Program Manager
 Third-Party Risk Manager
 Operational Risk Manager
+Chief Risk Officer
+Chief Audit Executive
+Chief Information Security Officer
+Chief Compliance Officer
+Chief Financial Officer
+General Counsel
+Head of Wealth Management
+Head of Commercial Banking
+Head of Consumer Banking
+Head of Human Resources
+Relationship Manager
+Credit Analyst
+Branch Manager
+Operations Supervisor
+Compliance Analyst
+Senior Auditor
+Audit Manager
+IT Security Analyst
+Business Systems Analyst
+Loan Servicing Specialist
+Fraud Analyst
+AML Investigator
+Risk Analyst
+Product Manager
+Payments Specialist
+Accountant
+Financial Analyst
+HR Business Partner
+Paralegal
+Data Analyst
+Model Validator
+Contact Center Supervisor
+Vendor Manager
+Change Manager
+Trust Officer
+Portfolio Manager
