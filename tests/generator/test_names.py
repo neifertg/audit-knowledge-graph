@@ -29,7 +29,8 @@ class NameTests(unittest.TestCase):
             "deny-list entries must be distinctive forms, never a single common word")
 
         # every name list entry is clear of the deny-list
-        for list_name in ("institution", "first_names", "last_names", "systems", "vendors", "titles", "people"):
+        for list_name in ("institution", "first_names", "last_names", "systems", "vendors", "titles", "people",
+                          "regulations", "allow_terms"):
             for entry in name_list(list_name):
                 self.assertEqual(denied_in(entry, deny), [], f"{list_name} entry {entry!r} matches a real name")
 
@@ -42,6 +43,8 @@ class NameTests(unittest.TestCase):
                 if type_ != "text":
                     continue
                 cells = [r[column] for r in rows]
+                self.assertTrue(values.startswith("name_list: ") or values == "free_text",
+                                f"{name}.{column}: text column must be marked name_list or free_text")
                 if values.startswith("name_list: "):
                     allowed = name_list(values.split(": ", 1)[1])
                     stray = sorted(set(cells) - allowed)

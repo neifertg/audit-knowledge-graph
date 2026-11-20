@@ -32,4 +32,6 @@ Ideas that came up mid-change. Review them when planning the next milestone; pro
 - 2026-11-19 E1 children b-e: list requirements.txt in areas if they bump a pin or add an approved package (from 001-e1-synthetic-bank-generator)
 - 2026-11-19 E1 children d/e: decide who writes answer_key/scenarios.csv (d appends shared-system rows, e the rest) (from 001-e1-synthetic-bank-generator)
 - 2026-11-19 Vendors: E3 round 5 adds third-party vendors live; decide whether E1 needs a vendor name list or E3 brings its own (from 001-e1-synthetic-bank-generator)
+- 2026-11-20 E1 children c-e: AI-text keys for issues are positional (issue:{j}); --count ISSUE/AUDIT with --text ai breaks them. Key issues by a stable natural key before full-size AI text (review of 005) (from 005-sample-pack-for-realism-review)
+- 2026-11-20 E1 child d: matched ERM/IA controls always share type, nature and frequency (9 of 9 in the sample); AC-7 passes only via differing owners. Add realistic attribute disagreement (review of 005) (from 005-sample-pack-for-realism-review)
 <!-- capitan:parking:end -->

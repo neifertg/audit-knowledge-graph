@@ -27,7 +27,7 @@ class SamplePackTests(unittest.TestCase):
         self.assertEqual(pack.count("| description (templated) | description (AI) |"), 5)
         self.assertNotIn("(not generated)", pack)
         self.assertIn("**Text choice (templated / AI):**", pack)
-        for list_name in ("institution", "first_names", "last_names", "titles", "systems", "vendors"):
+        for list_name in ("institution", "first_names", "last_names", "titles", "systems", "vendors", "regulations"):
             line = next(l for l in pack.splitlines() if l.startswith(f"**{list_name}:**"))
             for entry in name_list(list_name):
                 self.assertIn(entry, line, f"{list_name} entry {entry!r} missing from the pack")
