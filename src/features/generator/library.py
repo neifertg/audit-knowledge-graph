@@ -1151,7 +1151,7 @@ FULL_ONLY_THEMES = [
        "Stale credit grades", "credit grades stay unchanged through declining cash flow and missed payments",
        "optimism bias in relationship-manager-assigned grades", "understated reserves and late workout action",
        "Risk rating accuracy", "independent re-grading, rating migration, watch list completeness",
-       "Independent risk rating review", "Loan Review re-grades a sample of credits each year.",
+       "Independent risk rating review", "Credits are re-graded independently each year.",
        "Independent loan review sampling and re-grading",
        "Loan Review selects a risk-based sample each year, re-grades each credit independently, and reports "
        "rating disagreements to the Chief Credit Officer; downgrades are booked within 30 days.",
@@ -1600,6 +1600,138 @@ THEME_ENTITIES.update({
     "fiduciary": ["Personal Trust Administration", "Estate Settlement", "Retirement Plan Recordkeeping"],
     "cash_handling": ["Cash Management & Vault", "Branch Operations", "Safe Deposit"],
 })
+
+# ---------------------------------------------------------------------------------------
+# Full-size controls (child d, 008)
+# ---------------------------------------------------------------------------------------
+
+# theme -> (ERM subject phrase, IA subject phrase); worded differently on purpose (AC-5 h).
+THEME_SUBJECT = {
+    "uw_authority": ("credit approval authority", "loan approval limits"),
+    "uw_collateral": ("collateral valuation", "appraisal review"),
+    "uw_income": ("borrower income verification", "income documentation"),
+    "irr_model": ("interest rate risk modeling", "ALM model assumptions"),
+    "irr_limits": ("rate sensitivity limits", "EVE and NII limit breaches"),
+    "cfp_test": ("contingency funding readiness", "backup funding line tests"),
+    "cfp_stress": ("liquidity stress scenarios", "runoff assumptions"),
+    "wire_fraud": ("outgoing wire transfers", "wire release"),
+    "ach_fraud": ("ACH originations", "originator exposure"),
+    "recon_breaks": ("payment suspense balances", "suspense account aging"),
+    "txn_errors": ("manual account postings", "manual adjustments"),
+    "acc_provision": ("user access provisioning", "access request approvals"),
+    "acc_recert": ("access recertification", "entitlement reviews"),
+    "acc_privileged": ("privileged system access", "administrator accounts"),
+    "aml_monitoring": ("transaction monitoring coverage", "AML scenario tuning"),
+    "aml_alerts": ("AML alert handling", "alert disposition"),
+    "aml_cdd": ("customer due diligence", "beneficial ownership files"),
+    "aml_sanctions": ("sanctions screening", "OFAC hit review"),
+    "npi_approval": ("new product governance", "launch approvals"),
+    "npi_thirdparty": ("fintech partnerships", "partner onboarding"),
+    "cmp_handling": ("complaint resolution", "complaint case logging"),
+    "cmp_rootcause": ("complaint trend analysis", "complaint root causes"),
+    "cm_covenant": ("covenant compliance", "financial statement tracking"),
+    "cm_riskrating": ("credit risk grading", "rating migration"),
+    "cre_concentration": ("property concentration", "CRE limit reporting"),
+    "collections_workout": ("delinquency management", "collection queues"),
+    "acl_reserve": ("credit loss reserving", "CECL model output"),
+    "deriv_counterparty": ("swap counterparty exposure", "margin calls"),
+    "securities_valuation": ("securities pricing", "price verification"),
+    "deposit_runoff": ("large depositor concentration", "top depositor tracking"),
+    "intraday_liquidity": ("intraday funding", "Federal Reserve account balance"),
+    "change_mgmt": ("production changes", "change tickets"),
+    "dr_resilience": ("system recovery capability", "failover testing"),
+    "cyber_detection": ("cyber threat detection", "security alert triage"),
+    "vuln_patch": ("vulnerability remediation", "patch deadlines"),
+    "card_fraud": ("card and account takeover", "fraud rule performance"),
+    "check_fraud": ("check fraud", "duplicate item detection"),
+    "vendor_dd": ("critical vendor onboarding", "vendor due diligence packages"),
+    "vendor_perf": ("vendor service levels", "SLA breaches"),
+    "data_quality": ("critical data quality", "data quality rules"),
+    "model_risk": ("model governance", "model validation status"),
+    "comp_practices": ("incentive plan design", "payout adjustments"),
+    "bcp": ("business continuity planning", "continuity exercises"),
+    "fair_lending": ("equitable pricing", "pricing exception reviews"),
+    "lending_disclosures": ("loan disclosures", "disclosure timing"),
+    "deposit_regs": ("consumer error claims", "provisional credit"),
+    "privacy": ("customer data protection", "outbound data loss prevention"),
+    "regreport": ("regulatory filing accuracy", "call report reconciliation"),
+    "udaap_sales": ("sales practices", "account consent evidence"),
+    "capital": ("capital adequacy planning", "capital stress tests"),
+    "recon_suspense": ("clearing account balances", "reconciling item aging"),
+    "tax_compliance": ("tax obligations", "tax provision"),
+    "loan_servicing": ("loan payment processing", "escrow and rate resets"),
+    "trade_processing": ("client trade processing", "trade error corrections"),
+    "fiduciary": ("fiduciary administration", "trust account reviews"),
+    "cash_handling": ("cash custody", "vault dual control"),
+}
+
+
+@dataclass(frozen=True)
+class ControlKind:
+    key: str
+    erm_label: str
+    ia_label: str
+    weight: float           # share in the skewed mix both sources draw from
+    control_type: str
+    nature: str
+    frequency: str
+    uses_system: bool       # only reconciliation and access restriction depend on systems
+    erm: str                # brief, one sentence, {subject}
+    ia: str                 # detailed, several sentences, {entity} and {subject}
+
+
+CONTROL_KINDS = [
+    ControlKind("policy", "policy and procedures", "procedures documentation", 0.25, "Preventive", "Manual",
+                "Annual", False, "Documented policy and procedures govern {subject}.",
+                "{entity}: written procedures for {subject} are approved by the process owner, reviewed at least "
+                "annually and published to staff. The review date and approver are recorded, and deviations need "
+                "a documented exception approval."),
+    ControlKind("mgmt_review", "management oversight", "supervisory review", 0.20, "Detective", "Manual",
+                "Monthly", False, "Management reviews {subject} regularly.",
+                "{entity}: a supervisor reviews a monthly report on {subject}, investigates exceptions above "
+                "threshold and signs the report. Evidence of the review and any follow-up actions is retained."),
+    ControlKind("exception", "exception monitoring", "exception report follow-up", 0.15, "Detective",
+                "IT-dependent manual", "Daily", False, "Exceptions involving {subject} are monitored and escalated.",
+                "{entity}: the daily exception report covering {subject} is worked by the operations team. Each "
+                "exception is resolved or escalated within two business days, and aged items go to management "
+                "weekly."),
+    ControlKind("reconciliation", "reconciliation", "balancing and reconciliation", 0.10, "Detective",
+                "IT-dependent manual", "Monthly", True, "Records supporting {subject} are reconciled.",
+                "{entity}: balances and records supporting {subject} are reconciled to the source system each "
+                "month. Reconciling items older than 30 days are escalated, and a reviewer signs off within ten "
+                "business days."),
+    ControlKind("sod", "segregation of duties", "maker-checker separation", 0.10, "Preventive", "Manual",
+                "Per transaction", False, "Duties over {subject} are segregated.",
+                "{entity}: initiation and approval steps for {subject} are performed by different employees, "
+                "enforced through role design. A quarterly report of users holding both roles is reviewed and "
+                "conflicts are removed."),
+    ControlKind("training", "staff training", "training completion", 0.08, "Preventive", "Manual", "Annual",
+                False, "Staff handling {subject} are trained annually.",
+                "{entity}: employees involved in {subject} complete role-specific training every year. Completion "
+                "is tracked, and staff who are overdue lose access to the process until they finish."),
+    ControlKind("access", "access restriction", "user access controls", 0.07, "Preventive", "Automated",
+                "Per transaction", True, "Access relevant to {subject} is limited to authorized staff.",
+                "{entity}: system access supporting {subject} is granted through approved roles only. Entitlements "
+                "are recertified quarterly, and access for leavers is removed within one business day."),
+    ControlKind("kri", "key risk indicator", "risk indicator monitoring", 0.05, "Detective",
+                "IT-dependent manual", "Monthly", False, "A key risk indicator tracks {subject}.",
+                "{entity}: management tracks a monthly indicator for {subject} against a defined threshold. "
+                "Breaches are escalated to the risk committee with an action plan and owner."),
+]
+FREQUENCIES = ["Per transaction", "Daily", "Weekly", "Monthly", "Quarterly", "Annual", "Per event"]
+
+# How IA cites the enterprise control in its own words (never ERM's exact label, so ERM's
+# title is not a lookup key inside IA text; 008 review).
+IA_CITATION = {
+    "policy": "enterprise policy",
+    "mgmt_review": "enterprise oversight standard",
+    "exception": "enterprise escalation standard",
+    "reconciliation": "enterprise balancing standard",
+    "sod": "enterprise separation-of-duties standard",
+    "training": "enterprise learning requirement",
+    "access": "enterprise access standard",
+    "kri": "enterprise indicator framework",
+}
 
 # auditable entity -> (ERM context in business terms, IA context in audit wording).
 # ERM never reuses a distinctive word of the entity's name (AC-5 e); the two phrases

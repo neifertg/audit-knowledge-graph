@@ -4,6 +4,7 @@ Nothing here writes files or touches the network; see writer.py and cli.py.
 """
 import hashlib
 import json
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
@@ -323,54 +324,62 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
         [(ae_id[a], ia_risk[c.key]) for c in ia_concepts for a in c.entities])
 
     # --- controls ----------------------------------------------------------------------
-    # One control per concept in each source. An ERM control for a concept ERM does not
-    # hold as a risk mitigates nothing: an orphan control (built-in messiness).
-    orphans = sorted(unused[:1], key=lambda c: c.key)
-    erm_ctrl_concepts = sorted(erm_concepts + orphans, key=lambda c: c.key)
-    erm_ctrl = dict(zip([c.key for c in erm_ctrl_concepts],
-                        _ids(seed, "control_erm", "ERM-C", len(erm_ctrl_concepts), 1000, 5000)))
-    ia_ctrl = dict(zip([c.key for c in ia_concepts],
-                       _ids(seed, "control_ia", "IAC-", len(ia_concepts), 5000, 10000)))
-    columns = ["control_id", "title", "description", "control_type", "nature", "frequency", "key_control"]
-    rows = []
-    for c in erm_ctrl_concepts:
-        cc = c.control
-        rows.append((erm_ctrl[c.key], cc.erm_title, cc.erm, cc.control_type, cc.nature, cc.frequency,
-                     "Y" if c.rating == "High" else "N"))
-        texts.append(TextItem(f"control_erm:{c.key}", "control_erm", erm_ctrl[c.key], "description", cc.erm,
-                              _hash("control_erm", c.key, cc.erm_title, cc.erm)))
-    t["control_erm"] = Table(columns, rows)
-    rng = stream(seed, "control_ia")
-    rows = []
-    for c in ia_concepts:
-        cc = c.control
-        rows.append((ia_ctrl[c.key], cc.ia_title, cc.ia, cc.control_type, cc.nature, cc.frequency,
-                     "Y" if rng.random() < 0.7 else "N"))
-        texts.append(TextItem(f"control_ia:{c.key}", "control_ia", ia_ctrl[c.key], "description", cc.ia,
-                              _hash("control_ia", c.key, cc.ia_title, cc.ia)))
-    t["control_ia"] = Table(columns, rows)
+    control_cluster_rows = scenario_rows = None
+    if full:
+        fc = _full_controls(seed, t, concepts, erm_items, erm_risk_ids, ia_concepts, ia_risk, unused, sys_id,
+                            reg_id, person_ids, texts)
+        erm_ctrl, ia_ctrl = fc["erm_ctrl"], fc["ia_ctrl"]
+        t.update(fc["tables"])
+        control_cluster_rows, scenario_rows = fc["clusters"], fc["scenarios"]
+    else:
+            # One control per concept in each source. An ERM control for a concept ERM does not
+        # hold as a risk mitigates nothing: an orphan control (built-in messiness).
+        orphans = sorted(unused[:1], key=lambda c: c.key)
+        erm_ctrl_concepts = sorted(erm_concepts + orphans, key=lambda c: c.key)
+        erm_ctrl = dict(zip([c.key for c in erm_ctrl_concepts],
+                            _ids(seed, "control_erm", "ERM-C", len(erm_ctrl_concepts), 1000, 5000)))
+        ia_ctrl = dict(zip([c.key for c in ia_concepts],
+                           _ids(seed, "control_ia", "IAC-", len(ia_concepts), 5000, 10000)))
+        columns = ["control_id", "title", "description", "control_type", "nature", "frequency", "key_control"]
+        rows = []
+        for c in erm_ctrl_concepts:
+            cc = c.control
+            rows.append((erm_ctrl[c.key], cc.erm_title, cc.erm, cc.control_type, cc.nature, cc.frequency,
+                         "Y" if c.rating == "High" else "N"))
+            texts.append(TextItem(f"control_erm:{c.key}", "control_erm", erm_ctrl[c.key], "description", cc.erm,
+                                  _hash("control_erm", c.key, cc.erm_title, cc.erm)))
+        t["control_erm"] = Table(columns, rows)
+        rng = stream(seed, "control_ia")
+        rows = []
+        for c in ia_concepts:
+            cc = c.control
+            rows.append((ia_ctrl[c.key], cc.ia_title, cc.ia, cc.control_type, cc.nature, cc.frequency,
+                         "Y" if rng.random() < 0.7 else "N"))
+            texts.append(TextItem(f"control_ia:{c.key}", "control_ia", ia_ctrl[c.key], "description", cc.ia,
+                                  _hash("control_ia", c.key, cc.ia_title, cc.ia)))
+        t["control_ia"] = Table(columns, rows)
 
-    t["control_mitigates_risk_erm"] = Table(
-        ["control_id", "risk_id"],
-        [(erm_ctrl[c.key], rid) for (c, _), rid in zip(erm_items, erm_risk_ids)])
-    t["control_mitigates_risk_ia"] = Table(
-        ["control_id", "risk_id"], [(ia_ctrl[c.key], ia_risk[c.key]) for c in ia_concepts])
-    for source, ctrl, cs in (("erm", erm_ctrl, erm_ctrl_concepts), ("ia", ia_ctrl, ia_concepts)):
-        t[f"control_depends_on_system_{source}"] = Table(
-            ["control_id", "system_id"],
-            [(ctrl[c.key], sys_id[s]) for c in cs for s in c.control.systems])
-        t[f"regulation_requires_control_{source}"] = Table(
-            ["regulation_id", "control_id"],
-            [(reg_id[c.control.regulation], ctrl[c.key]) for c in cs if c.control.regulation in reg_id])
+        t["control_mitigates_risk_erm"] = Table(
+            ["control_id", "risk_id"],
+            [(erm_ctrl[c.key], rid) for (c, _), rid in zip(erm_items, erm_risk_ids)])
+        t["control_mitigates_risk_ia"] = Table(
+            ["control_id", "risk_id"], [(ia_ctrl[c.key], ia_risk[c.key]) for c in ia_concepts])
+        for source, ctrl, cs in (("erm", erm_ctrl, erm_ctrl_concepts), ("ia", ia_ctrl, ia_concepts)):
+            t[f"control_depends_on_system_{source}"] = Table(
+                ["control_id", "system_id"],
+                [(ctrl[c.key], sys_id[s]) for c in cs for s in c.control.systems])
+            t[f"regulation_requires_control_{source}"] = Table(
+                ["regulation_id", "control_id"],
+                [(reg_id[c.control.regulation], ctrl[c.key]) for c in cs if c.control.regulation in reg_id])
 
-    rng = stream(seed, "control_owned_by_person_erm")
-    erm_owner = {c.key: rng.choice(person_ids) for c in erm_ctrl_concepts}
-    rng = stream(seed, "control_owned_by_person_ia")
-    ia_owner = {c.key: rng.choice([p for p in person_ids if p != erm_owner.get(c.key)]) for c in ia_concepts}
-    t["control_owned_by_person_erm"] = Table(
-        ["control_id", "person_id"], [(erm_ctrl[k], p) for k, p in erm_owner.items()])
-    t["control_owned_by_person_ia"] = Table(
-        ["control_id", "person_id"], [(ia_ctrl[k], p) for k, p in ia_owner.items()])
+        rng = stream(seed, "control_owned_by_person_erm")
+        erm_owner = {c.key: rng.choice(person_ids) for c in erm_ctrl_concepts}
+        rng = stream(seed, "control_owned_by_person_ia")
+        ia_owner = {c.key: rng.choice([p for p in person_ids if p != erm_owner.get(c.key)]) for c in ia_concepts}
+        t["control_owned_by_person_erm"] = Table(
+            ["control_id", "person_id"], [(erm_ctrl[k], p) for k, p in erm_owner.items()])
+        t["control_owned_by_person_ia"] = Table(
+            ["control_id", "person_id"], [(ia_ctrl[k], p) for k, p in ia_owner.items()])
 
     # --- audits (IA tests IA controls only) --------------------------------------------
     rng = stream(seed, "audit")
@@ -463,13 +472,13 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
         + [("IA", ia_risk[c.key], risk_cluster.get(c.key, "none"), erm_node[(3, c.erm_l3)])
            for c in ia_concepts])
 
-    in_both = set(erm_ctrl) & set(ia_ctrl)
-    control_cluster = {k: f"CC-{i:03d}" for i, k in enumerate(sorted(in_both), 1)}
-    key["control_clusters"] = Table(
-        ["source", "control_id", "cluster_id"],
-        [("ERM", cid, control_cluster.get(k, "none")) for k, cid in erm_ctrl.items()]
-        + [("IA", cid, control_cluster.get(k, "none")) for k, cid in ia_ctrl.items()])
-    key["scenarios"] = Table(["scenario", "item_id"], [])
+    if control_cluster_rows is None:
+        in_both = set(erm_ctrl) & set(ia_ctrl)
+        control_cluster = {k: f"CC-{i:03d}" for i, k in enumerate(sorted(in_both), 1)}
+        control_cluster_rows = ([("ERM", cid, control_cluster.get(k, "none")) for k, cid in erm_ctrl.items()]
+                                + [("IA", cid, control_cluster.get(k, "none")) for k, cid in ia_ctrl.items()])
+    key["control_clusters"] = Table(["source", "control_id", "cluster_id"], control_cluster_rows)
+    key["scenarios"] = Table(["scenario", "item_id"], scenario_rows or [])
 
     for table in list(t.values()) + list(key.values()):
         table.rows.sort()
@@ -477,6 +486,248 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
     if text == "ai":
         _apply_ai_text(t, texts, text_dir)
     return Dataset(t, key, texts)
+
+
+P_IA_KIND_FROM_ERM = 0.6   # the overlap dial (008): IA tests the enterprise control this often
+P_IA_OTHER_FREQUENCY = 0.22  # IA records a neighbouring frequency for this share of its controls
+P_ERM_LISTS_SYSTEMS = 0.5   # RCSAs name systems for only some controls
+ORPHAN_RATE = 0.045
+
+
+def _weighted(rng, keys: list[str]) -> str:
+    kinds = {k.key: k for k in lib.CONTROL_KINDS}
+    return rng.choices(keys, weights=[kinds[k].weight for k in keys])[0]
+
+
+def orphan_twins(erm_specific, erm_generic, ia_specific, ia_generic, erm_held, ia_held, erm_slots, ia_slots):
+    """Orphans that have a counterpart in the other source (must be none, or the answer key would lie).
+
+    Specific orphans are instance keys; generic orphans map key -> (theme, kind) for ERM and
+    key -> (instance, kind) for IA. *_held are instances each source holds as risks; *_slots are
+    (theme, kind) pairs each source uses for linked generic controls.
+    """
+    theme = lambda key: key.split("@")[0]
+    bad = [k for k in erm_specific if k in ia_held or k in ia_specific]
+    bad += [k for k in ia_specific if k in erm_held or k in erm_specific]
+    ia_orphan_slots = {(theme(i), kind) for i, kind in ia_generic.values()}
+    erm_orphan_slots = set(erm_generic.values())
+    bad += [k for k, slot in erm_generic.items() if slot in ia_slots | ia_orphan_slots]
+    bad += [k for k, (i, kind) in ia_generic.items() if (theme(i), kind) in erm_slots | erm_orphan_slots]
+    return sorted(bad)
+
+
+def _full_controls(seed, t, concepts, erm_items, erm_risk_ids, ia_concepts, ia_risk, unused, sys_id, reg_id,
+                   person_ids, texts) -> dict:
+    """Full-size controls (008): specific controls per risk instance, generic controls at two levels.
+
+    ERM records generic controls bank-wide per theme and kind; IA records them per risk instance,
+    taking ERM's kinds for the theme with probability P_IA_KIND_FROM_ERM. A cluster is one ERM
+    control plus every IA control with the same instance (specific) or theme and kind (generic).
+    """
+    kinds = {k.key: k for k in lib.CONTROL_KINDS}
+    kind_keys = [k.key for k in lib.CONTROL_KINDS]
+    theme = lambda key: key.split("@")[0]
+    themes = {th.key: th for th in lib.RISK_CONCEPTS + lib.FULL_ONLY_THEMES}
+    by_instance = {c.key: c for c in concepts}
+
+    erm_risks_of = defaultdict(list)
+    for (c, _), rid in zip(erm_items, erm_risk_ids):
+        erm_risks_of[c.key].append(rid)
+    erm_instances = sorted(erm_risks_of)
+    ia_instances = sorted(c.key for c in ia_concepts)
+
+    # ERM generic kinds per theme, bank-wide (own stream; drawn for every theme so draws never shift)
+    rng = stream(seed, "control_erm/kinds")
+    erm_kinds = {}
+    for th in sorted(themes):
+        n = rng.choice([1, 2, 2, 3])
+        chosen = []
+        for _ in range(n):
+            chosen.append(_weighted(rng, [k for k in kind_keys if k not in chosen]))
+        erm_kinds[th] = chosen
+    erm_themes = sorted({theme(k) for k in erm_instances})
+
+    # IA generic kinds per IA risk instance
+    rng = stream(seed, "control_ia/kinds")
+    ia_generic = {}  # control key -> (instance key, kind)
+    for inst in ia_instances:
+        chosen = []
+        for _ in range(rng.choice([1, 2])):
+            from_erm = [k for k in erm_kinds[theme(inst)] if k not in chosen]
+            pool = from_erm if from_erm and rng.random() < P_IA_KIND_FROM_ERM else [k for k in kind_keys
+                                                                                    if k not in chosen]
+            chosen.append(_weighted(rng, pool))
+        for kind in chosen:
+            ia_generic[f"{inst}#{kind}"] = (inst, kind)
+
+    erm_generic = {f"{th}#{kind}": (th, kind) for th in erm_themes for kind in erm_kinds[th]}
+
+    # Orphans: controls with no counterpart in the other source, never a twin of a real control
+    rng = stream(seed, "control_orphans")
+    erm_used = {v for v in erm_generic.values()}
+    ia_used = {(theme(inst), kind) for inst, kind in ia_generic.values()}
+    free = [(th, kind) for th in sorted(themes) for kind in kind_keys if (th, kind) not in erm_used | ia_used]
+    rng.shuffle(free)
+    unused_keys = sorted(c.key for c in unused)
+    erm_orphan_specific = unused_keys[0::2]
+    ia_orphan_specific = unused_keys[1::2]
+    target = lambda linked: round(linked * ORPHAN_RATE / (1 - ORPHAN_RATE))
+    n_erm_orphans = target(len(erm_instances) + len(erm_generic))
+    n_ia_orphans = target(len(ia_instances) + len(ia_generic))
+    erm_orphan_generic = {}
+    while len(erm_orphan_specific) + len(erm_orphan_generic) < n_erm_orphans and free:
+        th, kind = free.pop()
+        erm_orphan_generic[f"{th}#{kind}"] = (th, kind)
+    ia_orphan_generic = {}
+    held_by_ia = set(ia_instances)
+    for th, kind in list(free):
+        if len(ia_orphan_specific) + len(ia_orphan_generic) >= n_ia_orphans:
+            break
+        hosts = sorted(c.key for c in concepts if theme(c.key) == th and c.key not in held_by_ia)
+        if hosts:
+            inst = rng.choice(hosts)
+            ia_orphan_generic[f"{inst}#{kind}"] = (inst, kind)
+    twins = orphan_twins(erm_orphan_specific, erm_orphan_generic, ia_orphan_specific, ia_orphan_generic,
+                         set(erm_risks_of), held_by_ia, erm_used, ia_used)
+    if twins:
+        raise GenerationError("orphan control with a twin in the other source: " + ", ".join(twins))
+
+    erm_keys = sorted(set(erm_instances) | set(erm_generic) | set(erm_orphan_specific) | set(erm_orphan_generic))
+    ia_keys = sorted(set(ia_instances) | set(ia_generic) | set(ia_orphan_specific) | set(ia_orphan_generic))
+    erm_ctrl = dict(zip(erm_keys, _ids(seed, "control_erm", "ERM-C", len(erm_keys), 1000, 5000)))
+    ia_ctrl = dict(zip(ia_keys, _ids(seed, "control_ia", "IAC-", len(ia_keys), 5000, 10000)))
+
+    def counterpart(ia_key: str) -> str | None:
+        if ia_key in ia_generic:
+            inst, kind = ia_generic[ia_key]
+            erm_key = f"{theme(inst)}#{kind}"
+            return erm_key if erm_key in erm_generic else None
+        return ia_key if ia_key in erm_risks_of else None
+
+    def text_of(source: str, key: str):
+        if "#" not in key:  # specific control of a risk instance
+            cc = by_instance[key].control
+            return (cc.erm_title, cc.erm) if source == "erm" else (cc.ia_title, cc.ia)
+        left, kind = key.split("#")
+        k = kinds[kind]
+        erm_subject, ia_subject = lib.THEME_SUBJECT[theme(left)]
+        if source == "erm":
+            return f"{_cap(erm_subject)}: {k.erm_label}", k.erm.format(subject=erm_subject)
+        entity = by_instance[left].entities[0]
+        desc = k.ia.format(entity=entity, subject=ia_subject)
+        # IA RCMs cite the enterprise standard a local procedure implements, in ERM's wording
+        desc += f" The procedure implements the {lib.IA_CITATION[kind]} on {erm_subject}."
+        return f"{_cap(k.ia_label)} for {ia_subject} ({entity})", desc
+
+    def attributes(key: str):
+        if "#" not in key:
+            cc = by_instance[key].control
+            return cc.control_type, cc.nature, cc.frequency
+        k = kinds[key.split("#")[1]]
+        return k.control_type, k.nature, k.frequency
+
+    columns = ["control_id", "title", "description", "control_type", "nature", "frequency", "key_control"]
+    out: dict[str, Table] = {}
+    rows = []
+    for key in erm_keys:
+        title, desc = text_of("erm", key)
+        ctype, nature, freq = attributes(key)
+        high = "#" not in key and by_instance[key].rating == "High"
+        rows.append((erm_ctrl[key], title, desc, ctype, nature, freq, "Y" if high else "N"))
+        texts.append(TextItem(f"control_erm:{key}", "control_erm", erm_ctrl[key], "description", desc,
+                              _hash("control_erm", key, title, desc)))
+    out["control_erm"] = Table(columns, rows)
+    rng = stream(seed, "control_ia")
+    frng = stream(seed, "control_ia/frequency")
+    rows = []
+    for key in ia_keys:
+        title, desc = text_of("ia", key)
+        ctype, nature, freq = attributes(key)
+        if frng.random() < P_IA_OTHER_FREQUENCY:  # IA records a neighbouring frequency
+            i = lib.FREQUENCIES.index(freq)
+            freq = lib.FREQUENCIES[i + 1 if i + 1 < len(lib.FREQUENCIES) - 1 else i - 1]
+        rows.append((ia_ctrl[key], title, desc, ctype, nature, freq, "Y" if rng.random() < 0.7 else "N"))
+        texts.append(TextItem(f"control_ia:{key}", "control_ia", ia_ctrl[key], "description", desc,
+                              _hash("control_ia", key, title, desc)))
+    out["control_ia"] = Table(columns, rows)
+
+    erm_by_theme = defaultdict(list)
+    for inst, rids in erm_risks_of.items():
+        erm_by_theme[theme(inst)] += rids
+    out["control_mitigates_risk_erm"] = Table(
+        ["control_id", "risk_id"],
+        [(erm_ctrl[k], rid) for k in erm_instances for rid in erm_risks_of[k]]
+        + [(erm_ctrl[k], rid) for k, (th, _) in erm_generic.items() for rid in erm_by_theme[th]])
+    out["control_mitigates_risk_ia"] = Table(
+        ["control_id", "risk_id"],
+        [(ia_ctrl[k], ia_risk[k]) for k in ia_instances]
+        + [(ia_ctrl[k], ia_risk[inst]) for k, (inst, _) in ia_generic.items()])
+
+    def systems_of(key: str) -> list[str]:
+        if "#" not in key:
+            return by_instance[key].control.systems
+        th_or_inst, kind = key.split("#")
+        own = themes[theme(th_or_inst)].control.systems
+        return own[:1] if kinds[kind].uses_system else []
+
+    srng = stream(seed, "control_depends_on_system_erm")
+    erm_systems = {k: (systems_of(k) if srng.random() < P_ERM_LISTS_SYSTEMS else []) for k in erm_keys}
+    out["control_depends_on_system_erm"] = Table(
+        ["control_id", "system_id"], [(erm_ctrl[k], sys_id[s]) for k in erm_keys for s in erm_systems[k]])
+    out["control_depends_on_system_ia"] = Table(
+        ["control_id", "system_id"], [(ia_ctrl[k], sys_id[s]) for k in ia_keys for s in systems_of(k)])
+
+    def regulation_of(key: str) -> str | None:
+        if "#" not in key:
+            return by_instance[key].control.regulation
+        th_or_inst, kind = key.split("#")
+        return themes[theme(th_or_inst)].control.regulation if kind == "policy" else None
+
+    for source, ctrl, keys in (("erm", erm_ctrl, erm_keys), ("ia", ia_ctrl, ia_keys)):
+        out[f"regulation_requires_control_{source}"] = Table(
+            ["regulation_id", "control_id"],
+            [(reg_id[regulation_of(k)], ctrl[k]) for k in keys if regulation_of(k) in reg_id])
+
+    rng = stream(seed, "control_owned_by_person_erm")
+    erm_owner = {k: rng.choice(person_ids) for k in erm_keys}
+    rng = stream(seed, "control_owned_by_person_ia")
+    ia_owner = {k: rng.choice([p for p in person_ids if p != erm_owner.get(counterpart(k) or "")])
+                for k in ia_keys}
+    out["control_owned_by_person_erm"] = Table(["control_id", "person_id"], [(erm_ctrl[k], p)
+                                                                            for k, p in erm_owner.items()])
+    out["control_owned_by_person_ia"] = Table(["control_id", "person_id"], [(ia_ctrl[k], p)
+                                                                           for k, p in ia_owner.items()])
+
+    # answer key: one ERM control per cluster, plus every IA control that matches it
+    members = defaultdict(list)
+    for k in ia_instances + sorted(ia_generic):
+        erm_key = counterpart(k)
+        if erm_key:
+            members[erm_key].append(k)
+    cluster_id = {erm_key: f"CC-{i:03d}" for i, erm_key in enumerate(sorted(members), 1)}
+    ia_cluster = {ia_key: cluster_id[erm_key] for erm_key, ia_keys_ in members.items() for ia_key in ia_keys_}
+    clusters = ([("ERM", erm_ctrl[k], cluster_id.get(k, "none")) for k in erm_keys]
+                + [("IA", ia_ctrl[k], ia_cluster.get(k, "none")) for k in ia_keys])
+
+    # shared-system scenario: reach = union over both sources of control -> risk -> exposed entity
+    exposed = defaultdict(set)
+    for source in ("erm", "ia"):
+        for entity_id, risk_id in t[f"auditable_entity_exposed_to_risk_{source}"].rows:
+            exposed[risk_id].add(entity_id)
+    risks_of_control = defaultdict(set)
+    for source in ("erm", "ia"):
+        for control_id, risk_id in out[f"control_mitigates_risk_{source}"].rows:
+            risks_of_control[control_id].add(risk_id)
+    reach = defaultdict(set)
+    for source in ("erm", "ia"):
+        for control_id, system_id in out[f"control_depends_on_system_{source}"].rows:
+            for risk_id in risks_of_control[control_id]:
+                reach[system_id] |= exposed[risk_id]
+    name_of = {v: k for k, v in sys_id.items()}
+    ranked = sorted(reach, key=lambda s: (-len(reach[s]), name_of[s]))
+    scenarios = [("shared_system", s) for s in ranked[:3]]
+    return {"erm_ctrl": erm_ctrl, "ia_ctrl": ia_ctrl, "tables": out, "clusters": clusters,
+            "scenarios": scenarios}
 
 
 AI_TEXT_FILE = "ai_text.jsonl"

@@ -44,6 +44,7 @@ class Risks:
         self.erm, self.ia = read(out, "risk_erm"), read(out, "risk_ia")
         rows = self.erm + self.ia
         self.desc = {r["risk_id"]: r["description"] for r in rows}
+        self.title = {r["risk_id"]: r["title"] for r in rows}
         ids = [r["risk_id"] for r in rows]
         sims = cosine_similarity(TfidfVectorizer(lowercase=True, ngram_range=(1, 2)).fit_transform(
             [r["description"] for r in rows]))
@@ -144,7 +145,7 @@ class Risks:
 
         def mentions(i):
             distinctive = {w for a in self.exposed[i] for w in words(self.entity_name[a]) if name_words[w] <= 3}
-            return [e for e in self.erm_ids if distinctive & words(self.desc[e])]
+            return [e for e in self.erm_ids if distinctive & words(self.title[e] + " " + self.desc[e])]
         return self._best_per_ia(mentions)
 
     def same_unit_hard_negative_share(self) -> float:
@@ -153,12 +154,184 @@ class Risks:
         sharing = [i for i, es in hard.items() if any(units(i) & units(e) for e in es)]
         return len(sharing) / len(hard) if hard else 0.0
 
-    def stale_link_share(self) -> float:
-        links = stale = 0
+    def _erm_links(self):
+        """(link is stale, link stays in the home segment) for every ERM exposure link."""
         for e in self.erm_ids:
             units = Counter(self.unit_of[a] for a in self.exposed[e])
             home = units.most_common(1)[0][0]
             for a in self.exposed[e]:
-                links += 1
-                stale += self.unit_of[a] != home
-        return stale / links
+                unit = self.unit_of[a]
+                yield unit != home, self.segment_of[unit] == self.segment_of[home]
+
+    def stale_link_share(self) -> float:
+        """Share of ERM exposure links pointing to another business unit of the same segment."""
+        links = list(self._erm_links())
+        return sum(stale and same_segment for stale, same_segment in links) / len(links)
+
+    def cross_segment_links(self) -> int:
+        """ERM exposure links into another segment (the stale-link rule allows none)."""
+        return sum(stale and not same_segment for stale, same_segment in self._erm_links())
+
+
+class Controls:
+    """Published control data plus the answer key's truth, for one build directory (008)."""
+
+    def __init__(self, out):
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.metrics.pairwise import cosine_similarity
+
+        self.erm, self.ia = read(out, "control_erm"), read(out, "control_ia")
+        rows = self.erm + self.ia
+        self.row = {r["control_id"]: r for r in rows}
+        ids = [r["control_id"] for r in rows]
+        sims = cosine_similarity(TfidfVectorizer(lowercase=True, ngram_range=(1, 2)).fit_transform(
+            [r["description"] for r in rows]))
+        index = {cid: i for i, cid in enumerate(ids)}
+        self.cos = lambda a, b: float(sims[index[a], index[b]])
+        clusters = answer_key(out, "control_clusters")
+        self.cluster = {r["control_id"]: r["cluster_id"] for r in clusters}
+        self.erm_ids = [r["control_id"] for r in self.erm]
+        self.ia_ids = [r["control_id"] for r in self.ia]
+        self.pairs = [(e, i) for e in self.erm_ids for i in self.ia_ids]
+        same = lambda a, b: self.cluster[a] != "none" and self.cluster[a] == self.cluster[b]
+        self.truth = {p for p in self.pairs if same(*p)}
+
+        self.owner, self.systems, self.regulations = {}, defaultdict(set), defaultdict(set)
+        self.risks = defaultdict(set)
+        for source in ("erm", "ia"):
+            self.owner.update({r["control_id"]: r["person_id"]
+                               for r in read(out, f"control_owned_by_person_{source}")})
+            for r in read(out, f"control_depends_on_system_{source}"):
+                self.systems[r["control_id"]].add(r["system_id"])
+            for r in read(out, f"regulation_requires_control_{source}"):
+                self.regulations[r["control_id"]].add(r["regulation_id"])
+            for r in read(out, f"control_mitigates_risk_{source}"):
+                self.risks[r["control_id"]].add(r["risk_id"])
+        self.exposed = defaultdict(set)
+        for source in ("erm", "ia"):
+            for r in read(out, f"auditable_entity_exposed_to_risk_{source}"):
+                self.exposed[r["risk_id"]].add(r["auditable_entity_id"])
+        self.unit_of = {r["auditable_entity_id"]: r["business_unit_id"]
+                        for r in read(out, "business_unit_owns_auditable_entity")}
+        self.entity_name = {r["auditable_entity_id"]: r["name"] for r in read(out, "auditable_entity")}
+        risk_rows = answer_key(out, "risk_clusters")
+        self.risk_cluster = {r["risk_id"]: r["cluster_id"] for r in risk_rows}
+        self.risk_source = {r["risk_id"]: r["source"] for r in risk_rows}
+
+    def entities(self, cid):
+        return {a for risk in self.risks[cid] for a in self.exposed[risk]}
+
+    # --- AC-1 -----------------------------------------------------------------------------
+    def overlap(self) -> float:
+        return len({i for _, i in self.truth}) / len(self.ia_ids)
+
+    def orphan_share(self, source: str) -> float:
+        ids = self.erm_ids if source == "erm" else self.ia_ids
+        return sum(not self.risks[c] for c in ids) / len(ids)
+
+    def max_erm_per_cluster(self) -> int:
+        return max(Counter(self.cluster[e] for e in self.erm_ids if self.cluster[e] != "none").values())
+
+    def detail_share(self) -> float:
+        words = lambda c: len(self.row[c]["description"].split())
+        return sum(words(i) >= 2 * words(e) for e, i in self.truth) / len(self.truth)
+
+    def frequency_disagreement(self) -> float:
+        return sum(self.row[e]["frequency"] != self.row[i]["frequency"] for e, i in self.truth) / len(self.truth)
+
+    def owners_always_differ(self) -> bool:
+        return all(self.owner[e] != self.owner[i] for e, i in self.truth)
+
+    # --- AC-4 -----------------------------------------------------------------------------
+    def exact_text_f1(self) -> float:
+        return _f1({p for p in self.pairs if self.row[p[0]]["description"] == self.row[p[1]]["description"]},
+                   self.truth)
+
+    def owner_frequency_f1(self) -> float:
+        return _f1({(e, i) for e, i in self.pairs if self.owner[e] == self.owner[i]
+                    and self.row[e]["frequency"] == self.row[i]["frequency"]}, self.truth)
+
+    def tfidf_f1(self) -> float:
+        return _best_threshold_f1({p: self.cos(*p) for p in self.pairs}, self.truth)
+
+    def hard_negative_rate(self) -> float:
+        median = statistics.median(self.cos(*p) for p in self.truth)
+        hard = {i for e, i in self.pairs if (e, i) not in self.truth and self.cos(e, i) >= median}
+        return len(hard) / len(self.ia_ids)
+
+    # --- AC-5 -----------------------------------------------------------------------------
+    def attribute_f1(self) -> float:
+        key = lambda c: (self.row[c]["control_type"], self.row[c]["nature"], self.row[c]["frequency"])
+        return _f1({(e, i) for e, i in self.pairs if key(e) == key(i)}, self.truth)
+
+    def system_f1(self) -> float:
+        return _f1({(e, i) for e, i in self.pairs if self.systems[e] & self.systems[i]}, self.truth)
+
+    def regulation_f1(self) -> float:
+        return _f1({(e, i) for e, i in self.pairs if self.regulations[e] & self.regulations[i]}, self.truth)
+
+    def _best_per_ia(self, candidates) -> float:
+        best = {}
+        for i in self.ia_ids:
+            options = candidates(i)
+            if options:
+                e = max(options, key=lambda e: self.cos(e, i))
+                best[(e, i)] = self.cos(e, i)
+        return _best_threshold_f1(best, self.truth)
+
+    def system_text_f1(self) -> float:
+        return self._best_per_ia(lambda i: [e for e in self.erm_ids if self.systems[e] & self.systems[i]])
+
+    def unit_text_f1(self) -> float:
+        def candidates(i):
+            units = {self.unit_of[a] for a in self.entities(i)}
+            return [e for e in self.erm_ids if units & {self.unit_of[a] for a in self.entities(e)}]
+        return self._best_per_ia(candidates)
+
+    def entity_mention_f1(self) -> float:
+        words = lambda text: set(re.findall(r"[a-z]+", text.lower()))
+        name_words = Counter(w for n in self.entity_name.values() for w in words(n))
+
+        def candidates(i):
+            distinctive = {w for a in self.entities(i) for w in words(self.entity_name[a]) if name_words[w] <= 3}
+            return [e for e in self.erm_ids
+                    if distinctive & words(self.row[e]["title"] + " " + self.row[e]["description"])]
+        return self._best_per_ia(candidates)
+
+    def subject_kind_f1(self, labels: list) -> float:
+        """Pair controls whose titles share every word of a kind label and at least two other words."""
+        words = lambda text: set(re.findall(r"[a-z]+", text.lower()))
+        label_words = [words(label) for pair in labels for label in pair]
+        titles = {c: words(self.row[c]["title"]) for c in self.erm_ids + self.ia_ids}
+        predicted = set()
+        for e, i in self.pairs:
+            shared = titles[e] & titles[i]
+            if any(lw <= shared and len(shared - lw) >= 2 for lw in label_words):
+                predicted.add((e, i))
+        return _f1(predicted, self.truth)
+
+    def title_in_description_f1(self) -> float:
+        """Pair an IA control with the only ERM control whose title words all appear in its description."""
+        words = lambda text: set(re.findall(r"[a-z]+", text.lower()))
+        titles = {e: words(self.row[e]["title"]) for e in self.erm_ids}
+        predicted = set()
+        for i in self.ia_ids:
+            desc = words(self.row[i]["description"])
+            hits = [e for e, t in titles.items() if t <= desc]
+            if len(hits) == 1:
+                predicted.add((hits[0], i))
+        return _f1(predicted, self.truth)
+
+    def count_cue(self, source: str) -> float:
+        """|mean controls per risk on matched risks - on unmatched risks| for one source."""
+        ids = self.erm_ids if source == "erm" else self.ia_ids
+        per_risk = Counter(r for c in ids for r in self.risks[c])
+        cluster_sources = defaultdict(set)
+        for r, s in self.risk_source.items():
+            if self.risk_cluster[r] != "none":
+                cluster_sources[self.risk_cluster[r]].add(s)
+        matched = lambda r: cluster_sources.get(self.risk_cluster[r]) == {"ERM", "IA"}
+        risks = [r for r, s in self.risk_source.items() if s == source.upper()]
+        a = [per_risk[r] for r in risks if matched(r)]
+        b = [per_risk[r] for r in risks if not matched(r)]
+        return abs(statistics.mean(a) - statistics.mean(b))
