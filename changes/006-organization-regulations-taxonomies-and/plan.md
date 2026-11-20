@@ -4,7 +4,7 @@
 {
   "id": "006-organization-regulations-taxonomies-and",
   "tier": "standard",
-  "status": "in-progress",
+  "status": "draft",
   "created": "2026-11-20",
   "objective": "O3",
   "areas": [
@@ -46,14 +46,14 @@
     {
       "id": "AC-5",
       "when": "the default build runs (sample size) after this change",
-      "then": "the default text is AI-written (`--text ai`, per R2). In slice 1, before any content change, only the CLI default switches and tests/golden/checksums.sha256 is regenerated from that otherwise unmodified code; it is not regenerated again in this change, so the final sample build matching it proves b changed no sample output beyond the text default. A new tests/golden/checksums_full.sha256 (written by `python -m tests.generator.golden --size full`) covers the full build (INV-7 at both sizes)",
+      "then": "the default text is AI-written (`--text ai`, per R2) at sample size; at full size it defaults to templated until c-e generate full-size AI text, and an explicit `--size full --text ai` fails loudly instead of mixing. In slice 1, before any content change, only the CLI default switches and tests/golden/checksums.sha256 is regenerated from that otherwise unmodified code; it is not regenerated again in this change, so the final sample build matching it proves b changed no sample output beyond the text default. A new tests/golden/checksums_full.sha256 (written by `python -m tests.generator.golden --size full`) covers the full build (INV-7 at both sizes)",
       "test": "generator.test_determinism.DeterminismTests.test_ac3_inv7_output_matches_golden_checksums and generator.test_determinism.DeterminismTests.test_ac5_full_build_matches_full_golden; plus `git log --oneline main.. -- tests/golden/checksums.sha256` shows exactly one commit (slice 1)",
       "status": "pending"
     },
     {
       "id": "AC-6",
       "when": "the full build has run",
-      "then": "child a's size-independent checks, moved into shared helpers that a's existing tests and this test both call, hold at full size too: referential integrity and no cross-source links (INV-10), data dictionary matches output, name columns come from their lists and no text names a real institution (INV-9), and changing `--count REGULATION` or `--count PERSON` leaves every file not naming that type unchanged",
+      "then": "child a's size-independent checks, moved into shared helpers that a's existing tests and this test both call, hold at full size too: referential integrity and no cross-source links (INV-10), data dictionary matches output, name columns come from their lists and no text names a real institution (INV-9), and changing `--count REGULATION` leaves every file not naming regulations unchanged. (Revision 1: the `--count PERSON` clause was dropped: issue owners share the issue random stream, so the person count shifts issue draws, and fixing that changes sample issue output, which AC-5 forbids here. Parked for child e.)",
       "test": "generator.test_full_build.FullBuildTests.test_ac6_child_a_checks_hold_at_full_size",
       "status": "pending"
     },
@@ -74,9 +74,7 @@
   ],
   "epic": "001-e1-synthetic-bank-generator",
   "child": "b",
-  "approved": "2026-11-20",
-  "approved_hash": "8bad9366be64cc17",
-  "in_progress": "2026-11-20"
+  "revised": "2026-11-20"
 }
 ```
 
@@ -86,7 +84,8 @@ The milestone needs a bank that reads as real at full size: an audit universe of
 ## Data impact
 - **Sizes.** Adds `--size full`. In this change, full size scales only b's entities (segment, business unit, auditable entity, process, system, person, regulation, both taxonomies) and their relationships (has, owns, performs, runs_on, parent_of). Risks, controls, audits and issues stay at sample size until c-e. The default stays `sample` until child e makes full size the default.
 - **Sample output is unchanged** except the text default: full-size content is a superset, and sample mode keeps selecting exactly the rows it selects today. So the sample pack and child a's results stand.
-- **Text default.** Per R2's decision, `--text` defaults to `ai`; `--text templated` stays. Golden checksums regenerate for that one reason.
+- **Text default.** Per R2's decision, `--text` defaults to `ai` at sample size; `--text templated` stays. Golden checksums regenerate for that one reason. At full size the default is `templated` until c-e write full-size AI text: sample AI text cannot apply to full-size issues (their draws differ), and the build must never mix the two silently.
+- **Revision 1 (2026-11-20).** AC-6's `--count PERSON` independence clause is dropped and parked for child e. Issue owners are drawn from the issue stream, so the person count shifts every later issue draw; moving owners to their own stream changes sample issue output, which AC-5 forbids in this change. Child e rebuilds issues at full size and regenerates the goldens anyway.
 - **Taxonomy answer key.** The epic gives `taxonomy_map.csv` to child c, but a's consistency rules require every IA node in it, so b extends the true IA-to-ERM mapping for every node it adds. c still owns risk-level truth (`risk_clusters.csv`, misfiled risks).
 - **Content** lives in `library.py` and `names/*.txt`: about 80 auditable entities grouped under 25-35 business units, about 120 processes with their systems, 30 systems with fictional vendors and criticality, 15 real US regulations, an ERM taxonomy (Basel-style L1, banking L2/L3) and a legacy IA taxonomy organized by audit area. New fictional names (vendors, systems, titles) pass the deny-list.
 - **Invariants.** INV-1 (taxonomy part) and INV-2 get named tests, replacing `TBD (E1)` in `docs/data-model.md`. INV-7 gains a full-size golden: its "Enforced by" lists both the sample test (AC-3 of 005) and `test_ac5_full_build_matches_full_golden`. No new entities, columns or relationships.
