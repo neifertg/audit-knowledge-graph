@@ -28,7 +28,8 @@ FULL_COUNTS = {
 SIZES = {"sample", "full"}
 SAMPLE_NAME_POOL = 30   # sample mode draws people from the first 30 first and last names
 SAMPLE_TITLE_POOL = 20  # and cycles through the first 20 titles
-OVERRIDABLE = {"REGULATION", "PERSON", "AUDIT", "ISSUE"}
+OVERRIDABLE = {"REGULATION", "PERSON", "AUDIT", "ISSUE", "RISK_ERM", "RISK_IA"}
+STALE_LINK_RATE = 0.35  # share of full-size ERM risks with one stale exposure link
 WINDOW_START = date(2023, 1, 1)
 WINDOW_END = date(2025, 12, 31)
 
@@ -209,7 +210,7 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
 
     # --- risk populations --------------------------------------------------------------
     rng = stream(seed, "risk_population")
-    concepts = list(lib.RISK_CONCEPTS)
+    concepts = lib.full_instances() if full else list(lib.RISK_CONCEPTS)
     rng.shuffle(concepts)
     n_shared = round(0.6 * n["RISK_IA"])
     n_dup = max(1, round(0.07 * n["RISK_ERM"]))
@@ -232,14 +233,26 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
     # ERM risks: (concept, ordinal); ordinal 1 is a within-ERM duplicate in other words.
     rng = stream(seed, "risk_erm")
     erm_items = [(c, 0) for c in erm_concepts] + [(c, 1) for c in sorted(duplicated, key=lambda c: c.key)]
-    variant = {c.key: rng.randrange(len(lib.ERM_RISK_TEMPLATES)) for c in erm_concepts}
+    erm_templates = lib.FULL_ERM_RISK_TEMPLATES if full else lib.ERM_RISK_TEMPLATES
+    variant = {c.key: rng.randrange(len(erm_templates)) for c in erm_concepts}
+    # full size: each team states the risk in the main or the alternative wording
+    use_alt = {c.key: rng.random() < 0.5 for c in erm_concepts} if full else {}
     erm_risk_ids = _ids(seed, "risk_erm", "ERM-R", len(erm_items), 1000, 5000)
     erm_risk = {}  # (concept key, ordinal) -> id
     rows = []
     for (c, k), rid in zip(erm_items, erm_risk_ids):
-        v = variant[c.key] if k == 0 else 1 - variant[c.key]
+        # sample: a duplicate uses the other template; full size: the same one-sentence frame
+        v = variant[c.key] if k == 0 or full else 1 - variant[c.key]
         phrase, title = (c.erm, c.erm_title) if k == 0 else (c.alt, c.alt_title)
-        desc = lib.ERM_RISK_TEMPLATES[v].format(phrase=phrase, cause=c.cause, impact=c.impact,
+        cause = c.cause
+        if full:
+            main, other = (c.alt, c.erm) if use_alt[c.key] else (c.erm, c.alt)
+            phrase = main
+            if k == 1:
+                # A full-size duplicate is the same risk re-entered by another team: it keeps the
+                # original statement, frame and context and words the cause differently.
+                cause = other
+        desc = erm_templates[v].format(phrase=phrase, cause=cause, impact=c.impact,
                                                 Impact=_cap(c.impact))
         erm_risk[(c.key, k)] = rid
         rows.append((rid, title, desc, c.rating))
@@ -253,7 +266,7 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
     rows = []
     for c, rid in zip(ia_concepts, ia_risk_ids):
         v = rng.randrange(len(lib.IA_RISK_TEMPLATES))
-        desc = lib.IA_RISK_TEMPLATES[v].format(area=c.ia_l3, title=c.ia_title, focus=c.ia_focus)
+        desc = lib.IA_RISK_TEMPLATES[v].format(area=c.area or c.ia_l3, title=c.ia_title, focus=c.ia_focus)
         rating = c.rating
         if rng.random() < 0.25:  # IA's own assessment differs by one notch
             i = lib.RATINGS.index(c.rating)
@@ -269,9 +282,26 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
         [(erm_node[(3, c.erm_l3)], rid) for (c, _), rid in zip(erm_items, erm_risk_ids)])
     t["taxonomy_node_classifies_risk_ia"] = Table(
         ["taxonomy_node_id", "risk_id"], [(ia_node[(3, c.ia_l3)], ia_risk[c.key]) for c in ia_concepts])
-    t["auditable_entity_exposed_to_risk_erm"] = Table(
-        ["auditable_entity_id", "risk_id"],
-        [(ae_id[a], rid) for (c, _), rid in zip(erm_items, erm_risk_ids) for a in c.entities])
+    # Exposure. Sample: each source names the concept's entities. Full size: IA names the
+    # specific entity; ERM records the whole owning business unit, and some links point to an
+    # entity of another unit in the same segment, as a stale register would (007 AC-5).
+    if full:
+        rng = stream(seed, "auditable_entity_exposed_to_risk_erm")
+        unit_entities: dict[str, list[str]] = {}
+        for a, b in entities.items():
+            unit_entities.setdefault(b, []).append(a)
+        erm_exposure = []
+        for (c, _), rid in zip(erm_items, erm_risk_ids):
+            unit = entities[c.entities[0]]
+            erm_exposure += [(ae_id[a], rid) for a in unit_entities[unit]]
+            if rng.random() < STALE_LINK_RATE:
+                others = sorted(a for a, b in entities.items()
+                                if b != unit and business_units[b] == business_units[unit])
+                if others:
+                    erm_exposure.append((ae_id[rng.choice(others)], rid))
+    else:
+        erm_exposure = [(ae_id[a], rid) for (c, _), rid in zip(erm_items, erm_risk_ids) for a in c.entities]
+    t["auditable_entity_exposed_to_risk_erm"] = Table(["auditable_entity_id", "risk_id"], erm_exposure)
     t["auditable_entity_exposed_to_risk_ia"] = Table(
         ["auditable_entity_id", "risk_id"],
         [(ae_id[a], ia_risk[c.key]) for c in ia_concepts for a in c.entities])
@@ -353,7 +383,7 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
 
     # --- issues ------------------------------------------------------------------------
     rng = stream(seed, "issue")
-    by_key = {c.key: c for c in lib.RISK_CONCEPTS}
+    by_key = {c.key: c for c in concepts + unused}
     n_issues = n["ISSUE"]
     n_ia_issues = max(1, round(0.5 * n_issues)) if n_issues else 0
     sources = ["IA"] * n_ia_issues + [lib.ISSUE_SOURCES[1 + i % 3] for i in range(n_issues - n_ia_issues)]

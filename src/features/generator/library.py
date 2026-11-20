@@ -8,7 +8,8 @@ same sentence in two items, so matching has to work from meaning, not copy.
 
 All institution, people, vendor and system names come from names/*.txt (INV-9).
 """
-from dataclasses import dataclass, field
+import re
+from dataclasses import dataclass, field, replace
 
 SEGMENTS = [
     "Consumer Banking", "Commercial Banking", "Wealth Management", "Treasury & Markets",
@@ -184,6 +185,7 @@ class RiskConcept:
     ia_title: str
     ia_focus: str
     control: ControlConcept
+    area: str | None = None  # IA audit area shown in text; None means the IA L3 name
 
 
 def _c(*args, **kwargs) -> ControlConcept:
@@ -672,6 +674,14 @@ ERM_RISK_TEMPLATES = [
     "Risk that {phrase} due to {cause}, resulting in {impact}.",
     "{Impact} may occur if {phrase}. Primary driver: {cause}.",
 ]
+# Full size: ERM entries are written by many teams, so frames vary per entry. All are one
+# sentence, so a duplicate can keep its original's frame without sharing a full sentence.
+FULL_ERM_RISK_TEMPLATES = [
+    "Risk that {phrase} due to {cause}, resulting in {impact}.",
+    "{Impact} may occur if {phrase}, driven primarily by {cause}.",
+    "Because of {cause}, there is a risk that {phrase}, which could lead to {impact}.",
+    "Exposure to {impact} where {phrase}; contributing factor: {cause}.",
+]
 IA_RISK_TEMPLATES = [
     "{area}: {title}. Review scope: {focus}.",
     "{title} ({area}; audit focus: {focus}).",
@@ -1072,6 +1082,102 @@ FULL_IA_TO_ERM = {
     (3, "Litigation & Contracts"): None,
 }
 
+# ---------------------------------------------------------------------------------------
+# Full-size risk populations (child c, 007): each risk concept is a theme applied to the
+# auditable entities where it occurs; one instance per (theme, entity).
+# ---------------------------------------------------------------------------------------
+
+THEME_ENTITIES = {
+    "uw_authority": ["Commercial Loan Origination", "Middle Market Lending", "CRE Lending", "Construction Lending",
+                     "Small Business Lending", "Syndicated Lending", "Equipment Leasing"],
+    "uw_collateral": ["Commercial Loan Origination", "Consumer Mortgage Lending", "CRE Lending",
+                      "Construction Lending", "Home Equity Lending", "Collateral Management"],
+    "uw_income": ["Consumer Mortgage Lending", "Consumer Installment Lending", "Home Equity Lending",
+                  "Credit Card Underwriting", "Indirect Auto Lending"],
+    "irr_model": ["Treasury ALM", "Funds Transfer Pricing"],
+    "irr_limits": ["Treasury ALM", "Investment Securities Portfolio", "Interest Rate Derivatives"],
+    "cfp_test": ["Liquidity Management"],
+    "cfp_stress": ["Liquidity Management", "Treasury ALM"],
+    "wire_fraud": ["Wire Transfer Operations", "Real-Time Payments", "Foreign Exchange Services",
+                   "Commercial Deposit Services"],
+    "ach_fraud": ["ACH Operations", "Commercial Deposit Services", "Retirement Plan Recordkeeping"],
+    "recon_breaks": ["General Ledger & Financial Close", "ACH Operations", "Check Processing", "Card Disputes",
+                     "Loan Booking & Servicing"],
+    "txn_errors": ["Deposit Account Servicing", "Branch Operations", "Loan Booking & Servicing",
+                   "Mortgage Servicing"],
+    "acc_provision": ["Identity & Access Management", "Online & Mobile Banking", "Brokerage Operations", "Payroll"],
+    "acc_recert": ["Identity & Access Management", "General Ledger & Financial Close", "Contact Center Operations"],
+    "acc_privileged": ["Identity & Access Management", "General Ledger & Financial Close",
+                       "Data Center & Cloud Hosting", "IT Operations & Resilience"],
+    "aml_monitoring": ["BSA/AML Program", "Remote Deposit Capture", "Real-Time Payments", "Private Banking Lending"],
+    "aml_alerts": ["BSA/AML Program"],
+    "aml_cdd": ["BSA/AML Program", "Wealth Client Onboarding", "Digital Account Opening",
+                "Commercial Deposit Services", "Branch Operations"],
+    "aml_sanctions": ["BSA/AML Program", "Wire Transfer Operations", "Sanctions Compliance",
+                      "Foreign Exchange Services"],
+    "npi_approval": ["New Product Approval", "Online & Mobile Banking", "Commercial Card"],
+    "npi_thirdparty": ["Third-Party Risk Management", "New Product Approval", "Contract Management"],
+    "cmp_handling": ["Customer Complaints Management", "Contact Center Operations", "Card Disputes",
+                     "Mortgage Servicing"],
+    "cmp_rootcause": ["Customer Complaints Management", "Card Disputes", "Consumer Compliance Monitoring"],
+}
+
+# auditable entity -> (ERM context in business terms, IA context in audit wording).
+# ERM never reuses a distinctive word of the entity's name (AC-5 e); the two phrases
+# overlap a little, so text can tell a true match from its same-theme siblings sometimes.
+ENTITY_CONTEXT = {
+    "Commercial Loan Origination": ("new business credit requests", "commercial credit requests and approvals"),
+    "Middle Market Lending": ("mid-sized corporate borrowers", "corporate borrower credit approvals"),
+    "CRE Lending": ("income-producing property loans", "property loan underwriting"),
+    "Construction Lending": ("loans funded in draws during building projects", "draw requests and project inspections"),
+    "Small Business Lending": ("owner-operated company loans", "owner-operated company credit files"),
+    "Syndicated Lending": ("shared credits with other lenders", "agented and participated credits"),
+    "Equipment Leasing": ("financed machinery and vehicles", "lease files for financed machinery"),
+    "Consumer Mortgage Lending": ("first-lien home purchase and refinance loans", "home purchase loan files"),
+    "Home Equity Lending": ("second-lien credit lines on residences", "residential credit line files"),
+    "Collateral Management": ("pledged assets securing credit", "pledged asset records"),
+    "Consumer Installment Lending": ("personal term loans", "personal loan files"),
+    "Credit Card Underwriting": ("revolving retail lending decisions", "revolving credit decision files"),
+    "Indirect Auto Lending": ("dealer-originated vehicle contracts", "dealer-originated contract files"),
+    "Treasury ALM": ("balance sheet rate exposure", "balance sheet rate exposure models"),
+    "Funds Transfer Pricing": ("internal charges for funding", "internal funding charge methodology"),
+    "Investment Securities Portfolio": ("the bond holdings kept for liquidity", "bond portfolio holdings"),
+    "Interest Rate Derivatives": ("swaps hedging the balance sheet", "swap hedge documentation"),
+    "Liquidity Management": ("the bank's funding buffer", "funding buffer reporting"),
+    "Wire Transfer Operations": ("same-day outgoing payments", "outgoing payment release"),
+    "Real-Time Payments": ("instant account-to-account transfers", "instant payment release"),
+    "Foreign Exchange Services": ("cross-currency client payments", "cross-currency payment settlement"),
+    "Commercial Deposit Services": ("business client cash management", "business client cash management services"),
+    "ACH Operations": ("batch electronic debits and credits", "batch electronic payment files"),
+    "Retirement Plan Recordkeeping": ("employer-sponsored savings contributions", "plan contribution processing"),
+    "General Ledger & Financial Close": ("month-end accounting", "month-end close and reconciliations"),
+    "Check Processing": ("paper item clearing", "paper item exceptions and returns"),
+    "Card Disputes": ("cardholder chargebacks", "cardholder chargeback cases"),
+    "Loan Booking & Servicing": ("credit setup and repayment posting", "loan setup and payment posting"),
+    "Deposit Account Servicing": ("client record maintenance", "customer account maintenance requests"),
+    "Branch Operations": ("in-person teller and banker activity", "teller and banker transactions"),
+    "Mortgage Servicing": ("escrow and loss mitigation on home loans", "escrow and home loan modifications"),
+    "Identity & Access Management": ("user entitlements enterprise-wide", "enterprise user entitlements"),
+    "Online & Mobile Banking": ("customer self-service channels", "self-service channel enrollment"),
+    "Brokerage Operations": ("client securities trading", "securities trade processing"),
+    "Payroll": ("employee pay runs", "employee pay processing"),
+    "Contact Center Operations": ("phone-based customer service", "phone service agent activity"),
+    "Data Center & Cloud Hosting": ("hosted infrastructure", "hosted infrastructure administration"),
+    "IT Operations & Resilience": ("production technology operations", "production job scheduling and recovery"),
+    "BSA/AML Program": ("the enterprise anti-money laundering effort", "anti-money laundering program"),
+    "Remote Deposit Capture": ("deposits scanned by business clients", "scanned business deposits"),
+    "Private Banking Lending": ("loans to high-net-worth clients", "high-net-worth client credit"),
+    "Wealth Client Onboarding": ("new advisory relationships", "advisory relationship onboarding"),
+    "Digital Account Opening": ("accounts opened without a branch visit", "account openings without a branch visit"),
+    "Sanctions Compliance": ("watchlist governance", "watchlist governance and tuning"),
+    "New Product Approval": ("launches and offering changes", "offering launch governance"),
+    "Commercial Card": ("corporate purchasing cards", "purchasing card program setup"),
+    "Third-Party Risk Management": ("outsourced service providers", "outsourced provider oversight"),
+    "Contract Management": ("supplier agreements", "supplier agreement reviews"),
+    "Customer Complaints Management": ("client dissatisfaction", "complaint case handling"),
+    "Consumer Compliance Monitoring": ("retail regulation testing", "consumer regulation test results"),
+}
+
 # Titles a bank has exactly one of (AC-7); every other title may repeat.
 ONE_PER_BANK_PREFIXES = ("Chief ", "Head of ")
 ONE_PER_BANK_TITLES = {"Treasurer", "Controller", "BSA Officer", "General Counsel"}
@@ -1079,3 +1185,25 @@ ONE_PER_BANK_TITLES = {"Treasurer", "Controller", "BSA Officer", "General Counse
 
 def one_per_bank(title: str) -> bool:
     return title.startswith(ONE_PER_BANK_PREFIXES) or title in ONE_PER_BANK_TITLES
+
+
+def instantiate(theme: RiskConcept, entity: str) -> RiskConcept:
+    """One full-size risk instance: a theme applied to one auditable entity.
+
+    ERM describes the context in its own business terms (never the entity name); IA names
+    the entity as its audit area. Controls carry the same context, so no two instances of a
+    theme produce identical rows.
+    """
+    erm_ctx, ia_ctx = ENTITY_CONTEXT[entity]
+    cc = theme.control
+    control = replace(cc, erm_title=f"{cc.erm_title} ({erm_ctx})", erm=f"{cc.erm[:-1]} for {erm_ctx}.",
+                      ia=f"{cc.ia} Applies to {entity}.")
+    slug = re.sub(r"[^a-z0-9]+", "-", entity.lower()).strip("-")
+    return replace(theme, key=f"{theme.key}@{slug}", entities=[entity],
+                   erm_title=f"{theme.erm_title} ({erm_ctx})", erm=f"{theme.erm} in {erm_ctx}",
+                   alt_title=f"{theme.alt_title} ({erm_ctx})", alt=f"{theme.alt} in {erm_ctx}",
+                   ia_focus=f"{theme.ia_focus}; {ia_ctx}", control=control, area=entity)
+
+
+def full_instances() -> list[RiskConcept]:
+    return [instantiate(theme, entity) for theme in RISK_CONCEPTS for entity in THEME_ENTITIES[theme.key]]
