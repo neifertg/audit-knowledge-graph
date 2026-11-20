@@ -34,7 +34,7 @@ class OfflineTests(unittest.TestCase):
                                   cwd=ROOT, capture_output=True, text=True)
 
     def test_ac5_build_is_offline_and_never_imports_anthropic(self):
-        for text in ("templated",):  # "ai" is added with the committed AI text (slice 6)
+        for text in ("templated", "ai"):
             with self.subTest(text=text):
                 result = self.run_guarded("--text", text)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

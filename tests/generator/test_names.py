@@ -1,9 +1,22 @@
 """AC-4 (INV-9): names come only from the fictional lists; no real bank, vendor or system name appears."""
 import csv
+import json
+import re
 import unittest
 
 from .dictionary import deny_entries, denied_in, name_list, parse
-from .helpers import build
+from .helpers import ROOT, build
+
+TEXT_DIR = ROOT / "src" / "features" / "generator" / "text"
+
+
+def capitalized_words(text: str) -> list[str]:
+    """Capitalized words that do not start a sentence."""
+    words = []
+    for sentence in re.split(r"(?<=[.!?])\s+|;\s+|:\s+", text):
+        tokens = re.findall(r"[A-Za-z][\w/&'-]*", sentence)
+        words += [t.removesuffix("'s") for t in tokens[1:] if t[0].isupper()]
+    return words
 
 
 class NameTests(unittest.TestCase):
@@ -35,7 +48,26 @@ class NameTests(unittest.TestCase):
                     self.assertEqual(stray, [], f"{name}.{column}: values not on the list")
                 for cell in cells:
                     self.assertEqual(denied_in(cell, deny), [], f"{name}.{column}: real name in {cell!r}")
-        # the AI text and the sample pack are checked here too once they exist (slices 6 and 7)
+        # committed AI text: no real names, and no capitalized word outside the name lists and allow-list
+        allowed_terms = set()
+        for list_name in ("systems", "vendors", "institution", "regulations", "titles", "allow_terms", "people"):
+            allowed_terms |= name_list(list_name)
+        allowed_words = {w for term in allowed_terms for w in re.findall(r"[A-Za-z][\w/&'-]*", term)}
+        for line in (TEXT_DIR / "ai_text.jsonl").read_text(encoding="utf-8").splitlines():
+            entry = json.loads(line)
+            self.assertEqual(denied_in(entry["text"], deny), [], f"{entry['key']}: real name in AI text")
+            stray = sorted(set(capitalized_words(entry["text"])) - allowed_words)
+            self.assertEqual(stray, [], f"{entry['key']}: capitalized words not on any list")
+        # AI text names a system only when its templated draft does
+        from src.features.generator.generate import build as generate
+        from src.features.generator.write_text import added_systems
+
+        drafts = {item.key: item.templated for item in generate().text_items}
+        for line in (TEXT_DIR / "ai_text.jsonl").read_text(encoding="utf-8").splitlines():
+            entry = json.loads(line)
+            self.assertEqual(added_systems(entry["text"], drafts[entry["key"]]), [],
+                             f"{entry['key']}: AI text names a system its draft does not")
+        # the sample pack is checked here too once it exists (slice 7)
 
 
 if __name__ == "__main__":

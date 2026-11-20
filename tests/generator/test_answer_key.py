@@ -87,7 +87,9 @@ class AnswerKeyTests(unittest.TestCase):
         self.assertTrue(hard_negative_exists(out, "control", cc), "no hard negative among controls")
 
     def test_ac2_answer_key_consistent_and_covers_each_case(self):
-        self.check(build())
+        for text in ("templated", "ai"):
+            with self.subTest(text=text):
+                self.check(build("--text", text))
 
 
 if __name__ == "__main__":

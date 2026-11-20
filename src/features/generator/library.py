@@ -444,7 +444,8 @@ RISK_CONCEPTS = [
            "Manager and application owner approval of access requests",
            "Access to in-scope applications is requested through Okrin Identity Gateway, which routes each "
            "request to the user's manager and the application owner. Provisioning runs only after both "
-           "approvals, and requests outside the role catalogue need Information Security sign-off.",
+           "approvals, requests outside the role catalogue need Information Security sign-off, and access is "
+           "removed automatically when a user changes role.",
            "Preventive", "Automated", "Per transaction", ["Okrin Identity Gateway"],
            "Gramm-Leach-Bliley Act",
            "Fourteen accounts in Velistra General Ledger were provisioned directly by administrators, "
