@@ -34,6 +34,27 @@ class InvariantTests(unittest.TestCase):
                     self.assertEqual({l1 for l1 in checks.ERM_L1 if l2_per_l1[l1] < 2}, set(),
                                      "every ERM L1 needs at least 2 L2 children")
 
+    def test_ac2_inv1_each_risk_under_one_l3_of_its_source(self):
+        # 007 AC-2 (INV-1, risk part) and per-source exposure coverage
+        for size in SIZES:
+            with self.subTest(size=size or "sample"):
+                out = build(*size)
+                entities = {r["auditable_entity_id"] for r in read(out, "auditable_entity")}
+                for source in ("erm", "ia"):
+                    l3 = {n["taxonomy_node_id"] for n in read(out, f"taxonomy_node_{source}") if n["level"] == "3"}
+                    risks = {r["risk_id"] for r in read(out, f"risk_{source}")}
+                    links = Counter(r["risk_id"] for r in read(out, f"taxonomy_node_classifies_risk_{source}"))
+                    self.assertEqual(set(links), risks, f"{source}: every risk needs a taxonomy node")
+                    self.assertEqual({k for k, v in links.items() if v != 1}, set(), f"{source}: one node per risk")
+                    nodes = {r["taxonomy_node_id"] for r in read(out, f"taxonomy_node_classifies_risk_{source}")}
+                    self.assertLessEqual(nodes, l3, f"{source}: risks must sit under L3 nodes of their own source")
+                    exposed = read(out, f"auditable_entity_exposed_to_risk_{source}")
+                    self.assertEqual(risks - {r["risk_id"] for r in exposed}, set(), f"{source}: unexposed risks")
+                    if size:
+                        coverage = len({r["auditable_entity_id"] for r in exposed}) / len(entities)
+                        floor = 0.70 if source == "erm" else 0.60
+                        self.assertGreaterEqual(coverage, floor, f"{source} exposure covers {coverage:.0%}")
+
     def test_ac3_inv2_each_entity_has_exactly_one_owner(self):
         for size in SIZES:
             with self.subTest(size=size or "sample"):

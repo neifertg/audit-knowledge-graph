@@ -41,25 +41,43 @@ def _labels(dataset: Dataset) -> dict[str, str]:
 
 def render_text(templated: Dataset, ai: Dataset | None) -> str:
     institution = load("institution")[0]
-    out = [
-        f"# Sample pack: {institution} (synthetic)",
-        "",
-        "This is a small slice of the generated bank (about 15 rows per entity) for one question: "
-        "**do these records read like a real US regional bank's ERM and Internal Audit data?** "
-        "Judge the wording and attributes of the rows. Population sizes, ratios and taxonomy breadth are "
-        "set later (children b-e), so they are not under review here.",
-        "",
-        "Risks, controls and issues show two versions of each description: **templated** (built from "
-        "hand-written phrases) and **AI-written** (generated once with Claude and committed). Pick one.",
-        "",
-        "## Your review",
-        "",
-        "Mark each entity type realistic (yes / no) and add notes. Record the verdict and text choice "
-        "in `research/r2-synthetic-text-realism/decision.md`.",
-        "",
-    ]
-    out += _table(["entity type", "realistic?", "notes"], [(name, "", "") for name in ENTITY_ORDER])
-    out += ["**Text choice (templated / AI):** ____", ""]
+    if ai is None:
+        # full size (007 AC-7): templated text only until child f; no text choice to make
+        counts = ", ".join(f"{len(templated.tables[n].rows)} {n}" for n in
+                           ("auditable_entity", "risk_erm", "risk_ia", "control_erm", "control_ia"))
+        out = [
+            f"# Full-size pack: {institution} (synthetic)",
+            "",
+            f"The full-size bank ({counts}) for a realism skim: do the organization, taxonomies and risk "
+            "registers read like a real US regional bank? Descriptions are templated; AI-written text at full "
+            "size arrives with E1 child f. Audits and issues are still at sample size (child e).",
+            "",
+            "## Your review",
+            "",
+            "Mark each entity type realistic (yes / no) and add notes.",
+            "",
+        ]
+        out += _table(["entity type", "realistic?", "notes"], [(name, "", "") for name in ENTITY_ORDER])
+    else:
+        out = [
+            f"# Sample pack: {institution} (synthetic)",
+            "",
+            "This is a small slice of the generated bank (about 15 rows per entity) for one question: "
+            "**do these records read like a real US regional bank's ERM and Internal Audit data?** "
+            "Judge the wording and attributes of the rows. Population sizes, ratios and taxonomy breadth are "
+            "set later (children b-e), so they are not under review here.",
+            "",
+            "Risks, controls and issues show two versions of each description: **templated** (built from "
+            "hand-written phrases) and **AI-written** (generated once with Claude and committed). Pick one.",
+            "",
+            "## Your review",
+            "",
+            "Mark each entity type realistic (yes / no) and add notes. Record the verdict and text choice "
+            "in `research/r2-synthetic-text-realism/decision.md`.",
+            "",
+        ]
+        out += _table(["entity type", "realistic?", "notes"], [(name, "", "") for name in ENTITY_ORDER])
+        out += ["**Text choice (templated / AI):** ____", ""]
 
     out += ["## Name lists", "", "Every institution, person, vendor and system name comes from these lists "
             "(INV-9). Check that none resembles a real institution or product.", ""]
@@ -76,7 +94,7 @@ def render_text(templated: Dataset, ai: Dataset | None) -> str:
     for name in ENTITY_ORDER:
         table = templated.tables[name]
         out += [f"### {name}", ""]
-        if name in WITH_TEXT:
+        if name in WITH_TEXT and ai is not None:
             i = table.columns.index("description")
             columns = table.columns[:i] + ["description (templated)", "description (AI)"] + table.columns[i + 1:]
             rows = [row[:i] + (row[i], ai_rows.get(name, {}).get(row[0], "(not generated)")) + row[i + 1:]
