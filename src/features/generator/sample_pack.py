@@ -110,7 +110,8 @@ def render_text(templated: Dataset, ai: Dataset | None) -> str:
 
 def render(args) -> None:
     templated = build(args.seed, dict(args.count), "templated", size=args.size)
-    ai = build(args.seed, dict(args.count), "ai", args.text_dir, args.size)
+    # AI text exists only at sample size until children c-e (006 AC-9); full packs show templated text
+    ai = None if args.size == "full" else build(args.seed, dict(args.count), "ai", args.text_dir, args.size)
     path = Path(args.out)
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8", newline="\n") as f:
