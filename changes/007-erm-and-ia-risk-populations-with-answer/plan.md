@@ -4,7 +4,7 @@
 {
   "id": "007-erm-and-ia-risk-populations-with-answer",
   "tier": "standard",
-  "status": "in-progress",
+  "status": "done",
   "created": "2026-11-20",
   "objective": "O3",
   "areas": [
@@ -68,7 +68,8 @@
   "child": "c",
   "approved": "2026-11-20",
   "approved_hash": "a2e19070c4a3aed6",
-  "in_progress": "2026-11-20"
+  "in_progress": "2026-11-20",
+  "done": "2026-11-20"
 }
 ```
 
