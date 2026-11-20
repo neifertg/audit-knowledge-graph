@@ -9,3 +9,15 @@ Format: `### L-NNN (YYYY-MM-DD) [areas] Title`, then what happened and what to d
 When the owner must run something (capitan approve, capitan allow-governance, committing a governance file such as .gitignore), give one complete PowerShell block to paste, including branch switches and the allow-governance step. Never give a git command that opens an editor: use git merge --no-edit, git commit -m, git commit --no-edit. A plain git merge dropped the owner into Vim (2026-11-20).
 Source: 005-sample-pack-for-realism-review
 Scope: general
+
+### L-002 (2026-11-20) [src/features/generator] AI rewrites invent facts unless code enforces the rule
+Asked to rewrite drafts, claude-opus-5-5 added system names absent from the draft (even when the prompt said not to) and expanded brief ERM controls into detailed ones, which made matched ERM/IA pairs too similar (killed hard negatives) and less realistic. Next time: state the rule in the prompt AND check it in code with a retry plus a test (write_text.added_systems); regenerate the whole set after any prompt change so all text shares one prompt.
+Source: 005-sample-pack-for-realism-review
+
+### L-003 (2026-11-20) [src/features/generator] Cross-source text needs shared domain vocabulary for realistic near-misses
+ERM risk statements and IA audit-universe entries shared almost no words, so TF-IDF found no hard negatives (non-match >= matched median). Prefixing IA entries with their audit area and letting sibling scopes overlap fixed it realistically. At ~15 rows the hard-negative check is fragile (0.18 vs 0.19 margins); children c/d should measure it at full size before tuning content.
+Source: 005-sample-pack-for-realism-review
+
+### L-004 (2026-11-20) [workflow] capitan rescue runs from main and leaves files uncommitted
+capitan rescue <id> refuses on the change branch ('switch to main first'), copies knowledge into main's working tree, and expects you to commit there; the branch switch back then fails until you commit. Sequence: commit on branch, git switch main, capitan rescue <id>, commit on main, git switch back, git merge --no-edit main.
+Source: 005-sample-pack-for-realism-review
