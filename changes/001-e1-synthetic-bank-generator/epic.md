@@ -57,7 +57,7 @@
 Everything downstream (reconciliation in E2, the head-to-head rounds in E3, the page in E4) is only as convincing as this data. It has to read as a real US regional bank to audit professionals (the milestone's riskiest assumption) and carry a realistic reconciliation problem with a hidden answer key, so O3's accuracy numbers mean something.
 
 ## Shape
-`src/features/generator/`: one seeded entry point that writes CSVs plus a separate `answer_key/` folder. Its `README.md` is the data dictionary (every CSV, column, type and allowed values); each child updates it for what it adds, and E3a builds the schema from it. Timebox: 10 working days of build time for the whole epic (a: 2, b-e: about 2 each), not counting time waiting on the owner's review at the gate; each child plan states its own.
+`src/features/generator/`: one seeded entry point that writes CSVs plus a separate `answer_key/` folder. Its `README.md` is the data dictionary (every CSV, column, type and allowed values); each child updates it for what it adds, and E3a builds the schema from it. Timebox: 11 working days of build time for the whole epic (a: 2, b-e: about 2 each, f: 1), not counting time waiting on the owner's review at the gate; each child plan states its own.
 
 **a (gate, walking skeleton).** a builds a thin end-to-end slice of the generator: every entity type at about 15 rows, both taxonomies, a first answer key, the AI-text script, and the name lists with their deny-list test. b-e extend a's code to full size and add rules; they do not rewrite it. The sample pack is that slice's output, with templated and AI-written descriptions side by side (R2). Pass condition: the owner marks each entity type realistic / not realistic and picks templated or AI text, recorded in `research/r2-synthetic-text-realism/decision.md` as GO. b does not start until that decision is GO.
 
@@ -106,7 +106,13 @@ CANONICAL_* and maps_to / ia_maps_to_erm are E2 output; E1 writes only their tru
 
 **Names (INV-9).** Name lists are checked against a committed deny-list of real US bank, vendor and core-system names (test, from a), plus a one-time owner review in a.
 
-**f (full-size AI text).** One batch, one budget approval, one guard removal; AI text stored apart from the sample text (`text/ai_text_full.jsonl`) so each size's orphan check stays exact.
+**f (full-size AI text).** Timebox: 1 working day of build time, not counting the owner's budget approval or batch turnaround (epic total 11 days).
+- *Done only on the AI text:* f is done when c-e's difficulty and leakage tests (TF-IDF F1 bands, hard-negative rate, exposure baseline, child a's leakage rules, for risks and controls) pass on the AI-text full build. f never loosens a band. If a file still fails after one prompt revision, the owner decides: keep templated text for that file, or `capitan revise` the epic.
+- *Per-item checks:* every result passes `write_text.added_systems` (no system its draft lacks), a brevity check for ERM controls (one sentence, at most 30 words, per L-002), the deny-list and the capitalized-term check (005 AC-4). An item that fails is resubmitted once, in a second batch, with the failure stated; an item that fails twice blocks the commit and goes to the owner.
+- *Budget:* the owner approves one budget that covers both batches; the script estimates cost from measured per-item usage, refuses to submit over the budget, and logs actual tokens and cost to `research/r2-synthetic-text-realism/cost_log.md`.
+- *Mechanics:* batch custom IDs are a hash of each internal key (keys contain `:`, which custom IDs do not allow), and results are matched by ID, never by order. Full-size text is stored in `text/ai_text_full.jsonl`, apart from the sample text, and `check-text`/`orphan_ai_keys` check each size against its own file. f flips the full-size default to `--text ai`, retires 006's AC-9 guard test, and regenerates the full golden.
+- *Issue keys (child e, before f):* e replaces positional issue keys with natural keys; the 15 committed sample issue texts are re-keyed and re-hashed by script with their text unchanged (no API call), so sample output and its golden do not change.
+- *E2* publishes precision and recall only from the AI-text build, after f.
 
 **Invariant tests.** Each child names the tests for its invariants (a: INV-9, INV-7 checksums; b: INV-1 taxonomy part, INV-2; c: INV-1 risk part; e: INV-4, INV-5; every child after a refreshes the checksums) and replaces the matching `TBD (E1)` in `docs/data-model.md`.
 
