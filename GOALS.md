@@ -35,7 +35,7 @@ Next milestones (parked until M1 is done): **M2**, the unstructured layer (workp
 ## Constraints
 - Own public repo with its own GitHub Pages site; the risk-analytics-portfolio links to it.
 - Python 3.12, SQLite, Neo4j 5 Community (Neo4j Desktop locally, a service container in CI).
-- Approved packages: `neo4j`, `networkx`, `scikit-learn`, `pandas`, `anthropic`. Anything else needs the owner's OK.
+- Approved packages: `neo4j`, `networkx`, `scikit-learn`, `pandas`, `anthropic`, `pyyaml` (secrets reading in one-off scripts only; approved 2026-11-20). Anything else needs the owner's OK.
 - API keys come from `~/.claude/secrets.yaml` at runtime. CI jobs on pull requests never use secrets.
 - Synthetic data is seeded and deterministic. AI-generated text is generated once and committed; builds never call an API.
 - No deadline. AI text generation cost: a few dollars, approved.

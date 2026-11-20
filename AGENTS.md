@@ -14,7 +14,7 @@
 Testing: behavior, not implementation. Real SQLite and real Neo4j, never mocked. Each plan criterion names its test; each invariant in `docs/data-model.md` gets one.
 
 Project rules:
-- No new packages without the owner's OK. Approved: `neo4j`, `networkx`, `scikit-learn`, `pandas`, `anthropic`.
+- No new packages without the owner's OK. Approved: `neo4j`, `networkx`, `scikit-learn`, `pandas`, `anthropic`, `pyyaml` (only for reading `~/.claude/secrets.yaml` in one-off scripts; never imported by `build`).
 - API keys are read at runtime from `~/.claude/secrets.yaml` (never copied into the repo; never printed). CI jobs on pull requests never get secrets.
 - AI-generated text is generated once and committed; `build` never calls an API.
 - No real institution, person or vendor names: fictional name lists only (INV-9).
