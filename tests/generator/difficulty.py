@@ -20,10 +20,17 @@ def _f1(predicted: set, truth: set) -> float:
 
 
 def _best_threshold_f1(scored: dict, truth: set) -> float:
-    """Best F1 over thresholds, predicting every pair scored at or above the threshold."""
-    best = 0.0
-    for threshold in sorted(set(scored.values())):
-        best = max(best, _f1({p for p, s in scored.items() if s >= threshold}, truth))
+    """Best F1 over thresholds, predicting every pair scored at or above the threshold (one sorted sweep)."""
+    if not truth:
+        return 0.0
+    best = tp = predicted = 0
+    ordered = sorted(scored.items(), key=lambda kv: kv[1], reverse=True)
+    for n, (pair, score) in enumerate(ordered):
+        predicted += 1
+        tp += pair in truth
+        last_at_this_score = n + 1 == len(ordered) or ordered[n + 1][1] != score
+        if last_at_this_score and tp:
+            best = max(best, 2 * tp / (predicted + len(truth)))
     return best
 
 

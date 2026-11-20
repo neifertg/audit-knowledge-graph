@@ -21,9 +21,11 @@ SAMPLE_COUNTS = {
     "RISK_IA": 15,
 }
 FULL_COUNTS = {
-    **SAMPLE_COUNTS,  # risks, controls, audits and issues reach full size in children c-e
+    **SAMPLE_COUNTS,  # audits and issues reach full size in child e; controls follow risks until d
     "REGULATION": 15,
     "PERSON": 120,
+    "RISK_ERM": 180,  # child c (007)
+    "RISK_IA": 150,
 }
 SIZES = {"sample", "full"}
 SAMPLE_NAME_POOL = 30   # sample mode draws people from the first 30 first and last names
@@ -228,6 +230,20 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
             ia_only[-1], unused[swap] = unused[swap], ia_only[-1]
     duplicated = rng.sample(shared, n_dup)
     erm_concepts = sorted(shared + erm_only, key=lambda c: c.key)
+    # Full size: a theme's inherent rating varies by where it occurs (own stream, L-005).
+    rating_of = {c.key: c.rating for c in concepts}
+    if full:
+        rrng = stream(seed, "risk_rating")
+        for c in sorted(concepts, key=lambda c: c.key):
+            draw = rrng.random()
+            if c.rating == "High" and draw < 0.5:
+                rating_of[c.key] = "Medium"
+            elif c.rating == "Medium" and draw < 0.42:
+                rating_of[c.key] = "Low"
+            elif c.rating == "Medium" and draw > 0.9:
+                rating_of[c.key] = "High"
+            elif c.rating == "Low" and draw < 0.2:
+                rating_of[c.key] = "Medium"
     ia_concepts = sorted(shared + ia_only, key=lambda c: c.key)
 
     # ERM risks: (concept, ordinal); ordinal 1 is a within-ERM duplicate in other words.
@@ -255,7 +271,7 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
         desc = erm_templates[v].format(phrase=phrase, cause=cause, impact=c.impact,
                                                 Impact=_cap(c.impact))
         erm_risk[(c.key, k)] = rid
-        rows.append((rid, title, desc, c.rating))
+        rows.append((rid, title, desc, rating_of[c.key]))
         texts.append(TextItem(f"risk_erm:{c.key}:{k}", "risk_erm", rid, "description", desc,
                               _hash("risk_erm", c.key, str(k), title, desc)))
     t["risk_erm"] = Table(["risk_id", "title", "description", "inherent_rating"], rows)
@@ -267,9 +283,9 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
     for c, rid in zip(ia_concepts, ia_risk_ids):
         v = rng.randrange(len(lib.IA_RISK_TEMPLATES))
         desc = lib.IA_RISK_TEMPLATES[v].format(area=c.area or c.ia_l3, title=c.ia_title, focus=c.ia_focus)
-        rating = c.rating
+        rating = rating_of[c.key]
         if rng.random() < 0.25:  # IA's own assessment differs by one notch
-            i = lib.RATINGS.index(c.rating)
+            i = lib.RATINGS.index(rating)
             rating = lib.RATINGS[i + 1 if i == 0 else i - 1]
         ia_risk[c.key] = rid
         rows.append((rid, c.ia_title, desc, rating))

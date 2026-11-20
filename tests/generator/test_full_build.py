@@ -36,8 +36,8 @@ class FullBuildTests(unittest.TestCase):
         on_system = {r["process_id"] for r in read(out, "process_runs_on_system")}
         self.assertGreaterEqual(len(on_system) / count("process"), 0.8, "fewer than 80% of processes use a system")
 
-        # entities c-e own stay at sample size in this change
-        for name in ("risk_erm", "risk_ia", "control_erm", "control_ia", "audit", "issue"):
+        # audits and issues stay at sample size until child e (risks and controls grew in 007, as planned)
+        for name in ("audit", "issue"):
             self.assertEqual(count(name), len(read(build(), name)), f"{name} changed size")
 
     def test_ac4_full_taxonomy_map_consistent_and_uneven(self):
