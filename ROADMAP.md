@@ -48,4 +48,5 @@ Ideas that came up mid-change. Review them when planning the next milestone; pro
 - 2026-11-20 E1 sample mode: --count PERSON above 20 repeats one-per-bank titles (sample cycles the first 20 titles); harmless at defaults, fix if sample counts ever grow (review of 006) (from 006-organization-regulations-taxonomies-and)
 - 2026-11-20 E1 child f: 'check-text --size full' checks text/ai_text_full.jsonl (epic revision 1; review of 006) (from 006-organization-regulations-taxonomies-and)
 - 2026-11-20 E1 child c: full-size sample pack intro still says '~15 rows' and asks for a text choice; reword when no AI text is shown (review of 006) (from 006-organization-regulations-taxonomies-and)
+- 2026-11-20 E1 child f plan must cover (epic rev-1 critique): areas incl. research/r2-synthetic-text-realism/** and akg/**; budget for one prompt-revision regeneration or a fresh owner OK before it; owner's options for twice-failed items; done = full suite passes with AI default; offline tests for batch IDs, match-by-ID and over-budget refusal using a recorded fake batch; orphan check for ai_text_full.jsonl (from 001-e1-synthetic-bank-generator)
 <!-- capitan:parking:end -->
