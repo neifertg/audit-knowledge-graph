@@ -43,4 +43,5 @@ Ideas that came up mid-change. Review them when planning the next milestone; pro
 - 2026-11-20 E1 child c: IA risks filed under an unmapped IA node always count as misfiled; with up to 20% unmapped IA nodes (006 AC-4), place IA risks so misfiled stays within the epic's 10-20% (from 006-organization-regulations-taxonomies-and)
 - 2026-11-20 E1 child e: move issue owners onto their own random stream (issue_owned_by_person) so --count PERSON leaves issue files unchanged; dropped from 006 AC-6 because it changes sample issue output (from 006-organization-regulations-taxonomies-and)
 - 2026-11-20 E1 children c-e: the full-size AI-text guard from 006 AC-9 is all-or-nothing; c and d narrow it to entity types still lacking full-size AI text, e removes it (from 006-organization-regulations-taxonomies-and)
+- 2026-11-20 Governance follow-up (owner at a terminal): .claude/skills/capitan-plan/SKILL.md still says 'Never run approve yourself'; align it with AGENTS.md rule 2's relay exception (needs capitan allow-governance) (from 006-organization-regulations-taxonomies-and)
 <!-- capitan:parking:end -->
