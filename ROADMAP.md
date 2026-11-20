@@ -46,4 +46,5 @@ Ideas that came up mid-change. Review them when planning the next milestone; pro
 - 2026-11-20 Governance follow-up (owner at a terminal): .claude/skills/capitan-plan/SKILL.md still says 'Never run approve yourself'; align it with AGENTS.md rule 2's relay exception (needs capitan allow-governance) (from 006-organization-regulations-taxonomies-and)
 - 2026-11-20 E1 sample mode: --count PERSON above 20 repeats one-per-bank titles (sample cycles the first 20 titles); harmless at defaults, fix if sample counts ever grow (review of 006) (from 006-organization-regulations-taxonomies-and)
 - 2026-11-20 E1 children c-e: decide what 'check-text --size full' means once full-size AI text exists (review of 006) (from 006-organization-regulations-taxonomies-and)
+- 2026-11-20 E1 child c: full-size sample pack intro still says '~15 rows' and asks for a text choice; reword when no AI text is shown (review of 006) (from 006-organization-regulations-taxonomies-and)
 <!-- capitan:parking:end -->
