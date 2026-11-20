@@ -42,4 +42,5 @@ Ideas that came up mid-change. Review them when planning the next milestone; pro
 - 2026-11-20 E1 child d: matched ERM/IA controls always share type, nature and frequency (9 of 9 in the sample); AC-7 passes only via differing owners. Add realistic attribute disagreement (review of 005) (from 005-sample-pack-for-realism-review)
 - 2026-11-20 E1 child c: IA risks filed under an unmapped IA node always count as misfiled; with up to 20% unmapped IA nodes (006 AC-4), place IA risks so misfiled stays within the epic's 10-20% (from 006-organization-regulations-taxonomies-and)
 - 2026-11-20 E1 child e: move issue owners onto their own random stream (issue_owned_by_person) so --count PERSON leaves issue files unchanged; dropped from 006 AC-6 because it changes sample issue output (from 006-organization-regulations-taxonomies-and)
+- 2026-11-20 E1 children c-e: the full-size AI-text guard from 006 AC-9 is all-or-nothing; c and d narrow it to entity types still lacking full-size AI text, e removes it (from 006-organization-regulations-taxonomies-and)
 <!-- capitan:parking:end -->
