@@ -2,6 +2,7 @@
 import unittest
 from collections import defaultdict
 
+from . import checks
 from .helpers import build, read
 
 FULL = ("--size", "full")
@@ -33,6 +34,29 @@ class FullBuildTests(unittest.TestCase):
         # entities c-e own stay at sample size in this change
         for name in ("risk_erm", "risk_ia", "control_erm", "control_ia", "audit", "issue"):
             self.assertEqual(count(name), len(read(build(), name)), f"{name} changed size")
+
+    def test_ac4_full_taxonomy_map_consistent_and_uneven(self):
+        out = build(*FULL)
+        target = checks.taxonomy_map(self, out)
+        ia = {r["taxonomy_node_id"]: r for r in read(out, "taxonomy_node_ia")}
+        erm = {r["taxonomy_node_id"]: r for r in read(out, "taxonomy_node_erm")}
+        ia_parent = {e["child_id"]: e["parent_id"] for e in read(out, "taxonomy_node_parent_of_taxonomy_node_ia")}
+
+        def branch(node_id):  # the IA L1 node above (or at) node_id
+            while node_id in ia_parent:
+                node_id = ia_parent[node_id]
+            return node_id
+
+        unmapped_branches = [l1 for l1, node in ia.items() if node["level"] == "1"
+                             and all(target[n] is None for n in ia if branch(n) == l1)]
+        self.assertGreaterEqual(len(unmapped_branches), 1, "no IA L1 branch is unmapped throughout")
+        shallower = [n for n, t in target.items() if t and int(erm[t]["level"]) < int(ia[n]["level"])]
+        self.assertGreaterEqual(len(shallower), 4, "fewer than 4 IA nodes map to a shallower ERM level")
+        self.assertGreaterEqual(sum(ia[n]["level"] == "3" and erm[target[n]]["level"] == "2" for n in shallower), 2,
+                                "fewer than 2 IA L3 nodes map to an ERM L2")
+        unmapped = sum(t is None for t in target.values())
+        self.assertLessEqual(unmapped / len(ia), 0.20, f"{unmapped} unmapped IA nodes is more than 20%")
+        self.assertLessEqual(len(shallower) / len(ia), 0.40, "more than 40% of IA nodes map shallower")
 
     def test_ac8_systems_are_shared_across_units(self):
         out = build(*FULL)

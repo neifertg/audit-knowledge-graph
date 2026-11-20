@@ -3,9 +3,8 @@ import statistics
 import unittest
 from collections import defaultdict
 
+from . import checks
 from .helpers import answer_key, build, cosine_by_id, read
-
-ALLOWED_TARGET_LEVELS = {1: {1}, 2: {1, 2}, 3: {2, 3}}
 
 
 def clusters(rows: list[dict], id_col: str) -> dict[str, list[dict]]:
@@ -35,17 +34,7 @@ class AnswerKeyTests(unittest.TestCase):
         erm_parent = {r["child_id"]: r["parent_id"] for r in read(out, "taxonomy_node_parent_of_taxonomy_node_erm")}
 
         # taxonomy map: every IA node exactly once, valid targets at allowed levels
-        tmap = answer_key(out, "taxonomy_map")
-        self.assertEqual(sorted(r["ia_node_id"] for r in tmap), sorted(ia_nodes))
-        target = {}
-        for row in tmap:
-            if row["erm_node_id"] == "unmapped":
-                target[row["ia_node_id"]] = None
-                continue
-            self.assertIn(row["erm_node_id"], erm_nodes)
-            ia_level = int(ia_nodes[row["ia_node_id"]]["level"])
-            self.assertIn(int(erm_nodes[row["erm_node_id"]]["level"]), ALLOWED_TARGET_LEVELS[ia_level])
-            target[row["ia_node_id"]] = row["erm_node_id"]
+        target = checks.taxonomy_map(self, out)
         self.assertGreaterEqual(sum(t is None for t in target.values()), 1, "no unmapped IA node")
 
         # risk clusters: every risk exactly once, true node an ERM L3, clusters share a node

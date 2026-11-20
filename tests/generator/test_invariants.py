@@ -2,6 +2,7 @@
 import unittest
 from collections import Counter
 
+from . import checks
 from .helpers import build, read
 
 SIZES = ((), ("--size", "full"))
@@ -16,6 +17,23 @@ def one_per_bank(title: str) -> bool:
 
 
 class InvariantTests(unittest.TestCase):
+    def test_ac2_inv1_taxonomies_are_strict_trees(self):
+        for size in SIZES:
+            with self.subTest(size=size or "sample"):
+                out = build(*size)
+                erm = checks.strict_tree(self, out, "erm")
+                ia = checks.strict_tree(self, out, "ia")
+                self.assertEqual({n["name"] for n in erm if n["level"] == "1"}, checks.ERM_L1)
+                if size:
+                    self.assertTrue(60 <= len(erm) <= 120, f"ERM has {len(erm)} nodes")
+                    self.assertTrue(40 <= len(ia) <= 100, f"IA has {len(ia)} nodes")
+                    by_id = {n["taxonomy_node_id"]: n for n in erm}
+                    l2_per_l1 = Counter(by_id[e["parent_id"]]["name"]
+                                        for e in read(out, "taxonomy_node_parent_of_taxonomy_node_erm")
+                                        if by_id[e["parent_id"]]["level"] == "1")
+                    self.assertEqual({l1 for l1 in checks.ERM_L1 if l2_per_l1[l1] < 2}, set(),
+                                     "every ERM L1 needs at least 2 L2 children")
+
     def test_ac3_inv2_each_entity_has_exactly_one_owner(self):
         for size in SIZES:
             with self.subTest(size=size or "sample"):

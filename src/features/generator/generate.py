@@ -171,14 +171,19 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
 
     # --- taxonomies --------------------------------------------------------------------
     def taxonomy(source: str, paths: list, prefix: str, lo: int, hi: int) -> dict:
-        nodes, parents = [], []
+        nodes, parents, seen_parent = [], [], {}
         for path in paths:
             for level in range(1, 4):
                 node = (level, path[level - 1])
+                parent = (level - 1, path[level - 2]) if level > 1 else None
                 if node not in nodes:
                     nodes.append(node)
-                    if level > 1:
-                        parents.append(((level - 1, path[level - 2]), node))
+                    seen_parent[node] = parent
+                    if parent:
+                        parents.append((parent, node))
+                elif seen_parent[node] != parent:
+                    # nodes are keyed by (level, name): a name reused at one level would merge branches
+                    raise GenerationError(f"{source} taxonomy reuses level-{level} name {node[1]!r}")
         ids = dict(zip(nodes, _ids(seed, f"taxonomy_node_{source}", prefix, len(nodes), lo, hi)))
         t[f"taxonomy_node_{source}"] = Table(
             ["taxonomy_node_id", "level", "name"], [(ids[node], node[0], node[1]) for node in nodes])
@@ -186,12 +191,14 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
             ["parent_id", "child_id"], [(ids[p], ids[c]) for p, c in parents])
         return ids
 
-    erm_node = taxonomy("erm", lib.ERM_TAXONOMY, "ERMT-", 100, 1000)
-    ia_node = taxonomy("ia", lib.IA_TAXONOMY, "IAT-", 100, 1000)
-    erm_path = {path[2]: path for path in lib.ERM_TAXONOMY}
+    erm_paths = lib.FULL_ERM_TAXONOMY if full else lib.ERM_TAXONOMY
+    erm_node = taxonomy("erm", erm_paths, "ERMT-", 100, 1000)
+    ia_node = taxonomy("ia", lib.FULL_IA_TAXONOMY if full else lib.IA_TAXONOMY, "IAT-", 100, 1000)
+    erm_path = {path[2]: path for path in erm_paths}
+    ia_to_erm = lib.FULL_IA_TO_ERM  # a superset; sample nodes map exactly as before
 
     def misfiled(concept: lib.RiskConcept) -> bool:
-        target = lib.IA_TO_ERM[(3, concept.ia_l3)]
+        target = ia_to_erm[(3, concept.ia_l3)]
         path = erm_path[concept.erm_l3]
         return target is None or path[target[0] - 1] != target[1]
 
@@ -389,7 +396,7 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
     erm_by_level_name = {node: nid for node, nid in erm_node.items()}
     key["taxonomy_map"] = Table(
         ["ia_node_id", "erm_node_id"],
-        [(nid, erm_by_level_name[lib.IA_TO_ERM[node]] if lib.IA_TO_ERM[node] else "unmapped")
+        [(nid, erm_by_level_name[ia_to_erm[node]] if ia_to_erm[node] else "unmapped")
          for node, nid in ia_node.items()])
 
     risk_count: dict[str, int] = {}
