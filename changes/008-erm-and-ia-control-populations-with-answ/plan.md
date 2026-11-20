@@ -4,7 +4,7 @@
 {
   "id": "008-erm-and-ia-control-populations-with-answ",
   "tier": "standard",
-  "status": "in-progress",
+  "status": "done",
   "created": "2026-11-20",
   "objective": "O3",
   "areas": [
@@ -68,7 +68,8 @@
   "child": "d",
   "approved": "2026-11-20",
   "approved_hash": "924c9d797a9f3de7",
-  "in_progress": "2026-11-20"
+  "in_progress": "2026-11-20",
+  "done": "2026-11-20"
 }
 ```
 
