@@ -4,7 +4,7 @@
 {
   "id": "005-sample-pack-for-realism-review",
   "tier": "standard",
-  "status": "approved",
+  "status": "in-progress",
   "created": "2026-11-19",
   "objective": "O3",
   "areas": [
@@ -107,7 +107,8 @@
   "child": "a",
   "approved": "2026-11-20",
   "approved_hash": "81a70753a75aa8df",
-  "critique_skipped": "Five critique rounds; all findings fixed"
+  "critique_skipped": "Five critique rounds; all findings fixed",
+  "in_progress": "2026-11-20"
 }
 ```
 
