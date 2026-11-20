@@ -21,14 +21,14 @@
     {
       "id": "AC-1",
       "when": "`python -m akg build --size sample --seed 42 --out <dir>` runs on a fresh checkout",
-      "then": "it writes the file layout in Data impact: one CSV per shared entity type, one per source (erm, ia) for TAXONOMY_NODE, RISK and CONTROL, and one per (from, label, to) relationship, split by source wherever one end is a sourced entity; CANONICAL_*, maps_to and ia_maps_to_erm appear only in answer_key/; every relationship CSV has at least one row; every entity CSV has 1-20 rows except the taxonomy files (up to 30 each: all L1 nodes plus a thin L2-L3 branch under each)",
+      "then": "it writes the file layout in Data impact: one CSV per shared entity type, one per source (erm, ia) for TAXONOMY_NODE, RISK and CONTROL, and one per (from, label, to) relationship, split by source wherever one end is a sourced entity; CANONICAL_*, maps_to and ia_maps_to_erm appear only in answer_key/; `tested` has only `audit_tested_control_ia.csv` (audits test IA controls only, per the epic); every relationship CSV has at least one row; every entity CSV has 1-20 rows except the taxonomy files (up to 30 each: all L1 nodes plus a thin L2-L3 branch under each)",
       "test": "generator.test_sample_build.SampleBuildTests.test_ac1_sample_build_writes_every_entity_and_edge",
       "status": "pending"
     },
     {
       "id": "AC-2",
       "when": "the sample build has run",
-      "then": "answer_key/ holds taxonomy_map.csv, risk_clusters.csv, control_clusters.csv and scenarios.csv (header only), passing the epic's consistency rules, and contains at least 3 cross-source risk matches, 3 cross-source control matches, 1 within-ERM duplicate, 1 unmapped IA node and 1 misfiled IA risk; and, computed in the test with scikit-learn TF-IDF on the published descriptions, separately for risks and for controls and for both `--text templated` and `--text ai`, at least one cross-source non-matching pair whose cosine is at or above the median cosine of true matching pairs (a hard negative)",
+      "then": "answer_key/ holds taxonomy_map.csv, risk_clusters.csv, control_clusters.csv and scenarios.csv (header only), passing the epic's consistency rules, and contains at least 5 cross-source risk matches, 5 cross-source control matches, 1 within-ERM duplicate, 1 unmapped IA node and 1 misfiled IA risk; and, computed in the test with scikit-learn TF-IDF on the published descriptions, separately for risks and for controls and for both `--text templated` and `--text ai`, at least one cross-source non-matching pair whose cosine is at or above the median cosine of true matching pairs (a hard negative)",
       "test": "generator.test_answer_key.AnswerKeyTests.test_ac2_answer_key_consistent_and_covers_each_case",
       "status": "pending"
     },
@@ -42,7 +42,7 @@
     {
       "id": "AC-4",
       "when": "the sample build has run, the AI text is committed, and the test has generated a sample pack to a temp path",
-      "then": "every column the data dictionary marks with `name_list: <list>` takes its values only from that list in src/features/generator/names/; no list entry, and no token sequence in any text cell of any output CSV, the committed AI text or the generated pack, matches (case-insensitive, whole-token sequence) the committed deny-list of real US bank, vendor and core-system names (INV-9). Deny-list entries are distinctive forms (e.g. 'KeyBank', 'Regions Bank', 'Citizens Financial'), never a single common word, so 'key control' does not match",
+      "then": "every column the data dictionary marks with `name_list: <list>` takes its values only from that list in src/features/generator/names/; no list entry, and no token sequence in any text cell of any output CSV, the committed AI text or the generated pack, matches (case-insensitive, whole-token sequence) the committed deny-list of real US bank, vendor and core-system names (INV-9). Deny-list entries are distinctive forms (e.g. 'KeyBank', 'Regions Bank', 'Citizens Financial'), never a single common word, so 'key control' does not match. Also, every run of two or more capitalized words in the AI text (ignoring the sentence-initial word) is on a name list or on a committed allow-list of domain terms (e.g. 'General Ledger'), so the AI cannot invent unlisted names",
       "test": "generator.test_names.NameTests.test_ac4_inv9_names_from_lists_and_no_denied_name_anywhere",
       "status": "pending"
     },
@@ -63,7 +63,7 @@
     {
       "id": "AC-7",
       "when": "two items share a true cluster in the answer key, in a build with `--text templated` and in one with `--text ai`",
-      "then": "their published IDs share no numeric part; their descriptions share no full template sentence; their TF-IDF cosine is below 0.90 and the median cosine of matched pairs is below 0.70 (so AI paraphrases are not near-copies); owner/frequency/type are not all equal (controls); and the order of matched clusters in risk_erm.csv / control_erm.csv differs from their order in risk_ia.csv / control_ia.csv",
+      "then": "their published IDs share no numeric part; their descriptions share no full template sentence; their TF-IDF cosine is below 0.90 and the median cosine of matched pairs is below 0.70 (so AI paraphrases are not near-copies); owner/frequency/type are not all equal (controls); and the Spearman rank correlation between matched clusters' row positions in risk_erm.csv / control_erm.csv and in risk_ia.csv / control_ia.csv has absolute value below 0.8",
       "test": "generator.test_leakage.LeakageTests.test_ac7_matched_items_share_no_id_sentence_attributes_or_order",
       "status": "pending"
     },
@@ -90,8 +90,8 @@
     },
     {
       "id": "AC-11",
-      "when": "the build runs with seed 42 and `--count ISSUE=5` (instead of the sample default)",
-      "then": "every CSV whose file name does not start with `issue` and is not `audit_raised_issue.csv` is byte-identical to the default run, proving per-type random streams are independent",
+      "when": "the build runs with seed 42 and `--count REGULATION=5` (an early type with few dependents), and separately with `--count ISSUE=5` (the last type)",
+      "then": "in the first run every CSV whose file name does not contain `regulation`, and in the second every CSV whose name contains no `issue`, is byte-identical to the default run, proving per-type random streams are independent",
       "test": "generator.test_determinism.DeterminismTests.test_ac11_changing_one_type_count_leaves_other_types_unchanged",
       "status": "pending"
     }
@@ -111,6 +111,7 @@ The milestone's riskiest assumption is that the synthetic bank reads as real to 
   - Relationships, named `<from>_<label>_<to>.csv`, with a source suffix when either end is sourced (e.g. `control_mitigates_risk_erm.csv`, `issue_against_control_ia.csv`, `control_owned_by_person_erm.csv`).
   - **New rule: no relationship crosses sources.** ERM controls mitigate ERM risks, IA controls IA risks; ERM-IA links exist only in the answer key. Added to `docs/data-model.md` in this change.
 - Columns are provisional; b-e may add columns and update the data dictionary.
+- **Committed AI text:** `src/features/generator/text/ai_text.jsonl`, one JSON object per line (`key`, `input_hash`, `text`), sorted by key, UTF-8, LF. That folder is the `--text-dir` default.
 - **Published description:** the build writes templated text by default (`--text templated`). `--text ai` swaps in the committed AI text. All criteria and golden checksums use the default until R2 is GO; if R2 picks AI text, child b switches the default and regenerates the checksums.
 - First answer-key files, in the epic's schema.
 - Invariants enforced here: INV-7 (golden checksums), INV-9 (names + deny-list over all text). Replaces their `TBD (E1)` in `docs/data-model.md` with the AC-3 and AC-4 test names. INV-1, 2, 4, 5 are left to b-e.
@@ -121,6 +122,8 @@ The milestone's riskiest assumption is that the synthetic bank reads as real to 
 ## Test plan
 - Done check: `python -m unittest discover -s tests -v`. Tests are `unittest.TestCase` methods; `tests/` and `tests/generator/` have `__init__.py`; the names in the criteria are the dotted names that verbose output prints, and each must appear there as `ok` (not skipped) before its criterion is marked pass.
 - Real files, real build, no mocks; tests build into a temp directory and never write committed files.
+- TF-IDF settings are fixed in one test helper used by AC-2 and AC-7: scikit-learn `TfidfVectorizer(lowercase=True, ngram_range=(1, 2))`, fit per comparison on all ERM and IA descriptions of that kind (risks or controls).
+- `.venv/` and `__pycache__/` are not in `.gitignore` (governance; owner's to change). Until the owner adds them, the builder lists them in `.git/info/exclude` locally and never stages them.
 - AC-5 blocks network with a socket guard in the subprocess only; it is a guard, not a mock of our code.
 - The AI-text script (`write_text.py`) is not run by tests; it is run once by hand (key read at runtime from `~/.claude/secrets.yaml` with PyYAML, approved by the owner 2026-11-20 for script-only use; AC-5 proves the build never needs it), and its committed output is what AC-4 and AC-6 check.
 - Not tested here: F1 bands, quotas, hard-negative rates, planted scenarios and full sizes (meaningless at ~15 rows; c-e own them). The owner's realism verdict is a manual gate recorded in R2's decision.md, not a test.
