@@ -1,5 +1,25 @@
 # Working agreement for agents (capitan)
 
+## Project
+**Audit knowledge graph showcase:** a synthetic US regional bank's ERM and Internal Audit data, reconciled into one framework, loaded into SQLite and Neo4j side by side, and presented as a GitHub Pages site for CAEs and data scientists. Goals in `GOALS.md`, data model in `docs/data-model.md`.
+
+| | |
+|---|---|
+| Stack | Python 3.12 (`.venv/`, pinned `requirements.txt`), SQLite (built in), Neo4j 5 Community. Static HTML/JS page; CDN libraries pinned to exact versions; GitHub Pages. |
+| Install | `python -m venv .venv` then `.venv\Scripts\pip install -r requirements.txt` |
+| Build | `python -m akg build` (generate -> reconcile -> load -> run rounds -> export page data) |
+| **Test (done-check)** | `python -m unittest discover -s tests` |
+| Neo4j | Local: Neo4j Desktop; connection via `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`. Tests needing Neo4j skip locally when `NEO4J_URI` is unset; CI always sets it (service container), so they always run there. |
+
+Testing: behavior, not implementation. Real SQLite and real Neo4j, never mocked. Each plan criterion names its test; each invariant in `docs/data-model.md` gets one.
+
+Project rules:
+- No new packages without the owner's OK. Approved: `neo4j`, `networkx`, `scikit-learn`, `pandas`, `anthropic`.
+- API keys are read at runtime from `~/.claude/secrets.yaml` (never copied into the repo; never printed). CI jobs on pull requests never get secrets.
+- AI-generated text is generated once and committed; `build` never calls an API.
+- No real institution, person or vendor names: fictional name lists only (INV-9).
+- The reconciliation pipeline never reads the answer key (INV-6).
+
 This project uses capitan, a plan-first workflow. It works the same for every agent and for people. The tool is `python -m capitan` (written `capitan` below).
 
 ## Start of every session
