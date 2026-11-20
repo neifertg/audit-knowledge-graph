@@ -4,7 +4,7 @@
 {
   "id": "007-erm-and-ia-risk-populations-with-answer",
   "tier": "standard",
-  "status": "approved",
+  "status": "in-progress",
   "created": "2026-11-20",
   "objective": "O3",
   "areas": [
@@ -67,7 +67,8 @@
   "epic": "001-e1-synthetic-bank-generator",
   "child": "c",
   "approved": "2026-11-20",
-  "approved_hash": "a2e19070c4a3aed6"
+  "approved_hash": "a2e19070c4a3aed6",
+  "in_progress": "2026-11-20"
 }
 ```
 
