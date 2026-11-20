@@ -4,7 +4,7 @@
 {
   "id": "006-organization-regulations-taxonomies-and",
   "tier": "standard",
-  "status": "approved",
+  "status": "in-progress",
   "created": "2026-11-20",
   "objective": "O3",
   "areas": [
@@ -83,7 +83,8 @@
   "child": "b",
   "revised": "2026-11-20",
   "approved": "2026-11-20",
-  "approved_hash": "264084f1b798384b"
+  "approved_hash": "264084f1b798384b",
+  "in_progress": "2026-11-20"
 }
 ```
 
