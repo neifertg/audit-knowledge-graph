@@ -99,6 +99,7 @@ class RiskTests(unittest.TestCase):
         self.assertLessEqual(r.entity_mention_f1(), 0.80, "entity-name words in ERM text find matches")
         self.assertGreaterEqual(r.same_unit_hard_negative_share(), 0.20)
         self.assertTrue(0.10 <= r.stale_link_share() <= 0.20, f"stale links {r.stale_link_share():.3f}")
+        self.assertEqual(r.cross_segment_links(), 0, "stale links must stay inside their segment")
 
 
 if __name__ == "__main__":

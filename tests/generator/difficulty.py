@@ -44,6 +44,7 @@ class Risks:
         self.erm, self.ia = read(out, "risk_erm"), read(out, "risk_ia")
         rows = self.erm + self.ia
         self.desc = {r["risk_id"]: r["description"] for r in rows}
+        self.title = {r["risk_id"]: r["title"] for r in rows}
         ids = [r["risk_id"] for r in rows]
         sims = cosine_similarity(TfidfVectorizer(lowercase=True, ngram_range=(1, 2)).fit_transform(
             [r["description"] for r in rows]))
@@ -144,7 +145,7 @@ class Risks:
 
         def mentions(i):
             distinctive = {w for a in self.exposed[i] for w in words(self.entity_name[a]) if name_words[w] <= 3}
-            return [e for e in self.erm_ids if distinctive & words(self.desc[e])]
+            return [e for e in self.erm_ids if distinctive & words(self.title[e] + " " + self.desc[e])]
         return self._best_per_ia(mentions)
 
     def same_unit_hard_negative_share(self) -> float:
@@ -153,15 +154,23 @@ class Risks:
         sharing = [i for i, es in hard.items() if any(units(i) & units(e) for e in es)]
         return len(sharing) / len(hard) if hard else 0.0
 
-    def stale_link_share(self) -> float:
-        links = stale = 0
+    def _erm_links(self):
+        """(link is stale, link stays in the home segment) for every ERM exposure link."""
         for e in self.erm_ids:
             units = Counter(self.unit_of[a] for a in self.exposed[e])
             home = units.most_common(1)[0][0]
             for a in self.exposed[e]:
-                links += 1
-                stale += self.unit_of[a] != home
-        return stale / links
+                unit = self.unit_of[a]
+                yield unit != home, self.segment_of[unit] == self.segment_of[home]
+
+    def stale_link_share(self) -> float:
+        """Share of ERM exposure links pointing to another business unit of the same segment."""
+        links = list(self._erm_links())
+        return sum(stale and same_segment for stale, same_segment in links) / len(links)
+
+    def cross_segment_links(self) -> int:
+        """ERM exposure links into another segment (the stale-link rule allows none)."""
+        return sum(stale and not same_segment for stale, same_segment in self._erm_links())
 
 
 class Controls:

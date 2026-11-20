@@ -19,49 +19,49 @@
       "when": "`python -m akg build --size full --seed 42` runs",
       "then": "ERM has 270-330 controls and IA 360-440 (epic targets ±10%); 55-65% of IA controls share a true cluster with an ERM control; no cluster holds two ERM controls; orphan controls (mitigating no risk) are 3-6% of each source's controls, sit in no cluster and have no counterpart in the other source (the build refuses an orphan whose twin exists, so the answer key never labels a true pair unmatched); every matched pair differs in level of detail (the IA description has at least twice the ERM description's words); owners always differ within a matched pair and 15-30% of matched pairs record a different frequency (control type always agrees)",
       "test": "generator.test_controls.ControlTests.test_ac1_full_control_counts_and_quotas",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-2",
       "when": "either size is built",
       "then": "every non-orphan control mitigates at least one risk of its own source and every risk is mitigated by at least one control (an ERM duplicate shares its original's controls); every control has exactly one owner; at full size answer_key/scenarios.csv lists under `shared_system` the 3 systems whose dependent controls reach the most distinct auditable entities, where reach is the union over both sources of control -> mitigates -> risk -> exposed entity (each source's own links) and ties are broken by system name; each listed system reaches at least 3 entities in at least 2 business units, the third system's reach is strictly greater than the fourth's (no name tie-break decides the list), and the test recomputes the ranking from published files and checks the rows match (d writes these rows; e appends the rest)",
       "test": "generator.test_controls.ControlTests.test_ac2_control_links_and_shared_system_scenario",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-3",
       "when": "either size is built",
       "then": "child a's answer-key rules (every control in control_clusters.csv exactly once), referential integrity (INV-10), data dictionary, name checks (INV-9), no identical title plus description among one source's controls, and the epic's audit-scope and issue-linking rules all hold, through the shared helpers",
       "test": "generator.test_controls.ControlTests.test_ac3_shared_rules_hold_at_both_sizes",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-4",
       "when": "the full build has run (templated text)",
       "then": "matching controls is realistically hard: exact-text match and exact owner-plus-frequency match each score F1 below 0.5; a TF-IDF cosine baseline at its best threshold scores F1 between 0.40 and 0.75; at least 10% of IA controls have a hard negative; and child a's leakage rules hold for controls (no shared ID number or sentence, cosine below 0.90, matched median below 0.70, row-order Spearman below 0.8)",
       "test": "generator.test_controls.ControlTests.test_ac4_control_matching_is_hard_but_possible",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-5",
       "when": "the full build has run",
       "then": "attributes, links and text cues do not give matches away, using only published files and never the answer key: (a) pairing ERM and IA controls equal on type, nature and frequency scores F1 below 0.5; (b) pairing controls whose system sets intersect scores F1 below 0.5 (controls listing no system are never predicted, so their true pairs count as misses); (c) pairing controls required by the same regulation scores F1 below 0.5; (d) for each IA control, the best TF-IDF match among ERM controls that share a system with it, at its best threshold, scores F1 at most 0.80 (IA controls with no candidate predict nothing); (e) the same for ERM controls mitigating a risk exposed to the IA control's business unit, at most 0.80; (f) the entity-mention baseline (ERM controls whose title or description contains a distinctive word of the IA control's entity name, then best TF-IDF) scores at most 0.80. Matching controls through already-matched risks is E2's intended graph strategy, not a leak, and is not capped. (h) a subject-and-kind lookup (pair controls whose titles share every word of a kind label and at least two subject words) scores F1 at most 0.80, because ERM and IA word each theme's subject and each kind label differently; (g) control counts reveal nothing: for each source, the mean number of controls mitigating a risk differs by less than 0.3 between risks that have a cross-source match and risks that do not",
       "test": "generator.test_controls.ControlTests.test_ac5_attributes_and_systems_do_not_leak_matches",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-6",
       "when": "the build runs after this change",
       "then": "sample output is unchanged (the sample golden test passes; the reviewer runs `git log --oneline main.. -- tests/golden/checksums.sha256` and expects no commits); tests/golden/checksums_full.sha256 is regenerated; 006's full-size AI-text guard stays until child f",
       "test": "generator.test_determinism.DeterminismTests.test_ac3_inv7_output_matches_golden_checksums and test_ac5_full_build_matches_full_golden; generator.test_full_build.FullBuildTests.test_ac9_full_size_explicit_ai_text_fails_loudly",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-7",
       "when": "child c's difficulty measures run",
       "then": "the stale-link measure counts only links to another business unit of the same segment (links to another segment fail the test), and the entity-mention baseline searches ERM titles as well as descriptions; child c's AC-5 bands still hold (parked findings from 007's review)",
       "test": "generator.test_risks.RiskTests.test_ac5_exposure_structure_does_not_leak_matches",
-      "status": "pending"
+      "status": "pass"
     }
   ],
   "epic": "001-e1-synthetic-bank-generator",

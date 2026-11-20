@@ -499,6 +499,23 @@ def _weighted(rng, keys: list[str]) -> str:
     return rng.choices(keys, weights=[kinds[k].weight for k in keys])[0]
 
 
+def orphan_twins(erm_specific, erm_generic, ia_specific, ia_generic, erm_held, ia_held, erm_slots, ia_slots):
+    """Orphans that have a counterpart in the other source (must be none, or the answer key would lie).
+
+    Specific orphans are instance keys; generic orphans map key -> (theme, kind) for ERM and
+    key -> (instance, kind) for IA. *_held are instances each source holds as risks; *_slots are
+    (theme, kind) pairs each source uses for linked generic controls.
+    """
+    theme = lambda key: key.split("@")[0]
+    bad = [k for k in erm_specific if k in ia_held or k in ia_specific]
+    bad += [k for k in ia_specific if k in erm_held or k in erm_specific]
+    ia_orphan_slots = {(theme(i), kind) for i, kind in ia_generic.values()}
+    erm_orphan_slots = set(erm_generic.values())
+    bad += [k for k, slot in erm_generic.items() if slot in ia_slots | ia_orphan_slots]
+    bad += [k for k, (i, kind) in ia_generic.items() if (theme(i), kind) in erm_slots | erm_orphan_slots]
+    return sorted(bad)
+
+
 def _full_controls(seed, t, concepts, erm_items, erm_risk_ids, ia_concepts, ia_risk, unused, sys_id, reg_id,
                    person_ids, texts) -> dict:
     """Full-size controls (008): specific controls per risk instance, generic controls at two levels.
@@ -570,20 +587,10 @@ def _full_controls(seed, t, concepts, erm_items, erm_risk_ids, ia_concepts, ia_r
         if hosts:
             inst = rng.choice(hosts)
             ia_orphan_generic[f"{inst}#{kind}"] = (inst, kind)
-    taken = {v for v in erm_orphan_generic.values()}
-    for key, (inst, kind) in ia_orphan_generic.items():
-        if (theme(inst), kind) in taken | erm_used:
-            raise GenerationError(f"IA orphan {key} has an ERM twin")
-    for key in ia_orphan_specific:
-        if key in erm_risks_of or key in erm_orphan_specific:
-            raise GenerationError(f"IA orphan {key} has an ERM twin")
-    ia_slots = ia_used | {(theme(i), k) for i, k in ia_orphan_generic.values()}
-    for key, slot in erm_orphan_generic.items():
-        if slot in ia_slots:
-            raise GenerationError(f"ERM orphan {key} has an IA twin")
-    for key in erm_orphan_specific:
-        if key in held_by_ia:
-            raise GenerationError(f"ERM orphan {key} has an IA twin")
+    twins = orphan_twins(erm_orphan_specific, erm_orphan_generic, ia_orphan_specific, ia_orphan_generic,
+                         set(erm_risks_of), held_by_ia, erm_used, ia_used)
+    if twins:
+        raise GenerationError("orphan control with a twin in the other source: " + ", ".join(twins))
 
     erm_keys = sorted(set(erm_instances) | set(erm_generic) | set(erm_orphan_specific) | set(erm_orphan_generic))
     ia_keys = sorted(set(ia_instances) | set(ia_generic) | set(ia_orphan_specific) | set(ia_orphan_generic))
