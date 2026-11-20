@@ -8,3 +8,23 @@ Merrow AML Monitor
 Okrin Identity Gateway
 Velistra General Ledger
 Tessaly Case Manager
+Carrowmere Card Platform
+Aldwyn Mortgage Servicing
+Fennick Digital Banking
+Tarrance Trust Accounting
+Ivelle Wealth Platform
+Merrow Fraud Detection
+Pellmark Liquidity Manager
+Sorrelin Regulatory Reporting
+Quillon HR and Payroll
+Draycott Contract Repository
+Vantrel Collateral Manager
+Haskett Collections
+Orveth Change Manager
+Kestrin Vulnerability Scanner
+Lumora Contact Center
+Embry Document Imaging
+Calvane Credit Loss Model
+Rothmere Model Inventory
+Nessa Real-Time Payments Gateway
+Ostrand Treasury Workstation

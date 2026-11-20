@@ -21,3 +21,11 @@ Source: 005-sample-pack-for-realism-review
 ### L-004 (2026-11-20) [workflow] capitan rescue runs from main and leaves files uncommitted
 capitan rescue <id> refuses on the change branch ('switch to main first'), copies knowledge into main's working tree, and expects you to commit there; the branch switch back then fails until you commit. Sequence: commit on branch, git switch main, capitan rescue <id>, commit on main, git switch back, git merge --no-edit main.
 Source: 005-sample-pack-for-realism-review
+
+### L-005 (2026-11-20) [src/features/generator] Give every per-row choice its own random stream from day one
+rng.choice consumes a variable number of random bits depending on the list length, so drawing issue owners from the issue stream made the person count shift every later issue draw (006). Fixing it later changes existing output and conflicts with criteria that freeze it. Next time: any draw from another entity's population (owners, links) gets its own stream named after the relationship file, from the first commit.
+Source: 006-organization-regulations-taxonomies-and
+
+### L-006 (2026-11-20) [workflow] Check new criteria against output-freezing criteria before approval
+006's AC-5 froze sample output while AC-6 demanded a --count PERSON independence that could only be reached by changing sample output; the conflict surfaced mid-build and cost a plan revision. Next time: when a plan freezes existing output, check every other criterion for whether it needs that output to change, and probe the code (one quick run) before approval.
+Source: 006-organization-regulations-taxonomies-and

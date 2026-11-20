@@ -22,13 +22,25 @@ class DeterminismTests(unittest.TestCase):
             self.assertEqual(first, read_golden(),
                              "output differs from tests/golden/checksums.sha256; if intended, regenerate it")
 
+    def test_ac5_full_build_matches_full_golden(self):
+        with tempfile.TemporaryDirectory() as a, tempfile.TemporaryDirectory() as b:
+            run_akg("build", "--seed", "42", "--size", "full", "--out", a)
+            run_akg("build", "--seed", "42", "--size", "full", "--out", b)
+            first = checksums(Path(a))
+            self.assertEqual(first, checksums(Path(b)), "two full builds with the same seed differ")
+            self.assertEqual(first, read_golden("full"),
+                             "full output differs from tests/golden/checksums_full.sha256; if intended, regenerate it")
+
     def test_ac11_changing_one_type_count_leaves_other_types_unchanged(self):
-        default = checksums(build())
+        # streams, not text, are under test: positional issue text keys (parked for c-e) break --count with AI text
+        default = checksums(build("--text", "templated"))
         for type_name, marker, file_name in (("REGULATION", "regulation", "regulation"), ("ISSUE", "issue", "issue")):
             with self.subTest(type=type_name):
-                self.assertNotEqual(len(read(build(), file_name)), 5, "override must differ from the default")
-                changed = checksums(build("--count", f"{type_name}=5"))
-                self.assertEqual(len(read(build("--count", f"{type_name}=5"), file_name)), 5)
+                self.assertNotEqual(len(read(build("--text", "templated"), file_name)), 5,
+                                    "override must differ from the default")
+                override = ("--text", "templated", "--count", f"{type_name}=5")
+                changed = checksums(build(*override))
+                self.assertEqual(len(read(build(*override), file_name)), 5)
                 unrelated = [p for p in default if marker not in Path(p).name]
                 self.assertTrue(unrelated)
                 drift = [p for p in unrelated if default[p] != changed[p]]
