@@ -20,63 +20,63 @@
       "when": "`python -m akg build --size full --seed 42 --out <dir>` runs",
       "then": "b's entities are at full size within the epic's ±10%: auditable entities 72-88, people 108-132, systems 27-33, regulations 14-16; plus segments exactly the 7 in docs/data-model.md, business units 25-35, processes 80-160; every auditable entity performs at least one process; at least 80% of processes run on a system; every relationship file b owns (has, owns, performs, runs_on, parent_of x2) has rows. Entities c-e own stay at sample size in this change",
       "test": "generator.test_full_build.FullBuildTests.test_ac1_full_build_org_counts_within_targets",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-2",
       "when": "either size is built",
       "then": "each taxonomy (ERM, IA) is a strict three-level tree: every L1 has no parent, every L2 and L3 node has exactly one parent one level up, there are no cycles, sibling names are unique; ERM's L1 set is exactly Credit, Market, Liquidity, Operational, Compliance, Strategic, Reputational; at full size ERM has 60-120 nodes with at least 2 L2 under every L1, and IA has 40-100 nodes (INV-1, taxonomy part)",
       "test": "generator.test_invariants.InvariantTests.test_ac2_inv1_taxonomies_are_strict_trees",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-3",
       "when": "either size is built",
       "then": "every auditable entity is owned by exactly one business unit and every business unit belongs to exactly one segment (INV-2)",
       "test": "generator.test_invariants.InvariantTests.test_ac3_inv2_each_entity_has_exactly_one_owner",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-4",
       "when": "the full build has run",
       "then": "answer_key/taxonomy_map.csv covers every IA node exactly once at an allowed level (child a's consistency rules), and maps unevenly: at least 1 IA L1 branch unmapped throughout, at least 4 IA nodes mapped to a shallower ERM level, of which at least 2 are IA L3 nodes mapped to an ERM L2; and stays mostly mappable: unmapped IA nodes are at most 20% of IA nodes, and shallower-level mappings at most 40%",
       "test": "generator.test_full_build.FullBuildTests.test_ac4_full_taxonomy_map_consistent_and_uneven",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-5",
       "when": "the build runs at either size after this change",
       "then": "the default text is AI-written (`--text ai`, per R2) at sample size; at full size it defaults to templated until c-e generate full-size AI text (the explicit `--size full --text ai` case is AC-9). In slice 1, before any content change, only the CLI default switches and tests/golden/checksums.sha256 is regenerated from that otherwise unmodified code; it is not regenerated again in this change, so the final sample build matching it proves b changed no sample output beyond the text default. A new tests/golden/checksums_full.sha256 (written by `python -m tests.generator.golden --size full`) covers the full build (INV-7 at both sizes)",
       "test": "generator.test_determinism.DeterminismTests.test_ac3_inv7_output_matches_golden_checksums and generator.test_determinism.DeterminismTests.test_ac5_full_build_matches_full_golden; plus `git log --oneline main.. -- tests/golden/checksums.sha256` shows exactly one commit (slice 1)",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-6",
       "when": "the full build has run",
       "then": "child a's size-independent checks, moved into shared helpers that a's existing tests and this test both call, hold at full size too: referential integrity and no cross-source links (INV-10), data dictionary matches output, name columns come from their lists and no text names a real institution (INV-9), and changing `--count REGULATION` leaves every file not naming regulations unchanged. (Revision 1: the `--count PERSON` clause was dropped: issue owners share the issue random stream, so the person count shifts issue draws, and fixing that changes sample issue output, which AC-5 forbids here. Parked for child e.)",
       "test": "generator.test_full_build.FullBuildTests.test_ac6_child_a_checks_hold_at_full_size",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-7",
       "when": "either size is built",
       "then": "titles that a bank has one of (Chief Credit Officer, Chief Risk Officer, Chief Audit Executive, Chief Information Security Officer, Treasurer, Controller, BSA Officer, General Counsel) appear at most once each in person.csv; other titles may repeat",
       "test": "generator.test_invariants.InvariantTests.test_ac7_one_per_bank_titles_are_unique",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-8",
       "when": "the full build has run",
       "then": "no system is orphaned (each runs at least one process); at least 8 systems run processes of auditable entities in 3 or more business units, and at least 3 of those span 2 or more segments, so E3's shared-system round has real blast radius",
       "test": "generator.test_full_build.FullBuildTests.test_ac8_systems_are_shared_across_units",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-9",
       "when": "`python -m akg build --size full --text ai` runs before children c-e generate full-size AI text",
       "then": "it exits non-zero before writing any file, with a message saying AI text exists only at sample size so far and to use `--text templated`; the refusal is a deliberate size check in the generator, not the per-item stale-text check, so no item can silently receive sample AI text at full size and the message never suggests regenerating (which would spend unapproved API budget). Children c-e remove the check when they add full-size AI text.",
       "test": "generator.test_full_build.FullBuildTests.test_ac9_full_size_explicit_ai_text_fails_loudly",
-      "status": "pending"
+      "status": "pass"
     }
   ],
   "epic": "001-e1-synthetic-bank-generator",

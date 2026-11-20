@@ -86,6 +86,11 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
     if size not in SIZES:
         raise GenerationError(f"unknown size {size}; choose from {sorted(SIZES)}")
     full = size == "full"
+    if full and text == "ai":
+        # AC-9 (006): sample AI text must never leak into a full-size build. Children c-e
+        # narrow this guard as they add full-size AI text, and e removes it.
+        raise GenerationError("AI-written text exists only at sample size so far (children c-e add it at full "
+                              "size); build full size with --text templated")
     n = dict(FULL_COUNTS if full else SAMPLE_COUNTS)
     for name, value in (counts or {}).items():
         if name not in OVERRIDABLE:

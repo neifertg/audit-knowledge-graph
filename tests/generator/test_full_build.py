@@ -2,12 +2,13 @@
 import unittest
 from collections import defaultdict
 
+import tempfile
 from pathlib import Path
 
 from . import checks
 from .dictionary import deny_entries
 from .golden import checksums
-from .helpers import build, read
+from .helpers import build, read, run_akg
 
 FULL = ("--size", "full")
 DATA_MODEL_SEGMENTS = {"Consumer Banking", "Commercial Banking", "Wealth Management", "Treasury & Markets",
@@ -67,13 +68,22 @@ class FullBuildTests(unittest.TestCase):
         checks.referential(self, out)
         checks.data_dictionary(self, out)
         checks.output_names(self, out, deny_entries())
+        # --count PERSON independence is parked for child e (issue owners share the issue stream)
         default = checksums(out)
-        for type_name, marker in (("REGULATION", "regulation"), ("PERSON", "person")):
-            with self.subTest(type=type_name):
-                changed = checksums(build(*FULL, "--count", f"{type_name}=100" if type_name == "PERSON"
-                                          else f"{type_name}=10"))
-                drift = [p for p in default if marker not in Path(p).name and default[p] != changed[p]]
-                self.assertEqual(drift, [], f"--count {type_name} changed files that do not name it")
+        changed = checksums(build(*FULL, "--count", "REGULATION=10"))
+        drift = [p for p in default if "regulation" not in Path(p).name and default[p] != changed[p]]
+        self.assertEqual(drift, [], "--count REGULATION changed files that do not name regulations")
+
+    def test_ac9_full_size_explicit_ai_text_fails_loudly(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "out"
+            result = run_akg("build", "--seed", "42", "--size", "full", "--text", "ai", "--out", str(out), check=False)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertFalse(out.exists() and any(out.iterdir()), "nothing may be written")
+            message = result.stderr.lower()
+            self.assertIn("sample size", message)
+            self.assertIn("--text templated", message)
+            self.assertNotIn("regenerate", message, "the refusal must not point at paid regeneration")
 
     def test_ac8_systems_are_shared_across_units(self):
         out = build(*FULL)
