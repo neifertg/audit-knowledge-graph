@@ -22,6 +22,15 @@ class DeterminismTests(unittest.TestCase):
             self.assertEqual(first, read_golden(),
                              "output differs from tests/golden/checksums.sha256; if intended, regenerate it")
 
+    def test_ac5_full_build_matches_full_golden(self):
+        with tempfile.TemporaryDirectory() as a, tempfile.TemporaryDirectory() as b:
+            run_akg("build", "--seed", "42", "--size", "full", "--out", a)
+            run_akg("build", "--seed", "42", "--size", "full", "--out", b)
+            first = checksums(Path(a))
+            self.assertEqual(first, checksums(Path(b)), "two full builds with the same seed differ")
+            self.assertEqual(first, read_golden("full"),
+                             "full output differs from tests/golden/checksums_full.sha256; if intended, regenerate it")
+
     def test_ac11_changing_one_type_count_leaves_other_types_unchanged(self):
         # streams, not text, are under test: positional issue text keys (parked for c-e) break --count with AI text
         default = checksums(build("--text", "templated"))

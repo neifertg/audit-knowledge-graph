@@ -1,8 +1,10 @@
-"""Golden checksums for the default build (INV-7).
+"""Golden checksums for the default build and the full build (INV-7).
 
 Regenerate after an intentional output change, in the same commit:
-    .venv\\Scripts\\python -m tests.generator.golden
+    .venv\\Scripts\\python -m tests.generator.golden               # sample (the default build)
+    .venv\\Scripts\\python -m tests.generator.golden --size full   # full build
 """
+import argparse
 import hashlib
 import subprocess
 import sys
@@ -11,6 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 GOLDEN = ROOT / "tests" / "golden" / "checksums.sha256"
+GOLDEN_FULL = ROOT / "tests" / "golden" / "checksums_full.sha256"
 
 
 def checksums(out: Path) -> dict[str, str]:
@@ -22,18 +25,23 @@ def render(sums: dict[str, str]) -> str:
     return "".join(f"{digest}  {path}\n" for path, digest in sorted(sums.items()))
 
 
-def read_golden() -> dict[str, str]:
-    lines = GOLDEN.read_text(encoding="utf-8").splitlines()
+def read_golden(size: str = "sample") -> dict[str, str]:
+    lines = (GOLDEN_FULL if size == "full" else GOLDEN).read_text(encoding="utf-8").splitlines()
     return {path: digest for digest, path in (line.split("  ", 1) for line in lines if line)}
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--size", choices=["sample", "full"], default="sample")
+    size = parser.parse_args().size
+    target = GOLDEN_FULL if size == "full" else GOLDEN
     with tempfile.TemporaryDirectory() as tmp:
-        subprocess.run([sys.executable, "-m", "akg", "build", "--seed", "42", "--out", tmp], cwd=ROOT, check=True)
-        GOLDEN.parent.mkdir(parents=True, exist_ok=True)
-        with open(GOLDEN, "w", encoding="utf-8", newline="\n") as f:
+        subprocess.run([sys.executable, "-m", "akg", "build", "--seed", "42", "--size", size, "--out", tmp],
+                       cwd=ROOT, check=True)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with open(target, "w", encoding="utf-8", newline="\n") as f:
             f.write(render(checksums(Path(tmp))))
-    print(f"wrote {GOLDEN}")
+    print(f"wrote {target}")
 
 
 if __name__ == "__main__":

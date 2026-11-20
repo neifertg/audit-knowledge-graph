@@ -2,7 +2,11 @@
 import unittest
 from collections import defaultdict
 
+from pathlib import Path
+
 from . import checks
+from .dictionary import deny_entries
+from .golden import checksums
 from .helpers import build, read
 
 FULL = ("--size", "full")
@@ -57,6 +61,19 @@ class FullBuildTests(unittest.TestCase):
         unmapped = sum(t is None for t in target.values())
         self.assertLessEqual(unmapped / len(ia), 0.20, f"{unmapped} unmapped IA nodes is more than 20%")
         self.assertLessEqual(len(shallower) / len(ia), 0.40, "more than 40% of IA nodes map shallower")
+
+    def test_ac6_child_a_checks_hold_at_full_size(self):
+        out = build(*FULL)
+        checks.referential(self, out)
+        checks.data_dictionary(self, out)
+        checks.output_names(self, out, deny_entries())
+        default = checksums(out)
+        for type_name, marker in (("REGULATION", "regulation"), ("PERSON", "person")):
+            with self.subTest(type=type_name):
+                changed = checksums(build(*FULL, "--count", f"{type_name}=100" if type_name == "PERSON"
+                                          else f"{type_name}=10"))
+                drift = [p for p in default if marker not in Path(p).name and default[p] != changed[p]]
+                self.assertEqual(drift, [], f"--count {type_name} changed files that do not name it")
 
     def test_ac8_systems_are_shared_across_units(self):
         out = build(*FULL)
