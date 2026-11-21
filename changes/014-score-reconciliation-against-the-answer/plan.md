@@ -4,7 +4,7 @@
 {
   "id": "014-score-reconciliation-against-the-answer",
   "tier": "standard",
-  "status": "in-progress",
+  "status": "done",
   "created": "2026-11-21",
   "objective": "O3",
   "areas": [
@@ -54,7 +54,8 @@
   "child": "d",
   "approved": "2026-11-21",
   "approved_hash": "174cfab48c229526",
-  "in_progress": "2026-11-21"
+  "in_progress": "2026-11-21",
+  "done": "2026-11-21"
 }
 ```
 
