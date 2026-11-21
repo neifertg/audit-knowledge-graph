@@ -229,6 +229,110 @@ class BatchTests(unittest.TestCase):
         self.assertEqual(retry, {}, "an item is resubmitted once only")
         self.assertTrue(blocked, "items failing twice are blocked for the owner")
 
+    # --- AC-4 -------------------------------------------------------------------------------
+    def full_variant(self, change) -> tuple[Path, str]:
+        """A text directory holding the committed sample file and a changed copy of the full file."""
+        tmp = Path(tempfile.mkdtemp(prefix="akg-fulltext-"))
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        shutil.copy(bt.TEXT_DIR / "ai_text.jsonl", tmp / "ai_text.jsonl")
+        entries = bt.load_text(bt.TEXT_DIR / bt.FULL_AI_TEXT_FILE)
+        key = change(entries)
+        bt.save_text(tmp / bt.FULL_AI_TEXT_FILE, entries)
+        return tmp, key
+
+    def full_build(self, text_dir: Path):
+        out = Path(tempfile.mkdtemp(prefix="akg-out-"))
+        self.addCleanup(shutil.rmtree, out, ignore_errors=True)
+        return subprocess.run([sys.executable, "-m", "akg", "build", "--seed", "42", "--size", "full", "--out", str(out),
+                               "--text-dir", str(text_dir)], cwd=ROOT, capture_output=True, text=True)
+
+    def check_text(self, text_dir: Path, size: str):
+        return subprocess.run([sys.executable, "-m", "akg", "check-text", "--size", size, "--text-dir", str(text_dir)],
+                              cwd=ROOT, capture_output=True, text=True)
+
+    def test_ac4_full_text_complete_current_and_clean(self):
+        from src.features.generator.text_rules import violations
+
+        path = bt.TEXT_DIR / bt.FULL_AI_TEXT_FILE
+        entries = bt.load_text(path)
+        items = bt.full_items()
+        self.assertEqual(bt.pending(items, entries), [], "every full-size item has a current entry")
+        self.assertEqual(bt.duplicate_items(items, entries)[0], [], "every duplicate is rewritten from its original")
+        drafts = {i.key: i.draft for i in items}
+        for key, entry in entries.items():
+            source = bt.duplicate_source(key)
+            draft = entries[source]["text"] if source else drafts[key]
+            self.assertEqual(violations(key.split(":")[0], draft, entry["text"]), [], key)
+        # owner-approved hand edits are exactly the ones docs/data-model.md lists
+        doc = (ROOT / "docs" / "data-model.md").read_text(encoding="utf-8")
+        listed = set(re.findall(r"hand edit: `([^`]+)`", doc))
+        self.assertEqual({k for k, e in entries.items() if "written_by" in e}, listed)
+
+        unchanged, _ = self.full_variant(lambda e: None)
+        self.assertEqual(self.full_build(unchanged).returncode, 0)
+        some = sorted(entries)[7]
+
+        def remove(e):
+            e.pop(some)
+            return some
+
+        def alter(e):
+            e[some]["input_hash"] = "0" * 16
+            return some
+
+        for name, change in (("missing", remove), ("stale", alter)):
+            with self.subTest(case=name):
+                text_dir, key = self.full_variant(change)
+                result = self.full_build(text_dir)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(key, result.stderr)
+
+        def orphan(e):
+            e["risk_ia:no_such_concept"] = {"key": "risk_ia:no_such_concept", "input_hash": "0" * 16, "text": "x"}
+            return "risk_ia:no_such_concept"
+
+        text_dir, key = self.full_variant(orphan)
+        result = self.check_text(text_dir, "full")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(key, result.stderr)
+        self.assertEqual(self.check_text(text_dir, "sample").returncode, 0, "the sample file is checked on its own")
+
+    # --- AC-5 -------------------------------------------------------------------------------
+    def test_ac5_duplicates_are_rewritten_from_their_original(self):
+        original = item(0)
+        original.key, original.file = "risk_erm:theme@x:0", "risk_erm"
+        dup = bt.Item("risk_erm:theme@x:1", "risk_erm", "Its own cause wording.", "Title", "a voice", "", "h1")
+        stored = {original.key: {"key": original.key, "input_hash": "h0", "text": "The original AI statement."}}
+        dups, notes = bt.duplicate_items([original, dup], stored)
+        self.assertEqual([d.key for d in dups], [dup.key])
+        self.assertEqual(dups[0].draft, "The original AI statement.")
+        client = FakeClient(results=[succeeded(bt.custom_id(dup.key), "A copied and edited statement.")])
+        batch_id = self.submit(dups, client=client, notes=notes)
+        content = client.messages.batches.created[-1][0]["params"]["messages"][0]["content"]
+        self.assertIn("The original AI statement.", content)
+        self.assertIn("Its own cause wording.", content, "the note carries the duplicate's own draft")
+        bt.collect(lambda: client, batch_id, dups, self.tmp / "text.jsonl", log=self.log, batch_dir=self.batches)
+        saved = bt.load_text(self.tmp / "text.jsonl")[dup.key]
+        self.assertEqual({k: saved[k] for k in ("source_text_hash", "note_hash")}, dups[0].extra)
+        # in the real build, a changed original or a changed note makes the duplicate stale, naming it
+        entries = bt.load_text(bt.TEXT_DIR / bt.FULL_AI_TEXT_FILE)
+        key = next(k for k in sorted(entries) if bt.duplicate_source(k))
+
+        def change_original(e):
+            e[bt.duplicate_source(key)]["text"] += " Edited."
+            return key
+
+        def change_note(e):
+            e[key]["note_hash"] = "0" * 16
+            return key
+
+        for name, change in (("original", change_original), ("note", change_note)):
+            with self.subTest(changed=name):
+                text_dir, _ = self.full_variant(change)
+                result = self.full_build(text_dir)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(key, result.stderr)
+
     # --- AC-6 -------------------------------------------------------------------------------
     def test_ac6_tests_never_import_anthropic(self):
         code = ("import sys, unittest\n"
