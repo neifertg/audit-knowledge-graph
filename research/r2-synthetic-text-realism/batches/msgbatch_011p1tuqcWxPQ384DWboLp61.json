@@ -1,0 +1,34 @@
+{
+ "attempt": 2,
+ "failures": {
+  "control_ia:cmp_handling@mortgage-servicing#sod": "names systems its draft lacks: Aldwyn Mortgage Servicing"
+ },
+ "requests": {
+  "k081426d3fbdd82c82fc6fe3e8c2f6e7c4f7ffea0": "control_erm:collections_workout@mortgage-servicing",
+  "k157e945f6b2752eef749bd76d0418b631954ea01": "issue:IA:aml_monitoring@real-time-payments:0",
+  "k2431a5e90831041b11067495b3ac9a4d6c4d5157": "control_erm:txn_errors@loan-booking-servicing",
+  "k28d45cc920741f31419b16b6ba9ea454ca84bbcc": "issue:IA:wire_fraud@real-time-payments#sod:0",
+  "k34634dda585c356d5a3488422afd55ec4d3b784f": "issue:IA:change_mgmt@data-center-cloud-hosting#training:0",
+  "k34947124bb97bb5789ea1b96949f693d0a320a3c": "issue:IA:aml_monitoring@bsa-aml-program#policy:0",
+  "k489d5527f2b1d9d6e821f422de71c55769dab186": "issue:IA:collections_workout@collections-recovery#sod:0",
+  "k500cdc0bc92d726316d67173b44fd7b6336ca9a9": "control_erm:uw_collateral#sod",
+  "k676a5d979f4a3d944119638b8087bce863872f96": "issue:IA:aml_monitoring@bsa-aml-program:0",
+  "k7874126177d577641f26bfe2d12e606ab5c7b3a6": "control_erm:wire_fraud#mgmt_review",
+  "k789157e85ddbd0d485ff27001c7f651cdf4ec4fd": "control_erm:txn_errors#reconciliation",
+  "k790771aa590355c1507f4cddd01f9b4ec4c03bf5": "control_erm:uw_authority@construction-lending",
+  "k7a6099aaf50cff4c4035b6ca039510272020b0fd": "control_ia:cfp_test@liquidity-management",
+  "k7fdb0aa659e754e66ec1363436e25e19a42b3669": "control_erm:aml_alerts#sod",
+  "k9111e4a6d64f33a0adc74bb22a1f003226afaa22": "control_erm:wire_fraud#sod",
+  "k927029f8a530c6561f20edb94b37bdf1583234bb": "control_ia:cmp_handling@mortgage-servicing#sod",
+  "k9a00a415c9f91a21fcda61cfa07f0237b8289a82": "control_erm:uw_authority@syndicated-lending",
+  "kbed62b1dbbba1710a48d8954f7e385e1b507db6b": "control_ia:regreport@regulatory-reporting#access",
+  "kc1a82998b419b8085fcca787b3fd9a1ef91ad570": "control_erm:uw_authority@cre-lending",
+  "kc45634199488d9cbaf301298c775464264cf078c": "control_erm:acc_provision@payroll",
+  "kcb01d248b109babc814f5755e08126b6edbc08d3": "issue:IA:aml_monitoring@real-time-payments#mgmt_review:0",
+  "kd09bfd5e39d804a67ca7c3e5f32cf7bfc12e6c02": "control_erm:aml_alerts#exception",
+  "kd48fdc817881f89ca31fcfd5c79069f1e892ffcd": "issue:IA:change_mgmt@data-center-cloud-hosting#training:1",
+  "kf602b822664c4452710598c75b4fffae6128659c": "control_erm:acl_reserve#reconciliation",
+  "kfd6c4a3f4f9440ec15a183110f4ef303a2bf4751": "control_erm:aml_monitoring#mgmt_review",
+  "kfe47eae20080c9b43620eb4217ac0314103a0254": "control_ia:aml_monitoring@real-time-payments#mgmt_review"
+ }
+}
