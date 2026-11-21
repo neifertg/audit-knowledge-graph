@@ -4,7 +4,7 @@
 {
   "id": "013-canonical-layer-review-queue-and-build-s",
   "tier": "standard",
-  "status": "approved",
+  "status": "in-progress",
   "created": "2026-11-21",
   "objective": "O3",
   "areas": [
@@ -61,7 +61,8 @@
   "epic": "002-e2-erm-ia-reconciliation",
   "child": "c",
   "approved": "2026-11-21",
-  "approved_hash": "cf8f228b823682ff"
+  "approved_hash": "cf8f228b823682ff",
+  "in_progress": "2026-11-21"
 }
 ```
 
