@@ -188,6 +188,7 @@ def answer_key_rules(test, out) -> None:
     known_ids = {r[f"{k}_id"] for k in ("system", "risk", "control", "issue", "audit", "auditable_entity")
                  for name in ([k] if k in ("system", "issue", "audit", "auditable_entity") else [f"{k}_erm", f"{k}_ia"])
                  for r in read(out, name)}
+    known_ids |= {r["taxonomy_node_id"] for r in read(out, "taxonomy_node_erm")}
     for row in answer_key(out, "scenarios"):
         test.assertIn(row["item_id"], known_ids, f"scenario {row['scenario']} names an unknown item")
     test.assertTrue(hard_negative_exists(out, "risk", rc), "no hard negative among risks")
@@ -253,3 +254,37 @@ def leakage(test, out, kind: str) -> None:
     erm_pos = [min(position[i] for s, i in items if s == "ERM") for items in cross]
     ia_pos = [min(position[i] for s, i in items if s == "IA") for items in cross]
     test.assertLess(abs(spearman(erm_pos, ia_pos)), 0.8, "matched items sit in the same order in both files")
+
+
+def linking_rules(test, out) -> None:
+    """Epic rules: audits test what their covered entities are exposed to; issues link per source."""
+    covered = defaultdict(set)
+    for r in read(out, "audit_covered_auditable_entity"):
+        covered[r["audit_id"]].add(r["auditable_entity_id"])
+    mitigates = defaultdict(set)
+    for r in read(out, "control_mitigates_risk_ia"):
+        mitigates[r["control_id"]].add(r["risk_id"])
+    exposed = defaultdict(set)
+    for r in read(out, "auditable_entity_exposed_to_risk_ia"):
+        exposed[r["risk_id"]].add(r["auditable_entity_id"])
+    tested = defaultdict(set)
+    for r in read(out, "audit_tested_control_ia"):
+        tested[r["audit_id"]].add(r["control_id"])
+        reachable = {a for risk in mitigates[r["control_id"]] for a in exposed[risk]}
+        test.assertTrue(reachable & covered[r["audit_id"]],
+                        f"audit {r['audit_id']} tests {r['control_id']}, which covers none of its entities")
+
+    audit_of = {r["issue_id"]: r["audit_id"] for r in read(out, "audit_raised_issue")}
+    source = {r["issue_id"]: r["source"] for r in read(out, "issue")}
+    for r in read(out, "issue_against_control_ia"):
+        test.assertEqual(source[r["issue_id"]], "IA")
+        test.assertIn(r["control_id"], tested[audit_of[r["issue_id"]]], "IA issue against an untested control")
+    controls_of = defaultdict(set)
+    for r in read(out, "issue_against_control_ia"):
+        controls_of[r["issue_id"]].add(r["control_id"])
+    for r in read(out, "issue_against_risk_ia"):
+        test.assertTrue(any(r["risk_id"] in mitigates[c] for c in controls_of[r["issue_id"]]),
+                        "IA issue against a risk its controls do not mitigate")
+    for name in ("issue_against_control_erm", "issue_against_risk_erm"):
+        for r in read(out, name):
+            test.assertNotEqual(source[r["issue_id"]], "IA", f"{name}: IA issues link to IA items only")

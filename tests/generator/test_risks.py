@@ -10,40 +10,6 @@ from .helpers import build, read
 FULL = ("--size", "full")
 
 
-def linking_rules(test, out) -> None:
-    """Epic rules: audits test what their covered entities are exposed to; issues link per source."""
-    covered = defaultdict(set)
-    for r in read(out, "audit_covered_auditable_entity"):
-        covered[r["audit_id"]].add(r["auditable_entity_id"])
-    mitigates = defaultdict(set)
-    for r in read(out, "control_mitigates_risk_ia"):
-        mitigates[r["control_id"]].add(r["risk_id"])
-    exposed = defaultdict(set)
-    for r in read(out, "auditable_entity_exposed_to_risk_ia"):
-        exposed[r["risk_id"]].add(r["auditable_entity_id"])
-    tested = defaultdict(set)
-    for r in read(out, "audit_tested_control_ia"):
-        tested[r["audit_id"]].add(r["control_id"])
-        reachable = {a for risk in mitigates[r["control_id"]] for a in exposed[risk]}
-        test.assertTrue(reachable & covered[r["audit_id"]],
-                        f"audit {r['audit_id']} tests {r['control_id']}, which covers none of its entities")
-
-    audit_of = {r["issue_id"]: r["audit_id"] for r in read(out, "audit_raised_issue")}
-    source = {r["issue_id"]: r["source"] for r in read(out, "issue")}
-    for r in read(out, "issue_against_control_ia"):
-        test.assertEqual(source[r["issue_id"]], "IA")
-        test.assertIn(r["control_id"], tested[audit_of[r["issue_id"]]], "IA issue against an untested control")
-    controls_of = defaultdict(set)
-    for r in read(out, "issue_against_control_ia"):
-        controls_of[r["issue_id"]].add(r["control_id"])
-    for r in read(out, "issue_against_risk_ia"):
-        test.assertTrue(any(r["risk_id"] in mitigates[c] for c in controls_of[r["issue_id"]]),
-                        "IA issue against a risk its controls do not mitigate")
-    for name in ("issue_against_control_erm", "issue_against_risk_erm"):
-        for r in read(out, name):
-            test.assertNotEqual(source[r["issue_id"]], "IA", f"{name}: IA issues link to IA items only")
-
-
 def no_identical_rows(test, out) -> None:
     for name in ("risk_erm", "risk_ia", "control_erm", "control_ia"):
         pairs = Counter((r["title"], r["description"]) for r in read(out, name))
@@ -79,7 +45,7 @@ class RiskTests(unittest.TestCase):
                 checks.data_dictionary(self, out)
                 checks.output_names(self, out, deny_entries())
                 no_identical_rows(self, out)
-                linking_rules(self, out)
+                checks.linking_rules(self, out)
 
     def test_ac4_risk_matching_is_hard_but_possible(self):
         out = build(*FULL)

@@ -10,8 +10,8 @@ from .helpers import build, read, run_akg
 class DeterminismTests(unittest.TestCase):
     def test_ac3_inv7_output_matches_golden_checksums(self):
         with tempfile.TemporaryDirectory() as a, tempfile.TemporaryDirectory() as b:
-            run_akg("build", "--seed", "42", "--out", a)
-            run_akg("build", "--seed", "42", "--out", b)
+            run_akg("build", "--seed", "42", "--size", "sample", "--out", a)
+            run_akg("build", "--seed", "42", "--size", "sample", "--out", b)
             first, second = checksums(Path(a)), checksums(Path(b))
             self.assertEqual(first, second, "two runs with the same seed differ")
             for path in Path(a).rglob("*.csv"):

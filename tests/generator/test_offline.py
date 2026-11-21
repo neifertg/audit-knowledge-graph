@@ -30,7 +30,7 @@ sys.exit(code)
 class OfflineTests(unittest.TestCase):
     def run_guarded(self, *args: str) -> subprocess.CompletedProcess:
         with tempfile.TemporaryDirectory() as out:
-            return subprocess.run([sys.executable, "-c", GUARDED_BUILD, "build", "--seed", "42", "--out", out, *args],
+            return subprocess.run([sys.executable, "-c", GUARDED_BUILD, "build", "--seed", "42", "--size", "sample", "--out", out, *args],
                                   cwd=ROOT, capture_output=True, text=True)
 
     def test_ac5_build_is_offline_and_never_imports_anthropic(self):
