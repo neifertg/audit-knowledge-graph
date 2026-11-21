@@ -20,9 +20,13 @@ def run_akg(*args: str, check: bool = True) -> subprocess.CompletedProcess:
 
 @cache
 def build(*extra: str) -> Path:
-    """Build once per distinct argument list; returns the output directory."""
-    out = Path(_TMP.name) / f"build{abs(hash(extra))}"
-    run_akg("build", "--seed", "42", "--out", str(out), *extra)
+    """Build once per distinct argument list; returns the output directory.
+
+    Builds the sample unless the arguments name a size (full size is the CLI default since 009).
+    """
+    size = () if "--size" in extra else ("--size", "sample")
+    out = Path(_TMP.name) / f"build{abs(hash(size + extra))}"
+    run_akg("build", "--seed", "42", "--out", str(out), *size, *extra)
     return out
 
 

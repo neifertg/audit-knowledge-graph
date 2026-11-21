@@ -24,7 +24,7 @@ class AiTextTests(unittest.TestCase):
     def build_with(self, text_dir: Path):
         out = tempfile.mkdtemp(prefix="akg-out-")
         self.addCleanup(shutil.rmtree, out, ignore_errors=True)
-        return run_akg("build", "--seed", "42", "--out", out, "--text", "ai", "--text-dir", str(text_dir), check=False)
+        return run_akg("build", "--seed", "42", "--size", "sample", "--out", out, "--text", "ai", "--text-dir", str(text_dir), check=False)
 
     def test_ac6_missing_stale_or_orphan_ai_text_fails(self):
         unchanged, _ = self.variant(lambda entries: None)

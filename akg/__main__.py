@@ -36,8 +36,9 @@ def _parser() -> argparse.ArgumentParser:
                          help="default: ai at sample size; templated at full size until c-e add full-size AI text")
         sub.add_argument("--text-dir", type=Path, default=DEFAULT_TEXT_DIR)
 
-    build = commands.add_parser("build", help="generate the synthetic bank")
+    build = commands.add_parser("build", help="generate the synthetic bank (full size by default)")
     add_generation_options(build)
+    build.set_defaults(size="full")
     build.add_argument("--out", type=Path, default=DEFAULT_OUT)
 
     pack = commands.add_parser("sample-pack", help="render the realism-review sample pack")

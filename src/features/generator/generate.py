@@ -415,6 +415,7 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
     issue_ids = _ids(seed, "issue", "ISS-", n_issues, 1000, 10000)
     erm_mitigated = [c.key for c in erm_concepts]
     issues, raised, against_c, against_r, owned = [], [], {"erm": [], "ia": []}, {"erm": [], "ia": []}, []
+    pending_issue_text = []
     for j, (iid, source) in enumerate(zip(issue_ids, sources)):
         if source == "IA":
             aid, audit_end, keys = rng.choice(audit_info)
@@ -442,10 +443,16 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
         rating = rng.choices(lib.RATINGS, weights=[2, 5, 3])[0]
         issues.append((iid, title, desc, source, rating, opened.isoformat(), closed))
         owned.append((iid, rng.choice(person_ids)))
-        texts.append(TextItem(f"issue:{j}", "issue", iid, "description", desc,
-                              _hash("issue", str(j), source, k, title, desc)))
+        pending_issue_text.append((source, k, opened.isoformat(), title, iid, desc))
     t["issue"] = Table(["issue_id", "title", "description", "source", "rating", "opened_date", "closed_date"],
                        issues)
+    # natural text keys (009): source, control key, ordinal by opened date then title; no global index
+    seen: dict[tuple, int] = {}
+    for source, k, opened_iso, title, iid, desc in sorted(pending_issue_text):
+        ordinal = seen.get((source, k), 0)
+        seen[(source, k)] = ordinal + 1
+        texts.append(TextItem(f"issue:{source}:{k}:{ordinal}", "issue", iid, "description", desc,
+                              _hash("issue", source, k, title, desc)))
     t["audit_raised_issue"] = Table(["audit_id", "issue_id"], raised)
     for source in ("erm", "ia"):
         t[f"issue_against_control_{source}"] = Table(["issue_id", "control_id"], against_c[source])
