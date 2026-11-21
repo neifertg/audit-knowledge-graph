@@ -19,35 +19,35 @@
       "when": "`score(build_dir)` in `src/features/reconciliation/score.py` runs on a reconciled full build",
       "then": "it reads `<build_dir>/reconciled/`, the published files and `<build_dir>/answer_key/`, and returns figures. Every ratio is stored with its count (`a/b`). The figures are defined as follows:\n- *True pair:* an (ERM, IA) item pair, over all ERM x IA pairs of that type, whose answer-key `cluster_id` is the same and not `none`.\n- *Merged pair:* an (ERM, IA) pair sharing a canonical ID in the maps-to files.\n- *Queued pair:* a `review_queue.csv` row of that kind, as (`item_a`, `item_b`), with ERM first and IA second (for duplicates, the lower ID first).\n- *Cross-source risks and controls:*\n  - merged pairs, with precision `true merged / merged`, recall `true merged / true` and F1;\n  - queued pairs and true queued;\n  - *missed*: true pairs neither merged nor queued;\n  - *recall if resolved*: `(true merged + true queued) / true`;\n  - *raw accept*: merged plus `conflict` rows, with its precision.\n- *ERM duplicates:* queued, true queued, and missed (true duplicate pairs not queued).\n- *Taxonomy mapping, per IA level:* precision `correct / mapped` (non-`unmapped` predictions); recall `correct / truly mapped nodes`; and accuracy on nodes holding risks.\n- *Placement:* IA risks correct per method (`matched`, `mapped`, `nearest`), and correct among misfiled IA risks. A risk is misfiled when its true ERM node is not under its IA node's true target, or that target is `unmapped`.\n- *Review queue:* rows by kind and reason.\n- *Orphan controls* (mitigating no risk): their count, how many are in merged canonical controls, and how many queue rows touch one.\n\nWithin `src/features/reconciliation/*.py`, only `score.py` (the published bank) and `train.py` (the training bank) mention `answer_key`. 013's static check, the README and INV-6's enforced-by entry are updated to that pair.",
       "test": "reconciliation.test_scoring.ScoringTests.test_ac1_figures_from_a_reconciled_build (a hand-built mini build exercising every definition: a merged true pair, a merged false pair, a queued true pair, a conflict row, a missed pair, a duplicate, an unmapped and a misfiled case, an orphan; the seed-42 figures are printed)",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-2",
       "when": "the citation cue's share is measured",
       "then": "`train.py` also fits, with the same rule and settings, a control model without the `citation` column. It commits that model in `weights.json` as `control_without_citation`, with its thresholds chosen by training pair. 012's currency test covers the new entry too: weights within 1e-6, and the same threshold pairs. No training runs while scoring or testing. `score.py` applies both control models to the scored bank and reports, at pair-band level, accepted (precision), review band and below-floor true pairs. Measured on seed 42:\n- with the cue: 68 accepted at precision 68/68, a review band of 341, and 5 true pairs below the floor;\n- without it: 82 accepted at precision 0.89, a review band of 505, and 1 below the floor.\n\nThe docs state the finding as \"with and without the feature\": the cue buys precision and a smaller queue rather than recall. A retrained model also shifts its other weights, so this is not a causal share",
       "test": "reconciliation.test_scoring.ScoringTests.test_ac2_citation_cue_share",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-3",
       "when": "`python -m src.features.reconciliation.score` runs",
       "then": "it builds seed 42 at full size (the published default) in a temporary directory, reconciles it, scores it, and writes `src/features/reconciliation/scores.json`. This is the one JSON E4's page reads. It holds:\n- every AC-1 and AC-2 figure, as counts with 4-decimal ratios;\n- the provenance: seed 42, AI text, the training seed, and the weights fingerprint;\n- the thresholds' targets: 95% precision on the training bank for auto-accept, 99% of true pairs above the review floor.\n\nIt also holds these caveats as text, for the page to show beside the figures:\n1. *Orphans:* the 31 orphan controls mitigate no risk and enter the candidate pairs as easy negatives. None is merged, and 2 queue rows touch one. This helps the figures and is not matcher skill (the epic's wording).\n2. *Same generator:* the training bank comes from the same generator, so its weights know the generator's habits in a way a real bank's history would not.\n3. *One bank, small samples:* the precision of 1.00 rests on 33 risk and 68 control merges in one bank, and on seed 1 risks reached 0.93.\n4. *Conservative thresholds:* only pairs at a training precision of 95% or more merge, so merged recall is low and the queue carries the rest. The best-threshold F1 in research R1 (about 0.81 and 0.74) is therefore not comparable with the merged F1 (0.49 and 0.44).\n\nA test re-scores the cached seed-42 build and asserts the result equals the committed file exactly. No training happens in that path, so the figures are counts from deterministic output",
       "test": "reconciliation.test_scoring.ScoringTests.test_ac3_committed_scores_are_current",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-4",
       "when": "the figures are cross-checked",
       "then": "they agree with what earlier children recorded independently in docs/data-model.md:\n- taxonomy accuracy on nodes holding risks, 44/62 (011);\n- merged risks and controls, 33 and 68 (013);\n- queue rows, 482 (013);\n- IA placement, 130/150 (013).\n\nThey are also internally consistent: merged plus queued plus missed true pairs equals true pairs, and the queue counts by kind sum to the file's rows. And they clear floors: merged precision for risks and controls at least 0.95, and recall if resolved at least 0.95 for both (measured 101/103 and 240/245)",
       "test": "reconciliation.test_scoring.ScoringTests.test_ac4_figures_agree_with_the_reconciled_output",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-5",
       "when": "docs/data-model.md is read after this change",
       "then": "a *Reconciliation results* section quotes each headline figure from `scores.json`, the citation-cue finding and both caveats, and the open data question about the matching method is closed (R1). A test fails if the doc stops quoting a headline figure (each as written with 2 decimals, or as a count `a/b`). The README names `score.py` and `scores.json`",
       "test": "reconciliation.test_scoring.ScoringTests.test_ac5_docs_quote_the_published_figures",
-      "status": "pending"
+      "status": "pass"
     }
   ],
   "epic": "002-e2-erm-ia-reconciliation",
