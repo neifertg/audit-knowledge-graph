@@ -11,6 +11,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from collections import Counter
 from pathlib import Path
@@ -90,7 +91,11 @@ class Neo4jTests(unittest.TestCase):
     def test_ac2_load_is_idempotent_locked_and_answer_key_free(self):
         driver, out = graph()
         first = snapshot(driver)
+        started = time.time()
         N.load_neo4j(out, driver)
+        seconds = time.time() - started
+        print(f"\nseed-42 Neo4j load: {seconds:.1f}s")
+        self.assertLess(seconds, 30.0, "the plan's load bar")
         self.assertEqual(snapshot(driver), first, "loading twice gives identical multisets")
         with tempfile.TemporaryDirectory() as tmp:
             copy = Path(tmp) / "copy"
@@ -186,8 +191,35 @@ class Neo4jTests(unittest.TestCase):
         row = con.execute("SELECT kind, logit, reason, drivers FROM review_queue WHERE item_a = ? AND item_b = ?",
                           (edge_props["a"], edge_props["b"])).fetchone()
         self.assertEqual(edge_props["p"], dict(zip(("kind", "logit", "reason", "drivers"), row)))
-        unmerged = con.execute("SELECT risk_id FROM risk_maps_to_canonical WHERE logit IS NULL ORDER BY risk_id LIMIT 1").fetchone()[0]
-        self.assertNotIn("logit", q(driver, "MATCH (a {id: $id})-[e:MAPS_TO]->() RETURN properties(e) AS p", id=unmerged)[0]["p"])
+        # reconciled-layer properties: the lowest-key row, plus the lowest row where each nullable column is NULL
+        for kind in ("risk", "control"):
+            for condition in ("logit IS NOT NULL", "logit IS NULL"):
+                with self.subTest(table=f"{kind}_maps_to_canonical", rows=condition):
+                    item, logit = con.execute(f"SELECT {kind}_id, logit FROM {kind}_maps_to_canonical WHERE {condition} "
+                                              f"ORDER BY {kind}_id LIMIT 1").fetchone()
+                    props = q(driver, "MATCH (a {id: $id})-[e:MAPS_TO]->() RETURN properties(e) AS p", id=item)[0]["p"]
+                    self.assertEqual(props, {} if logit is None else {"logit": logit})
+        for condition in ("erm_node_id IS NOT NULL", "erm_node_id IS NULL"):
+            with self.subTest(table="ia_maps_to_erm", rows=condition):
+                node, target, score, basis = con.execute(
+                    f"SELECT ia_node_id, erm_node_id, score, basis FROM ia_maps_to_erm WHERE {condition} "
+                    "ORDER BY ia_node_id LIMIT 1").fetchone()
+                if target is not None:
+                    props = q(driver, "MATCH (a:TaxonomyNode {id: $id})-[e:IA_MAPS_TO_ERM]->(b) "
+                                      "RETURN b.id AS b, properties(e) AS p", id=node)[0]
+                    self.assertEqual((props["b"], props["p"]), (target, {"score": score, "basis": basis}))
+                else:
+                    props = q(driver, "MATCH (n:TaxonomyNode {id: $id}) RETURN properties(n) AS p", id=node)[0]["p"]
+                    self.assertEqual({k: props.get(k) for k in ("mapping", "mapping_score", "mapping_basis")},
+                                     {"mapping": "unmapped", "mapping_score": score, "mapping_basis": basis})
+        for kind in ("risk", "duplicate", "control"):  # review_queue has no nullable columns; one row per kind
+            with self.subTest(table="review_queue", kind=kind):
+                a, b, logit, reason, drivers = con.execute(
+                    "SELECT item_a, item_b, logit, reason, drivers FROM review_queue WHERE kind = ? "
+                    "ORDER BY item_a, item_b LIMIT 1", (kind,)).fetchone()
+                props = q(driver, "MATCH (x {id: $a})-[e:REVIEW_CANDIDATE]->(y {id: $b}) RETURN properties(e) AS p",
+                          a=a, b=b)[0]["p"]
+                self.assertEqual(props, {"kind": kind, "logit": logit, "reason": reason, "drivers": drivers})
         # ERM and IA IDs never collide within a shared label
         for lab in ("Risk", "Control", "TaxonomyNode"):
             ids = Counter(r["id"] for r in q(driver, f"MATCH (n:{lab}) RETURN n.id AS id"))
@@ -204,6 +236,7 @@ class Neo4jTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmp:
                 result = run_akg("build", "--size", "sample", "--out", tmp)
                 self.assertNotIn("Neo4j: loaded", result.stdout)
+                self.assertIn("Neo4j: skipped (NEO4J_URI is not set)", result.stdout, "says so when skipping")
                 self.assertTrue((Path(tmp) / DATABASE).exists())
         finally:
             for k, v in saved.items():
