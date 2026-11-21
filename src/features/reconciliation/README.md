@@ -1,12 +1,12 @@
 # reconciliation
 
 Purpose: reconciles ERM's and IA's separate taxonomies, risks and controls into one canonical framework (ERM's taxonomy), with a review queue for uncertain matches (epic E2).
-Entry point: `canonical.py` (`write_reconciled()`, child c; run by `python -m akg build` or `python -m akg reconcile`), which uses `match.py` (`pair_scores()`, child b), `features.py` and `taxonomy_map.py` (child a). Child d adds scoring against the answer key.
+Entry point: `canonical.py` (`write_reconciled()`, child c; run by `python -m akg build` or `python -m akg reconcile`), which uses `match.py` (`pair_scores()`, child b), `features.py` and `taxonomy_map.py` (child a). `score.py` (child d) scores the result against the answer key and writes `scores.json`, the one file the page reads.
 Owns: the canonical layer in `docs/data-model.md` (`<out>/reconciled/`: canonical risks and controls, maps-to files, `ia_maps_to_erm`, the review queue).
 Depends on: the generator's published files only (read from a build directory); scikit-learn.
 
 Notes for people and agents working here:
-- **Never read the answer key here (INV-6).** Every module works from the published CSVs only. Tests check this by running on a copy of the build with `answer_key/` deleted. Only scoring code and the training script (later children) may read an answer key.
+- **Answer keys (INV-6).** The pipeline (taxonomy mapping, features, matching, canonical layer) works from the published CSVs only; tests check this by reconciling a copy of the build with `answer_key/` deleted. Exactly two modules read an answer key: `train.py` reads the *training* bank's (seed 7), and `score.py` reads the *published* bank's, only to score.
 - **`similarity.py`** holds the shared risk-to-risk similarity, and its constants are fixed by the 011 plan. It is word TF-IDF on 1-2 grams plus character TF-IDF on 3-5 grams, both on `title. description` and fitted on both sources. It adds 0.3 for a shared exposed entity, or else 0.15 for a shared business unit.
 - **`taxonomy_map.py`** maps each IA node by a risk-level vote:
   - Each IA risk votes for its most similar ERM risk, with ties going to the lowest ID.
@@ -15,7 +15,7 @@ Notes for people and agents working here:
   - Node names are **not** used as evidence. A names-only mapping is only the baseline the vote must beat: 0.33 accuracy on seed 42, against the vote's 0.71 on nodes holding risks.
 - **Known limit:** IA nodes that are truly unmapped but hold risks are not detected, because their risks truly sit in one ERM node.
 - **`features.py`** builds the three pair tables (cross-source risks, ERM duplicates, cross-source controls). Their columns are pinned by the 012 plan. Word and character cosines become tail scores, `-log10(1 - p + 1/n)` of their within-bank percentile.
-- **`train.py`** is the only module that reads an answer key, and only the training bank's: seed 7, templated, built in a temporary directory. It writes `weights.json` (coefficients, thresholds, the training pair each threshold falls on, and a fingerprint). Re-run it after changing any feature code:
+- **`train.py`** reads only the training bank's answer key: seed 7, templated, built in a temporary directory. It writes `weights.json` (coefficients, thresholds, the training pair each threshold falls on, and a fingerprint). Re-run it after changing any feature code:
 
   ```
   .venv\Scripts\python -m src.features.reconciliation.train
@@ -26,3 +26,4 @@ Notes for people and agents working here:
 - **Circular by design:** the control feature `risk_link` uses risk scores. Training uses the risk model's in-sample scores on seed 7; scoring uses the committed risk model on the scored bank.
 - **`canonical.py`** merges accepted pairs, places every risk at an ERM L3 node, builds the review queue and writes `<out>/reconciled/`. The rules are in its docstring and the 013 plan. Its output is frozen by `tests/golden/checksums_reconciled.sha256`; regenerate that file with `.venv\Scripts\python -m tests.reconciliation.golden` after an intentional change.
 - Generator tests build with `--no-reconcile`, and the generator goldens skip `reconciled/`.
+- **`score.py`** scores a reconciled build against its answer key and writes `scores.json`. The figures are cross-source precision, recall and queue, duplicates, taxonomy, placement, orphans and the citation-cue comparison, plus four caveats for the page. Every ratio carries its count. Regenerate the file with `.venv\Scripts\python -m src.features.reconciliation.score` after any change to the pipeline; a test fails while it is stale.

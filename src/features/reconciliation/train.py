@@ -106,10 +106,14 @@ def train(bank: Path) -> dict:
     cX, cpairs = control_table(bank, dict(zip(rpairs, rmodel.predict_proba(rX)[:, 1])))
     cy = truth(bank, "control", cpairs)
     cmodel = fit(cX, cy)
+    # 014: the same control model without the citation cue, to publish the cue's share
+    keep = [k for k, name in enumerate(CONTROL_COLUMNS) if name != "citation"]
+    ablated = fit(cX[:, keep], cy)
     return {"training_seed": TRAINING_SEED, "fingerprint": fingerprint(bank),
             "risk": model_entry(rmodel, RISK_COLUMNS, rX, ry, rpairs),
             "duplicate": model_entry(dmodel, DUPLICATE_COLUMNS, dX, dy, dpairs, review_only=True),
-            "control": model_entry(cmodel, CONTROL_COLUMNS, cX, cy, cpairs)}
+            "control": model_entry(cmodel, CONTROL_COLUMNS, cX, cy, cpairs),
+            "control_without_citation": model_entry(ablated, [CONTROL_COLUMNS[k] for k in keep], cX[:, keep], cy, cpairs)}
 
 
 def main(argv=None) -> int:

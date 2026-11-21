@@ -1,0 +1,177 @@
+{
+ "caveats": {
+  "conservative": "Thresholds are deliberately conservative: only pairs reaching 95% precision on the training bank merge, so merged recall is low and the review queue carries the rest. Merged F1 (0.49 risks, 0.43 controls) is not comparable with research R1's best-threshold F1 (about 0.81 and 0.74).",
+  "one_bank": "These figures come from one bank with small samples: precision rests on 33 risk and 68 control merges. Raw auto-accept precision was 36/38 (0.95) for risks here and 39/42 (0.93) on seed 1.",
+  "orphans": "Orphan controls (31) mitigate no risk and enter the candidate pairs as easy negatives (0 merged; 2 review-queue rows touch one). That helps the figures; it is structure, not matcher skill.",
+  "same_generator": "The training bank (seed 7) comes from the same generator as the published bank, so the learned weights know the generator's habits in a way a real bank's history would not."
+ },
+ "citation_cue": {
+  "with": {
+   "accepted": 68,
+   "precision": {
+    "count": "68/68",
+    "value": 1.0
+   },
+   "review_band": 341,
+   "true_below_floor": 5
+  },
+  "without": {
+   "accepted": 82,
+   "precision": {
+    "count": "73/82",
+    "value": 0.8902
+   },
+   "review_band": 505,
+   "true_below_floor": 1
+  }
+ },
+ "control": {
+  "f1": 0.4345,
+  "merged": 68,
+  "missed": 5,
+  "precision": {
+   "count": "68/68",
+   "value": 1.0
+  },
+  "queued": 341,
+  "raw_accept": 68,
+  "raw_accept_precision": {
+   "count": "68/68",
+   "value": 1.0
+  },
+  "recall": {
+   "count": "68/245",
+   "value": 0.2776
+  },
+  "recall_if_resolved": {
+   "count": "240/245",
+   "value": 0.9796
+  },
+  "true_pairs": 245,
+  "true_queued": 172
+ },
+ "duplicate": {
+  "missed": 1,
+  "queued": 14,
+  "true_pairs": 13,
+  "true_queued": 12
+ },
+ "orphan_controls": {
+  "merged": 0,
+  "orphans": 31,
+  "queue_rows": 2
+ },
+ "placement": {
+  "all": {
+   "count": "130/150",
+   "value": 0.8667
+  },
+  "mapped": {
+   "count": "89/103",
+   "value": 0.8641
+  },
+  "matched": {
+   "count": "33/33",
+   "value": 1.0
+  },
+  "misfiled": {
+   "count": "14/21",
+   "value": 0.6667
+  },
+  "nearest": {
+   "count": "8/14",
+   "value": 0.5714
+  }
+ },
+ "provenance": {
+  "seed": 42,
+  "size": "full",
+  "text": "ai",
+  "training_seed": 7,
+  "weights_fingerprint": "57be9a5e0120eda40c57a32a09db94b715824fe83afe076a80bcff03fd44ca0f"
+ },
+ "review_queue": {
+  "control/review_band": 341,
+  "duplicate/review_band": 14,
+  "risk/conflict": 5,
+  "risk/review_band": 122,
+  "total": 482
+ },
+ "risk": {
+  "f1": 0.4853,
+  "merged": 33,
+  "missed": 2,
+  "precision": {
+   "count": "33/33",
+   "value": 1.0
+  },
+  "queued": 127,
+  "raw_accept": 38,
+  "raw_accept_precision": {
+   "count": "36/38",
+   "value": 0.9474
+  },
+  "recall": {
+   "count": "33/103",
+   "value": 0.3204
+  },
+  "recall_if_resolved": {
+   "count": "101/103",
+   "value": 0.9806
+  },
+  "true_pairs": 103,
+  "true_queued": 68
+ },
+ "taxonomy": {
+  "L1": {
+   "accuracy_on_nodes_holding_risks": {
+    "count": "6/9",
+    "value": 0.6667
+   },
+   "precision": {
+    "count": "6/9",
+    "value": 0.6667
+   },
+   "recall": {
+    "count": "6/8",
+    "value": 0.75
+   }
+  },
+  "L2": {
+   "accuracy_on_nodes_holding_risks": {
+    "count": "14/20",
+    "value": 0.7
+   },
+   "precision": {
+    "count": "14/20",
+    "value": 0.7
+   },
+   "recall": {
+    "count": "14/20",
+    "value": 0.7
+   }
+  },
+  "L3": {
+   "accuracy_on_nodes_holding_risks": {
+    "count": "24/33",
+    "value": 0.7273
+   },
+   "precision": {
+    "count": "24/31",
+    "value": 0.7742
+   },
+   "recall": {
+    "count": "24/41",
+    "value": 0.5854
+   }
+  },
+  "nodes_holding_risks": {
+   "count": "44/62",
+   "value": 0.7097
+  }
+ },
+ "threshold_targets": {
+  "auto_accept_training_precision": 0.95,
+  "review_floor_training_recall": 0.99
+ }
+}

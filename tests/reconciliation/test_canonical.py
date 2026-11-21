@@ -155,7 +155,7 @@ class CanonicalTests(unittest.TestCase):
             self.assertEqual(len(golden.checksums(copy)), len(FILES), "every file is recreated")
         mentions = sorted(p.name for p in (ROOT / "src" / "features" / "reconciliation").glob("*.py")
                           if "answer_key" in p.read_text(encoding="utf-8"))
-        self.assertEqual(mentions, ["train.py"])
+        self.assertEqual(mentions, ["score.py", "train.py"], "only scoring (published) and training (training bank), 014")
 
     def test_ac5_reconciled_output_matches_its_golden(self):
         out = full_build(42)

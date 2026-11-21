@@ -84,7 +84,7 @@ class MatchingTests(unittest.TestCase):
             T.build_training_bank(bank)
             self.assertEqual(T.fingerprint(bank), weights["fingerprint"], "re-run the training script")
             fresh = T.train(bank)
-        for kind in M.KINDS:
+        for kind in M.KINDS + ("control_without_citation",):  # 014 adds the cue-free control model
             with self.subTest(kind=kind):
                 np.testing.assert_allclose(fresh[kind]["coefficients"], weights[kind]["coefficients"], atol=1e-6)
                 self.assertAlmostEqual(fresh[kind]["intercept"], weights[kind]["intercept"], delta=1e-6)
@@ -95,6 +95,11 @@ class MatchingTests(unittest.TestCase):
         again = M.pair_scores(full_build(42), fresh)
         for kind in M.KINDS:
             self.assertEqual(published[kind]["band"], again[kind]["band"], f"{kind}: every pair keeps its band")
+        # the cue-free control model's seed-42 bands stay the same too (014)
+        X = published["control"]["X"]
+        keep = [k for k, n in enumerate(weights["control"]["columns"]) if n in weights["control_without_citation"]["columns"]]
+        old, new = weights["control_without_citation"], fresh["control_without_citation"]
+        self.assertEqual(M.bands(old, M.probability(old, X[:, keep])), M.bands(new, M.probability(new, X[:, keep])))
 
     def test_ac3_transfer_to_the_published_bank(self):
         out = full_build(42)
@@ -123,7 +128,7 @@ class MatchingTests(unittest.TestCase):
         for kind in M.KINDS:
             np.testing.assert_array_equal(a[kind]["score"], b[kind]["score"])
         mentions = sorted(p.name for p in FEATURE_DIR.glob("*.py") if "answer_key" in p.read_text(encoding="utf-8"))
-        self.assertEqual(mentions, ["train.py"])
+        self.assertEqual(mentions, ["score.py", "train.py"], "only scoring (published) and training (training bank), 014")
 
     def test_ac6_docs_describe_matching(self):
         doc = (ROOT / "docs" / "data-model.md").read_text(encoding="utf-8")
