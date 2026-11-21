@@ -4,7 +4,7 @@
 {
   "id": "016-neo4j-loader-with-fact-parity",
   "tier": "standard",
-  "status": "draft",
+  "status": "approved",
   "created": "2026-11-21",
   "objective": "O2",
   "areas": [
@@ -53,7 +53,9 @@
     }
   ],
   "epic": "003-e3-dual-stores-and-head-to-head-rounds",
-  "child": "b"
+  "child": "b",
+  "approved": "2026-11-21",
+  "approved_hash": "d0f76497535fc262"
 }
 ```
 
