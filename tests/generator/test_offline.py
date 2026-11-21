@@ -4,7 +4,7 @@ import sys
 import tempfile
 import unittest
 
-from .helpers import ROOT
+from .helpers import ROOT, akg_env
 
 GUARDED_BUILD = r"""
 import socket, sys
@@ -19,7 +19,7 @@ socket.getaddrinfo = refuse
 
 from akg.__main__ import main
 code = main(sys.argv[1:])
-loaded = [m for m in ("anthropic", "yaml") if m in sys.modules]
+loaded = [m for m in ("anthropic", "yaml", "neo4j") if m in sys.modules]  # neo4j: never without NEO4J_URI (016)
 if loaded:
     print("loaded: " + ", ".join(loaded))
     sys.exit(3)
@@ -31,7 +31,7 @@ class OfflineTests(unittest.TestCase):
     def run_guarded(self, *args: str, size: str = "sample") -> subprocess.CompletedProcess:
         with tempfile.TemporaryDirectory() as out:
             return subprocess.run([sys.executable, "-c", GUARDED_BUILD, "build", "--seed", "42", "--size", size, "--out", out, *args],
-                                  cwd=ROOT, capture_output=True, text=True)
+                                  cwd=ROOT, capture_output=True, text=True, env=akg_env())
 
     def test_ac5_build_is_offline_and_never_imports_anthropic(self):
         for size in ("sample", "full"):  # full size with AI text since 010 (AC-6)

@@ -69,3 +69,7 @@ Source: 014-score-reconciliation-against-the-answer
 ### L-016 (2026-11-21) [src/features/reconciliation] A fingerprint over source code ripples into every artifact that copies it
 015: adding --no-load to train.py's build changed train.py's source, which the training fingerprint hashes; that moved weights.json's fingerprint and, because score.py copies it into provenance, scores.json too. Two critique rounds found the chain one link at a time. Next time: before editing any fingerprinted file, grep for every place the fingerprint is stored or copied (weights.json, scores.json, later rounds.json) and plan to regenerate all of them, proving with git diff that only the fingerprint line moved.
 Source: 015-sqlite-schema-and-loader
+
+### L-017 (2026-11-21) [tests] On a low-memory machine, reviewers must not wait on long test runs
+016: this machine has 7.6 GB RAM; with VS Code, Zoom, Chrome and Neo4j open it hit 87-90% memory and Windows memory compression, and test runs slowed 10-30x (Neo4j module 61 s vs 28 min; full suite 3 min vs 37 min). A review subagent that started the tests in the background and waited was killed by the 600 s watchdog with no review written. Next time: the main session runs the slow tests to a log file in the scratchpad and the reviewer reads that log; ask the owner to close other apps before long runs; check memory with Get-CimInstance Win32_OperatingSystem when timings jump.
+Source: 016-neo4j-loader-with-fact-parity

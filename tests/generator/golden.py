@@ -39,7 +39,8 @@ def main() -> None:
     target = GOLDEN_FULL if size == "full" else GOLDEN
     with tempfile.TemporaryDirectory() as tmp:
         subprocess.run([sys.executable, "-m", "akg", "build", "--seed", "42", "--size", size, "--out", tmp],
-                       cwd=ROOT, check=True)
+                       cwd=ROOT, check=True,
+                       env={k: v for k, v in __import__('os').environ.items() if not k.startswith('NEO4J_')})
         target.parent.mkdir(parents=True, exist_ok=True)
         with open(target, "w", encoding="utf-8", newline="\n") as f:
             f.write(render(checksums(Path(tmp))))

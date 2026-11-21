@@ -1,5 +1,6 @@
 """Shared test helpers: run the real CLI into temp dirs and read what it wrote."""
 import csv
+import os
 import re
 import subprocess
 import sys
@@ -11,8 +12,15 @@ ROOT = Path(__file__).resolve().parents[2]
 _TMP = tempfile.TemporaryDirectory(prefix="akg-test-")
 
 
-def run_akg(*args: str, check: bool = True) -> subprocess.CompletedProcess:
-    result = subprocess.run([sys.executable, "-m", "akg", *args], cwd=ROOT, capture_output=True, text=True)
+def akg_env(neo4j: bool = False) -> dict:
+    """Environment for every test subprocess: NEO4J_* stripped unless a test opts in (016), so
+    test builds never touch the shared Neo4j fixture."""
+    return {k: v for k, v in os.environ.items() if neo4j or not k.startswith("NEO4J_")}
+
+
+def run_akg(*args: str, check: bool = True, neo4j: bool = False) -> subprocess.CompletedProcess:
+    result = subprocess.run([sys.executable, "-m", "akg", *args], cwd=ROOT, capture_output=True, text=True,
+                            env=akg_env(neo4j))
     if check and result.returncode != 0:
         raise AssertionError(f"akg {' '.join(args)} failed:\n{result.stdout}\n{result.stderr}")
     return result

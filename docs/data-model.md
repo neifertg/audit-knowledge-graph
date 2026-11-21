@@ -137,6 +137,20 @@ Notes:
   - Primary keys and foreign keys follow the dictionaries; enums are CHECKed. Columns that point to either source (maps-to item IDs, review-queue items) have no foreign key, and tests check them instead. `unmapped` taxonomy targets are NULL.
   - The answer key is never loaded. The store is derived and **not golden**: the generator goldens count CSV files only.
   - Measured on seed 42: 10,034 rows load in about 1.4 s with foreign keys on and no violations.
+- **Stores: Neo4j** (E3 child b, 016; `src/features/stores/graph_model.py`, `neo4j_store.py`). The graph is loaded from `akg.sqlite`, so it holds the same facts as SQLite.
+  - *Nodes:* one label per entity table in CamelCase. The per-source tables share a label and carry a `source` property (`Risk`, `Control`, `TaxonomyNode`); every node has an `id`. There are 14 labels, including `CanonicalRisk` and `CanonicalControl`.
+  - *Edges:* one relationship type per published relationship file, taken from the middle of its name (15 types, for example `MITIGATES` and `OWNED_BY`, which is shared by issue and control owners). The reconciled layer adds:
+    - `PLACED_AT` (a canonical risk to its ERM L3 node);
+    - `MAPS_TO` (a source item to its canonical item, with `logit` when merged);
+    - `IA_MAPS_TO_ERM` (with `score` and `basis`);
+    - `REVIEW_CANDIDATE` (`item_a` to `item_b`, with `kind`, `logit`, `reason` and `drivers`).
+  - *Unmapped and NULL values:* an `unmapped` IA node carries `mapping = 'unmapped'`, `mapping_score` and `mapping_basis`. A NULL in SQLite is an absent property.
+  - *Parity (INV-8):* every table equals its graph form as a multiset, so counts are exact and reversed or duplicated edges fail:
+    - entity tables by label and `source`;
+    - relationship tables as (from, to) pairs by type and endpoint labels and `source`s;
+    - the reconciled layer as listed above;
+    - plus sampled properties, including NULL rows.
+  - *Measured on seed 42:* 2,821 nodes and 7,495 edges load in about 10 s.
 - **Answer key.** The generator records which source items are true duplicates and the true taxonomy mapping, in a separate folder. It is used only for scoring.
 - **Published layout** (005). ERM and IA are separate systems, so taxonomy nodes, risks and controls are published one file per source (`risk_erm.csv`, `risk_ia.csv`, ...), as is every relationship touching them. Audits test IA controls only. The column-level data dictionary is `src/features/generator/README.md`.
 - **Documents (M2).** Workpapers, RCMs and reports, linked to audits, controls and issues. Not in M1.
@@ -169,7 +183,7 @@ Rules that must always hold. Each has an ID and a test that enforces it (tests n
 | INV-5 | Dates are consistent: closure never before open; audits within the 3-year window; an issue never before the audit that raised it. | `generator.test_invariants.InvariantTests.test_ac2_inv4_inv5_issue_links_and_dates` |
 | INV-6 | The reconciliation pipeline never reads the published bank's answer key; only the scoring step does. The training script alone may read the training bank's (seed 7) answer key, to learn the committed weights. | `reconciliation.test_canonical.CanonicalTests.test_ac4_inv6_reconciled_output_ignores_the_answer_key` |
 | INV-7 | The same seed produces byte-identical output. | Sample: `generator.test_determinism.DeterminismTests.test_ac3_inv7_output_matches_golden_checksums`; full: `generator.test_determinism.DeterminismTests.test_ac5_full_build_matches_full_golden`; reconciled: `reconciliation.test_canonical.CanonicalTests.test_ac5_reconciled_output_matches_its_golden` |
-| INV-8 | SQLite and Neo4j hold the same facts (row counts reconcile with node and edge counts). | SQLite side: `stores.test_sqlite.SqliteTests.test_ac3_every_row_lands_once_and_keys_hold`; the Neo4j side and parity arrive in E3 child b |
+| INV-8 | SQLite and Neo4j hold the same facts (row counts reconcile with node and edge counts). | SQLite side: `stores.test_sqlite.SqliteTests.test_ac3_every_row_lands_once_and_keys_hold`; parity: `stores.test_neo4j.Neo4jTests.test_ac3_inv8_sqlite_and_neo4j_hold_the_same_facts` |
 | INV-9 | Institution, people, vendor and system names come only from the project's fictional name lists. | `generator.test_names.NameTests.test_ac4_inv9_names_from_lists_and_no_denied_name_anywhere` |
 | INV-10 | No relationship crosses sources: ERM controls mitigate ERM risks, IA controls IA risks, each taxonomy is its own tree, and so on. ERM-IA links exist only in the answer key (truth) and the canonical layer (E2 output). | `generator.test_referential.ReferentialTests.test_ac12_relationship_ids_exist_and_never_cross_sources` |
 

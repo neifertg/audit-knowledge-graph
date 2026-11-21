@@ -16,7 +16,7 @@ from types import SimpleNamespace
 from src.features.generator import batch_text as bt
 from src.features.generator.prompts import SAMPLE_PROMPT_HASH, prompt_hash
 
-from .helpers import ROOT
+from .helpers import ROOT, akg_env
 
 _LOG = Path(bt.COST_LOG).read_text(encoding="utf-8")
 EMPTY_LOG = _LOG[:_LOG.index("|---|")] + "|---|---|---|---|---|---|\n"  # header only, no rows
@@ -247,11 +247,11 @@ class BatchTests(unittest.TestCase):
         out = Path(tempfile.mkdtemp(prefix="akg-out-"))
         self.addCleanup(shutil.rmtree, out, ignore_errors=True)
         return subprocess.run([sys.executable, "-m", "akg", "build", "--seed", "42", "--size", "full", "--out", str(out),
-                               "--text-dir", str(text_dir)], cwd=ROOT, capture_output=True, text=True)
+                               "--text-dir", str(text_dir)], cwd=ROOT, capture_output=True, text=True, env=akg_env())
 
     def check_text(self, text_dir: Path, size: str):
         return subprocess.run([sys.executable, "-m", "akg", "check-text", "--size", size, "--text-dir", str(text_dir)],
-                              cwd=ROOT, capture_output=True, text=True)
+                              cwd=ROOT, capture_output=True, text=True, env=akg_env())
 
     def test_ac4_full_text_complete_current_and_clean(self):
         from src.features.generator.text_rules import violations

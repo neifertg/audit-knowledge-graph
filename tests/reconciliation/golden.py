@@ -29,7 +29,8 @@ def read_golden() -> dict[str, str]:
 def main() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         subprocess.run([sys.executable, "-m", "akg", "build", "--seed", "42", "--size", "full", "--out", tmp],
-                       cwd=ROOT, check=True)
+                       cwd=ROOT, check=True,
+                       env={k: v for k, v in __import__('os').environ.items() if not k.startswith('NEO4J_')})
         GOLDEN.write_text(render(checksums(Path(tmp))), encoding="utf-8", newline="\n")
     print(f"wrote {GOLDEN}")
 
