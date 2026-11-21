@@ -22,11 +22,13 @@ SAMPLE_COUNTS = {
     "RISK_IA": 15,
 }
 FULL_COUNTS = {
-    **SAMPLE_COUNTS,  # audits and issues reach full size in child e; controls follow risks until d
+    **SAMPLE_COUNTS,
     "REGULATION": 15,
     "PERSON": 120,
     "RISK_ERM": 180,  # child c (007)
     "RISK_IA": 150,
+    "AUDIT": 75,      # child e (009)
+    "ISSUE": 250,
 }
 SIZES = {"sample", "full"}
 SAMPLE_NAME_POOL = 30   # sample mode draws people from the first 30 first and last names
@@ -381,83 +383,90 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
         t["control_owned_by_person_ia"] = Table(
             ["control_id", "person_id"], [(ia_ctrl[k], p) for k, p in ia_owner.items()])
 
-    # --- audits (IA tests IA controls only) --------------------------------------------
-    rng = stream(seed, "audit")
-    ia_controls_for_ae: dict[str, list[str]] = {}
-    for c in ia_concepts:
-        for a in c.entities:
-            ia_controls_for_ae.setdefault(a, []).append(c.key)
-    candidates = sorted(ia_controls_for_ae)
-    audit_ids = _ids(seed, "audit", "AUD-", n["AUDIT"], 100, 1000)
-    audits, covered, tested = [], [], []
-    audit_info = []  # (audit id, end date, tested concept keys)
-    for i, aid in enumerate(audit_ids):
-        year = 2023 + i % 3
-        scope = sorted(rng.sample(candidates, rng.choice([1, 1, 2])))
-        start = date(year, rng.randint(1, 10), rng.randint(1, 28))
-        end = start + timedelta(days=rng.randint(30, 60))
-        keys = sorted({k for a in scope for k in ia_controls_for_ae[a]})
-        title = f"{' and '.join(scope)} Audit {year}"
-        audits.append((aid, title, year, start.isoformat(), end.isoformat(), rng.choice(lib.AUDIT_RATINGS)))
-        covered += [(aid, ae_id[a]) for a in scope]
-        tested += [(aid, ia_ctrl[k]) for k in keys]
-        audit_info.append((aid, end, keys))
-    t["audit"] = Table(["audit_id", "title", "audit_year", "start_date", "end_date", "rating"], audits)
-    t["audit_covered_auditable_entity"] = Table(["audit_id", "auditable_entity_id"], covered)
-    t["audit_tested_control_ia"] = Table(["audit_id", "control_id"], tested)
+    # --- audits and issues --------------------------------------------------------------
+    if full:
+        fai = _full_audits_issues(seed, n, t, concepts, ia_concepts, ia_risk, ia_ctrl, erm_ctrl, erm_risk, ae_id,
+                                  erm_path, erm_node, person_ids, texts)
+        t.update(fai["tables"])
+        scenario_rows = (scenario_rows or []) + fai["scenarios"]
+    else:
+        # --- audits (IA tests IA controls only) --------------------------------------------
+        rng = stream(seed, "audit")
+        ia_controls_for_ae: dict[str, list[str]] = {}
+        for c in ia_concepts:
+            for a in c.entities:
+                ia_controls_for_ae.setdefault(a, []).append(c.key)
+        candidates = sorted(ia_controls_for_ae)
+        audit_ids = _ids(seed, "audit", "AUD-", n["AUDIT"], 100, 1000)
+        audits, covered, tested = [], [], []
+        audit_info = []  # (audit id, end date, tested concept keys)
+        for i, aid in enumerate(audit_ids):
+            year = 2023 + i % 3
+            scope = sorted(rng.sample(candidates, rng.choice([1, 1, 2])))
+            start = date(year, rng.randint(1, 10), rng.randint(1, 28))
+            end = start + timedelta(days=rng.randint(30, 60))
+            keys = sorted({k for a in scope for k in ia_controls_for_ae[a]})
+            title = f"{' and '.join(scope)} Audit {year}"
+            audits.append((aid, title, year, start.isoformat(), end.isoformat(), rng.choice(lib.AUDIT_RATINGS)))
+            covered += [(aid, ae_id[a]) for a in scope]
+            tested += [(aid, ia_ctrl[k]) for k in keys]
+            audit_info.append((aid, end, keys))
+        t["audit"] = Table(["audit_id", "title", "audit_year", "start_date", "end_date", "rating"], audits)
+        t["audit_covered_auditable_entity"] = Table(["audit_id", "auditable_entity_id"], covered)
+        t["audit_tested_control_ia"] = Table(["audit_id", "control_id"], tested)
 
-    # --- issues ------------------------------------------------------------------------
-    rng = stream(seed, "issue")
-    by_key = {c.key: c for c in concepts + unused}
-    n_issues = n["ISSUE"]
-    n_ia_issues = max(1, round(0.5 * n_issues)) if n_issues else 0
-    sources = ["IA"] * n_ia_issues + [lib.ISSUE_SOURCES[1 + i % 3] for i in range(n_issues - n_ia_issues)]
-    issue_ids = _ids(seed, "issue", "ISS-", n_issues, 1000, 10000)
-    erm_mitigated = [c.key for c in erm_concepts]
-    issues, raised, against_c, against_r, owned = [], [], {"erm": [], "ia": []}, {"erm": [], "ia": []}, []
-    pending_issue_text = []
-    for j, (iid, source) in enumerate(zip(issue_ids, sources)):
-        if source == "IA":
-            aid, audit_end, keys = rng.choice(audit_info)
-            k = rng.choice(keys)
-            opened = audit_end + timedelta(days=rng.randint(0, 20))
-            raised.append((aid, iid))
-            against_c["ia"].append((iid, ia_ctrl[k]))
-            against_r["ia"].append((iid, ia_risk[k]))
-        else:
-            k = rng.choice(erm_mitigated)
-            opened = WINDOW_START + timedelta(days=rng.randint(0, (WINDOW_END - WINDOW_START).days - 60))
-            ordinal = rng.choice([o for o in (0, 1) if (k, o) in erm_risk])
-            against_c["erm"].append((iid, erm_ctrl[k]))
-            against_r["erm"].append((iid, erm_risk[(k, ordinal)]))
-        c = by_key[k]
-        title_t, desc_t = lib.ISSUE_TEMPLATES[source]
-        fields = {"ia_title": c.control.ia_title, "erm_title": c.control.erm_title,
-                  "finding": c.control.finding, "finding_lc": _lc_first(c.control.finding)}
-        title, desc = title_t.format(**fields), desc_t.format(**fields)
-        closed = ""
-        if rng.random() < 0.6:
-            close_date = opened + timedelta(days=rng.randint(30, 200))
-            if close_date <= WINDOW_END:
-                closed = close_date.isoformat()
-        rating = rng.choices(lib.RATINGS, weights=[2, 5, 3])[0]
-        issues.append((iid, title, desc, source, rating, opened.isoformat(), closed))
-        owned.append((iid, rng.choice(person_ids)))
-        pending_issue_text.append((source, k, opened.isoformat(), title, iid, desc))
-    t["issue"] = Table(["issue_id", "title", "description", "source", "rating", "opened_date", "closed_date"],
-                       issues)
-    # natural text keys (009): source, control key, ordinal by opened date then title; no global index
-    seen: dict[tuple, int] = {}
-    for source, k, opened_iso, title, iid, desc in sorted(pending_issue_text):
-        ordinal = seen.get((source, k), 0)
-        seen[(source, k)] = ordinal + 1
-        texts.append(TextItem(f"issue:{source}:{k}:{ordinal}", "issue", iid, "description", desc,
-                              _hash("issue", source, k, title, desc)))
-    t["audit_raised_issue"] = Table(["audit_id", "issue_id"], raised)
-    for source in ("erm", "ia"):
-        t[f"issue_against_control_{source}"] = Table(["issue_id", "control_id"], against_c[source])
-        t[f"issue_against_risk_{source}"] = Table(["issue_id", "risk_id"], against_r[source])
-    t["issue_owned_by_person"] = Table(["issue_id", "person_id"], owned)
+        # --- issues ------------------------------------------------------------------------
+        rng = stream(seed, "issue")
+        by_key = {c.key: c for c in concepts + unused}
+        n_issues = n["ISSUE"]
+        n_ia_issues = max(1, round(0.5 * n_issues)) if n_issues else 0
+        sources = ["IA"] * n_ia_issues + [lib.ISSUE_SOURCES[1 + i % 3] for i in range(n_issues - n_ia_issues)]
+        issue_ids = _ids(seed, "issue", "ISS-", n_issues, 1000, 10000)
+        erm_mitigated = [c.key for c in erm_concepts]
+        issues, raised, against_c, against_r, owned = [], [], {"erm": [], "ia": []}, {"erm": [], "ia": []}, []
+        pending_issue_text = []
+        for j, (iid, source) in enumerate(zip(issue_ids, sources)):
+            if source == "IA":
+                aid, audit_end, keys = rng.choice(audit_info)
+                k = rng.choice(keys)
+                opened = audit_end + timedelta(days=rng.randint(0, 20))
+                raised.append((aid, iid))
+                against_c["ia"].append((iid, ia_ctrl[k]))
+                against_r["ia"].append((iid, ia_risk[k]))
+            else:
+                k = rng.choice(erm_mitigated)
+                opened = WINDOW_START + timedelta(days=rng.randint(0, (WINDOW_END - WINDOW_START).days - 60))
+                ordinal = rng.choice([o for o in (0, 1) if (k, o) in erm_risk])
+                against_c["erm"].append((iid, erm_ctrl[k]))
+                against_r["erm"].append((iid, erm_risk[(k, ordinal)]))
+            c = by_key[k]
+            title_t, desc_t = lib.ISSUE_TEMPLATES[source]
+            fields = {"ia_title": c.control.ia_title, "erm_title": c.control.erm_title,
+                      "finding": c.control.finding, "finding_lc": _lc_first(c.control.finding)}
+            title, desc = title_t.format(**fields), desc_t.format(**fields)
+            closed = ""
+            if rng.random() < 0.6:
+                close_date = opened + timedelta(days=rng.randint(30, 200))
+                if close_date <= WINDOW_END:
+                    closed = close_date.isoformat()
+            rating = rng.choices(lib.RATINGS, weights=[2, 5, 3])[0]
+            issues.append((iid, title, desc, source, rating, opened.isoformat(), closed))
+            owned.append((iid, rng.choice(person_ids)))
+            pending_issue_text.append((source, k, opened.isoformat(), title, iid, desc))
+        t["issue"] = Table(["issue_id", "title", "description", "source", "rating", "opened_date", "closed_date"],
+                           issues)
+        # natural text keys (009): source, control key, ordinal by opened date then title; no global index
+        seen: dict[tuple, int] = {}
+        for source, k, opened_iso, title, iid, desc in sorted(pending_issue_text):
+            ordinal = seen.get((source, k), 0)
+            seen[(source, k)] = ordinal + 1
+            texts.append(TextItem(f"issue:{source}:{k}:{ordinal}", "issue", iid, "description", desc,
+                                  _hash("issue", source, k, title, desc)))
+        t["audit_raised_issue"] = Table(["audit_id", "issue_id"], raised)
+        for source in ("erm", "ia"):
+            t[f"issue_against_control_{source}"] = Table(["issue_id", "control_id"], against_c[source])
+            t[f"issue_against_risk_{source}"] = Table(["issue_id", "risk_id"], against_r[source])
+        t["issue_owned_by_person"] = Table(["issue_id", "person_id"], owned)
 
     # --- answer key --------------------------------------------------------------------
     erm_by_level_name = {node: nid for node, nid in erm_node.items()}
@@ -735,6 +744,208 @@ def _full_controls(seed, t, concepts, erm_items, erm_risk_ids, ia_concepts, ia_r
     scenarios = [("shared_system", s) for s in ranked[:3]]
     return {"erm_ctrl": erm_ctrl, "ia_ctrl": ia_ctrl, "tables": out, "clusters": clusters,
             "scenarios": scenarios}
+
+
+MIN_FULL_AUDITS, MIN_FULL_ISSUES = 30, 100
+UNAUDITED_SHARE = 0.10     # of entities with IA risk, left out of the three-year plan
+SCOPE_SHARE = 0.67          # share of a covered entity's IA risks an audit scopes in
+REPEAT_GROUPS = 6           # planted repeat-finding groups (each one IA control, several years)
+RISING_YEARS = (8, 10, 13)  # rising ERM L1 category: non-IA issues opened in 2023, 2024, 2025
+ISSUE_SHARES = {"IA": 0.50, "Regulator": 0.15, "Self-identified": 0.15, "2nd line": 0.20}
+
+
+def _full_audits_issues(seed, n, t, concepts, ia_concepts, ia_risk, ia_ctrl, erm_ctrl, erm_risk, ae_id,
+                        erm_path, erm_node, person_ids, texts) -> dict:
+    """Full-size audit plan and issues (009). Every per-row choice draws from its own stream."""
+    if n["AUDIT"] < MIN_FULL_AUDITS or n["ISSUE"] < MIN_FULL_ISSUES:
+        raise GenerationError(f"full size needs at least {MIN_FULL_AUDITS} audits and {MIN_FULL_ISSUES} issues "
+                              "to plant the scenarios")
+    by_instance = {c.key: c for c in ia_concepts}
+    theme = lambda key: key.split("@")[0]
+    rating_of = {row[0]: row[3] for row in t["risk_ia"].rows}
+
+    # IA controls per IA risk instance (orphans mitigate nothing and are never tested)
+    controls_of_instance = defaultdict(list)
+    for key in sorted(ia_ctrl):
+        inst = key.split("#")[0]
+        if inst in ia_risk:
+            controls_of_instance[inst].append(key)
+    instances_of_entity = defaultdict(list)
+    for c in ia_concepts:
+        instances_of_entity[c.entities[0]].append(c.key)
+    risk_entities = sorted(instances_of_entity)
+    high = lambda inst: rating_of[ia_risk[inst]] == "High"
+
+    # --- audit plan: some entities fall outside the plan; the rest are sampled by risk ----
+    rng = stream(seed, "audit/plan")
+    n_out = round(UNAUDITED_SHARE * len(risk_entities))
+    out_weights = [1.0 if any(high(i) for i in instances_of_entity[a]) else 3.0 for a in risk_entities]
+    unaudited = set()
+    while len(unaudited) < n_out:
+        unaudited.add(rng.choices(risk_entities, weights=out_weights)[0])
+    in_plan = [a for a in risk_entities if a not in unaudited]
+    weight = {a: 1 + 2 * sum(high(i) for i in instances_of_entity[a]) for a in in_plan}
+
+    srng = stream(seed, "audit/scope")
+    drng = stream(seed, "audit/dates")
+    audit_ids = _ids(seed, "audit", "AUD-", n["AUDIT"], 100, 1000)
+    audits, covered, tested_rows, audit_info = [], [], [], []
+    for i, aid in enumerate(audit_ids):
+        year = 2023 + i % 3
+        scope, size = [], rng.choice([1, 1, 2, 2, 3])
+        while len(scope) < min(size, len(in_plan)):
+            pick = rng.choices(in_plan, weights=[weight[a] for a in in_plan])[0]
+            if pick not in scope:
+                scope.append(pick)
+        scope.sort()
+        tested = []
+        for a in scope:
+            insts = instances_of_entity[a]
+            k = max(1, round(SCOPE_SHARE * len(insts)))
+            for inst in sorted(srng.sample(insts, k)):
+                tested += controls_of_instance[inst]
+        start = date(year, drng.randint(1, 10), drng.randint(1, 28))
+        end = min(start + timedelta(days=drng.randint(30, 60)), WINDOW_END)
+        audits.append((aid, f"{' and '.join(scope)} Audit {year}", year, start.isoformat(), end.isoformat(),
+                       drng.choice(lib.AUDIT_RATINGS)))
+        covered += [(aid, ae_id[a]) for a in scope]
+        tested_rows += [(aid, ia_ctrl[k]) for k in sorted(set(tested))]
+        audit_info.append((aid, year, end, sorted(set(tested))))
+    out = {"audit": Table(["audit_id", "title", "audit_year", "start_date", "end_date", "rating"], audits),
+           "audit_covered_auditable_entity": Table(["audit_id", "auditable_entity_id"], covered),
+           "audit_tested_control_ia": Table(["audit_id", "control_id"], tested_rows)}
+
+    tested_controls = {k for _, _, _, ks in audit_info for k in ks}
+    untested_high = sorted(ia_risk[c.key] for c in ia_concepts
+                           if high(c.key) and not set(controls_of_instance[c.key]) & tested_controls)
+
+    # --- issue counts per source ------------------------------------------------------------
+    total = n["ISSUE"]
+    counts = {s: round(share * total) for s, share in ISSUE_SHARES.items()}
+    counts["IA"] += total - sum(counts.values())
+
+    def finding(control_key: str, subject: str) -> str:
+        if "#" in control_key:
+            return lib.KIND_FINDINGS[control_key.split("#")[1]].format(subject=subject)
+        f = by_any[control_key.split("#")[0]].control.finding
+        return f if f[:1].isdigit() else f[:1].lower() + f[1:]
+
+    by_any = {c.key: c for c in concepts}
+
+    # --- IA issues: planted repeat findings first, then audits' other findings ----------------
+    irng = stream(seed, "issue/ia")
+    years_of_control = defaultdict(set)
+    for _, year, _, ks in audit_info:
+        for k in ks:
+            years_of_control[k].add(year)
+    multi_year = sorted(k for k, ys in years_of_control.items() if len(ys) >= 2)
+    planted = irng.sample(multi_year, min(REPEAT_GROUPS, len(multi_year)))
+    ia_pairs = []  # (audit info, control key, repeat group or None)
+    for g, k in enumerate(planted, 1):
+        hosts = [info for info in audit_info if k in info[3]]
+        by_year = defaultdict(list)
+        for info in hosts:
+            by_year[info[1]].append(info)
+        years = sorted(by_year)[:4]
+        for year in years:
+            ia_pairs.append((irng.choice(by_year[year]), k, g))
+    candidates = [(info, k) for info in audit_info for k in info[3] if k not in planted]
+    while len(ia_pairs) < counts["IA"] and candidates:
+        info, k = candidates.pop(irng.randrange(len(candidates)))
+        ia_pairs.append((info, k, None))
+
+    # --- non-IA issues: a rising ERM L1 category, other categories flat ------------------------
+    nrng = stream(seed, "issue/other")
+    erm_specific = sorted({inst for (inst, ordinal) in erm_risk if ordinal == 0 and inst in erm_ctrl})
+    l1_of = {inst: erm_path[by_any[inst].erm_l3][0] for inst in erm_specific}
+    by_l1 = defaultdict(list)
+    for inst in erm_specific:
+        by_l1[l1_of[inst]].append(inst)
+    rising = "Credit" if "Credit" in by_l1 else sorted(by_l1, key=lambda l: -len(by_l1[l]))[1]
+    others = sorted(l for l in by_l1 if l != rising)
+    n_other = total - counts["IA"]
+    per_year = [n_other // 3 + (1 if y < n_other % 3 else 0) for y in range(3)]
+    other_sources = [s for s in ("Regulator", "Self-identified", "2nd line") for _ in range(counts[s])]
+    nrng.shuffle(other_sources)
+    share = {l: len(by_l1[l]) for l in others}
+    non_ia = []  # (year, ERM instance)
+    for y, (year_total, rising_n) in enumerate(zip(per_year, RISING_YEARS)):
+        rest = year_total - rising_n
+        quota = {l: int(rest * share[l] / sum(share.values())) for l in others}
+        leftovers = sorted(others, key=lambda l: -(rest * share[l] / sum(share.values()) - quota[l]))
+        for l in leftovers[:rest - sum(quota.values())]:
+            quota[l] += 1
+        for l, q in [(rising, rising_n)] + sorted(quota.items()):
+            non_ia += [(2023 + y, nrng.choice(by_l1[l])) for _ in range(q)]
+
+    # --- issue rows ---------------------------------------------------------------------------
+    issue_ids = _ids(seed, "issue", "ISS-", len(ia_pairs) + len(non_ia), 1000, 10000)
+    trng = stream(seed, "issue/text")
+    crng = stream(seed, "issue/dates")
+    rrng = stream(seed, "issue/rating")
+    issues, raised, owned = [], [], []
+    against_c, against_r = {"erm": [], "ia": []}, {"erm": [], "ia": []}
+    groups = defaultdict(list)
+    pending = []
+    used_templates = defaultdict(set)
+    for iid, (info, k, group) in zip(issue_ids, ia_pairs):
+        aid, year, end, _ = info
+        inst = k.split("#")[0]
+        subject = lib.THEME_SUBJECT[theme(inst)][1]
+        options = [x for x in range(4) if x not in used_templates[k]] or list(range(4))
+        tmpl = trng.choice(options)
+        used_templates[k].add(tmpl)
+        title = lib.FULL_ISSUE_TITLES["IA"][tmpl].format(subject=subject, Subject=_cap(subject))
+        desc = lib.FULL_ISSUE_OPENINGS["IA"][tmpl].format(f=finding(k, subject))
+        opened = min(end + timedelta(days=crng.randint(0, 20)), WINDOW_END)
+        issues.append((iid, "IA", title, desc, opened))
+        raised.append((aid, iid))
+        against_c["ia"].append((iid, ia_ctrl[k]))
+        against_r["ia"].append((iid, ia_risk[inst]))
+        if group:
+            groups[group].append(iid)
+        pending.append(("IA", k, opened.isoformat(), title, iid, desc))
+    for iid, source, (year, inst) in zip(issue_ids[len(ia_pairs):], other_sources, non_ia):
+        subject = lib.THEME_SUBJECT[theme(inst)][0]
+        tmpl = trng.randrange(4)
+        title = lib.FULL_ISSUE_TITLES[source][tmpl].format(subject=subject, Subject=_cap(subject))
+        desc = lib.FULL_ISSUE_OPENINGS[source][tmpl].format(f=finding(inst, subject))
+        opened = date(year, 1, 1) + timedelta(days=crng.randint(0, 364 if year < 2025 else 300))
+        issues.append((iid, source, title, desc, opened))
+        against_c["erm"].append((iid, erm_ctrl[inst]))
+        against_r["erm"].append((iid, erm_risk[(inst, 0)]))
+        pending.append((source, inst, opened.isoformat(), title, iid, desc))
+
+    orng = stream(seed, "issue_owned_by_person")
+    rows = []
+    for iid, source, title, desc, opened in issues:
+        closed = ""
+        if crng.random() < 0.6:
+            close_date = opened + timedelta(days=crng.randint(30, 200))
+            if close_date <= WINDOW_END:
+                closed = close_date.isoformat()
+        rating = rrng.choices(lib.RATINGS, weights=[2, 5, 3])[0]
+        rows.append((iid, title, desc, source, rating, opened.isoformat(), closed))
+        owned.append((iid, orng.choice(person_ids)))
+    out["issue"] = Table(["issue_id", "title", "description", "source", "rating", "opened_date", "closed_date"],
+                         rows)
+    out["audit_raised_issue"] = Table(["audit_id", "issue_id"], raised)
+    for source in ("erm", "ia"):
+        out[f"issue_against_control_{source}"] = Table(["issue_id", "control_id"], against_c[source])
+        out[f"issue_against_risk_{source}"] = Table(["issue_id", "risk_id"], against_r[source])
+    out["issue_owned_by_person"] = Table(["issue_id", "person_id"], owned)
+
+    seen: dict[tuple, int] = {}
+    for source, k, opened_iso, title, iid, desc in sorted(pending):
+        ordinal = seen.get((source, k), 0)
+        seen[(source, k)] = ordinal + 1
+        texts.append(TextItem(f"issue:{source}:{k}:{ordinal}", "issue", iid, "description", desc,
+                              _hash("issue", source, k, title, desc)))
+
+    scenarios = [(f"repeat_finding:{g}", iid) for g, ids in sorted(groups.items()) for iid in ids]
+    scenarios += [("untested_high_risk", rid) for rid in untested_high]
+    scenarios.append(("rising_category", erm_node[(1, rising)]))
+    return {"tables": out, "scenarios": scenarios}
 
 
 AI_TEXT_FILE = "ai_text.jsonl"

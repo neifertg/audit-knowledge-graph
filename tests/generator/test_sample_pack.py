@@ -34,6 +34,12 @@ class SamplePackTests(unittest.TestCase):
         self.assertNotIn("description (AI)", pack)
         self.assertNotIn("(not generated)", pack)
 
+    def test_ac8_committed_pack_is_current(self):
+        # 009 AC-8: the committed sample pack equals a freshly generated one
+        committed = Path(__file__).resolve().parents[2] / "research" / "r2-synthetic-text-realism" / "sample_pack.md"
+        self.assertEqual(generate_pack(), committed.read_text(encoding="utf-8"),
+                         "regenerate research/r2-synthetic-text-realism/sample_pack.md (python -m akg sample-pack)")
+
     def test_ac8_sample_pack_shows_every_entity_and_both_text_variants(self):
         pack = generate_pack()
         for entity in ENTITIES:

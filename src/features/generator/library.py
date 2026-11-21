@@ -1180,7 +1180,7 @@ FULL_ONLY_THEMES = [
        "Daily delinquency queue aging with escalation",
        "Haskett Collections prioritizes accounts by days past due and balance; supervisors review queue aging "
        "daily and reassign accounts not contacted within five days of entering a bucket.",
-       "Detective", "IT-dependent manual", "Daily", ["Haskett Collections"], None,
+       "Detective", "IT-dependent manual", "Daily", ["Haskett Collections"], "Fair Credit Reporting Act",
        "1,850 accounts 30-59 days past due had no contact attempt within the required five days."),
     _t("acl_reserve", "Allowance & Charge-offs", "Allowance", "High",
        "Misstated allowance for credit losses",
@@ -1719,6 +1719,45 @@ CONTROL_KINDS = [
                 "Breaches are escalated to the risk committee with an action plan and owner."),
 ]
 FREQUENCIES = ["Per transaction", "Daily", "Weekly", "Monthly", "Quarterly", "Annual", "Per event"]
+
+# ---------------------------------------------------------------------------------------
+# Full-size issues (child e, 009)
+# ---------------------------------------------------------------------------------------
+
+# Four title phrasings per source; {subject} is IA's subject for IA issues, ERM's otherwise.
+# No IA title contains the control's title, so repeat findings read as different issues.
+FULL_ISSUE_TITLES = {
+    "IA": ["Exceptions in {subject}", "{Subject} not performed as designed", "Weaknesses noted in {subject}",
+           "Gaps in {subject} evidence"],
+    "Regulator": ["MRA: {subject} deficiencies", "MRA: inadequate {subject}", "MRIA: {subject} weaknesses",
+                  "MRA: {subject} program gaps"],
+    "Self-identified": ["Self-identified: {subject} breakdown", "Management finding: {subject}",
+                        "Self-identified gap in {subject}", "Process owner finding on {subject}"],
+    "2nd line": ["2LOD review: {subject}", "Risk review finding: {subject}", "Compliance testing: {subject}",
+                 "Second-line challenge on {subject}"],
+}
+# Four ways a description opens around the recurring finding.
+FULL_ISSUE_OPENINGS = {
+    "IA": ["Testing found that {f}", "Follow-up testing again showed that {f}", "The audit sample showed that {f}",
+           "Walkthroughs and sample testing revealed that {f}"],
+    "Regulator": ["Examiners found that {f}", "The examination concluded that {f}", "Supervisors noted that {f}",
+                  "During the examination, staff observed that {f}"],
+    "Self-identified": ["Management identified that {f}", "The process owner reported that {f}",
+                        "A first-line review found that {f}", "Internal monitoring showed that {f}"],
+    "2nd line": ["Second-line testing found that {f}", "The risk review concluded that {f}",
+                 "Compliance monitoring showed that {f}", "Independent risk testing found that {f}"],
+}
+# How a test of each generic control kind fails ({subject} is the source's subject phrase).
+KIND_FINDINGS = {
+    "policy": "procedures for {subject} were past their annual review date and lacked the required approval.",
+    "mgmt_review": "monthly reports on {subject} were not signed for three of six months reviewed.",
+    "exception": "exceptions for {subject} stayed open beyond two business days without escalation.",
+    "reconciliation": "reconciliations supporting {subject} were completed late, with aged items unexplained.",
+    "sod": "users could both initiate and approve {subject} without a documented compensating review.",
+    "training": "staff handling {subject} had not completed required training, yet kept system access.",
+    "access": "access supporting {subject} included leavers not removed within one business day.",
+    "kri": "the indicator for {subject} breached its threshold twice without escalation to the committee.",
+}
 
 # How IA cites the enterprise control in its own words (never ERM's exact label, so ERM's
 # title is not a lookup key inside IA text; 008 review).

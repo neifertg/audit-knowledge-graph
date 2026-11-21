@@ -21,56 +21,56 @@
       "when": "`python -m akg build --seed 42` runs with no size flag",
       "then": "it builds full size (full size is now the default; `--size sample` builds the sample) with 68-82 audits, at least 20 in each of 2023, 2024 and 2025, and 225-275 issues: IA 40-60%, regulator 10-20%, self-identified 10-20%, 2nd line 10-20%; issue ratings High 15-35%, Medium 40-60%, Low 15-35%; 40-70% of issues opened before 2025-07-01 are closed; `--count AUDIT` below 30 or `--count ISSUE` below 100 at full size fails with a message (too few to plant the scenarios); `sample-pack` and `check-text` still default to the sample",
       "test": "generator.test_issues.IssueTests.test_ac1_full_audit_and_issue_mix",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-2",
       "when": "either size is built",
       "then": "INV-4 holds (every IA issue links to exactly one audit and every other issue to none; every issue links to at least one risk and at least one control, never an orphan control, and its linked risk is one its linked control mitigates (IA and non-IA alike), and has exactly one owner and one source) and INV-5 holds (audits start and end inside 2023-01-01..2025-12-31; issues open and close inside the window; closure never before opening; an IA issue never opens before the end of the audit that raised it)",
       "test": "generator.test_invariants.InvariantTests.test_ac2_inv4_inv5_issue_links_and_dates",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-3",
       "when": "the full build has run",
       "then": "the audit plan reads as risk-based: every audit covers 1-3 auditable entities and tests IA controls of a subset of the risks those entities are exposed to; among entities with at least two IA risks, at least 30% of their audits leave at least one of the entity's IA risks untested, and at least one `untested_high_risk` sits in an audited entity (scoping, not only unaudited entities); among entities with at least one IA risk, those with a High IA risk average at least 1.25 times as many audits as those without, and 10-30% of them are never audited in the window; the epic's linking rules hold through `linking_rules`, moved from tests/generator/test_risks.py into tests/generator/checks.py",
       "test": "generator.test_issues.IssueTests.test_ac3_audit_plan_is_risk_based",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-4",
       "when": "the full build has run",
       "then": "the planted scenarios exist and answer_key/scenarios.csv lists them, each recomputed by the test from published files: (a) `repeat_finding:<n>` for at least 5 groups, each 2-4 IA issues against the same IA control opened in at least 2 different years; every listed group qualifies (other chance groups may exist unlisted); they are filed under different names: no two issues in a group share a title, no IA issue title contains its control's title, grouping IA issues by exact title finds none of the planted groups, and grouping by exact description finds at most half of them (descriptions share the recurring finding but open differently; documented as a realistic cue); (b) `untested_high_risk` equals exactly the set of High-rated IA risks none of whose IA controls any audit tested, and has at least 8 members; (c) `rising_category` names the only ERM L1 node meeting the rule on regulator, self-identified and 2nd-line issues (their ERM risks classified in the published ERM taxonomy, no answer key): count by opened-date year rises at least 50% from 2023 to 2025 from a floor of at least 8 in 2023, while total issues of all sources change less than 15%; (d) at full size every regulation reaches at least one business unit through requires -> control -> mitigates -> risk -> exposed entity -> owning unit (checked, not listed; the Fair Credit Reporting Act gains a requiring control in a full-size-only theme, and 008's control bands are rechecked; the frozen sample keeps its known Regulation E gap)",
       "test": "generator.test_issues.IssueTests.test_ac4_planted_scenarios_are_present_and_listed",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-5",
       "when": "the full build has run",
       "then": "every entity and relationship type parsed from the ER diagram in docs/data-model.md has at least one row at full size, counting a source-split relationship once across its `_erm`/`_ia` files and distinguishing edges by (from, label, to) so both `owned_by` edges are checked, with an explicit exemption list for E2's outputs (CANONICAL_RISK, CANONICAL_CONTROL, maps_to, ia_maps_to_erm); at least one ERM duplicate risk group exists so 008's shared-controls check exercises data; every control frequency is one of library.FREQUENCIES (parked from 008's review)",
       "test": "generator.test_issues.IssueTests.test_ac5_every_entity_and_relationship_is_populated",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-6",
       "when": "AI issue text is looked up",
       "then": "issue text keys are natural: `issue:<source>:<control key>:<ordinal>`, where control key is the control's internal key (specific or generic) and ordinal counts that source's issues against that control in order of opened date, then title; the input hash no longer includes any global index; the test fails on any key matching `issue:<digits>` and checks every control key names a generated control. The 15 committed sample issue texts are re-keyed and re-hashed by a one-off script with their text unchanged and no API call, so `--size sample --text ai` still builds, check-text finds no orphans, and the sample golden is unchanged",
       "test": "generator.test_issues.IssueTests.test_ac6_issue_text_keys_are_natural",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-7",
       "when": "the full build runs with `--count PERSON=100` instead of the full default",
       "then": "person.csv has 100 rows, and every file whose name contains no `person` is byte-identical to the default full build (issue owners and every other per-row choice at full size draw from their own streams; the sample keeps its frozen draws), closing 006's parked PERSON clause",
       "test": "generator.test_issues.IssueTests.test_ac7_person_count_leaves_other_files_unchanged",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-8",
       "when": "the build runs after this change",
       "then": "sample output is unchanged (the sample golden test passes with an explicit `--size sample`; the reviewer runs `git log --oneline main.. -- tests/golden/checksums.sha256` and expects no commits); tests/golden/checksums_full.sha256 is regenerated; the committed sample pack equals a freshly generated one (the reviewer's `git diff` of it shows only name-list lines changed); 006's full-size AI-text guard stays until child f",
       "test": "generator.test_determinism.DeterminismTests.test_ac3_inv7_output_matches_golden_checksums and test_ac5_full_build_matches_full_golden; generator.test_sample_pack.SamplePackTests.test_ac8_committed_pack_is_current",
-      "status": "pending"
+      "status": "pass"
     }
   ],
   "epic": "001-e1-synthetic-bank-generator",

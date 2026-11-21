@@ -1,6 +1,6 @@
 """Invariants that hold at every size: INV-1 (taxonomy part), INV-2, and one-per-bank titles."""
 import unittest
-from collections import Counter
+from collections import Counter, defaultdict
 
 from . import checks
 from .helpers import build, read
@@ -54,6 +54,47 @@ class InvariantTests(unittest.TestCase):
                         coverage = len({r["auditable_entity_id"] for r in exposed}) / len(entities)
                         floor = 0.70 if source == "erm" else 0.60
                         self.assertGreaterEqual(coverage, floor, f"{source} exposure covers {coverage:.0%}")
+
+    def test_ac2_inv4_inv5_issue_links_and_dates(self):
+        # 009 AC-2: INV-4 (issue links) and INV-5 (dates) at both sizes
+        for size in SIZES:
+            with self.subTest(size=size or "sample"):
+                out = build(*size)
+                issues = {i["issue_id"]: i for i in read(out, "issue")}
+                audits = {a["audit_id"]: a for a in read(out, "audit")}
+                raised = Counter(r["issue_id"] for r in read(out, "audit_raised_issue"))
+                audit_of = {r["issue_id"]: r["audit_id"] for r in read(out, "audit_raised_issue")}
+                mitigates, orphans = set(), set()
+                for source in ("erm", "ia"):
+                    links = read(out, f"control_mitigates_risk_{source}")
+                    mitigates |= {(r["control_id"], r["risk_id"]) for r in links}
+                    orphans |= ({r["control_id"] for r in read(out, f"control_{source}")}
+                                - {r["control_id"] for r in links})
+                controls, risks = defaultdict(set), defaultdict(set)
+                for source in ("erm", "ia"):
+                    for r in read(out, f"issue_against_control_{source}"):
+                        controls[r["issue_id"]].add(r["control_id"])
+                    for r in read(out, f"issue_against_risk_{source}"):
+                        risks[r["issue_id"]].add(r["risk_id"])
+                owners = Counter(r["issue_id"] for r in read(out, "issue_owned_by_person"))
+                for iid, issue in issues.items():
+                    with self.subTest(issue=iid):
+                        self.assertEqual(raised[iid], 1 if issue["source"] == "IA" else 0, "INV-4 audit link")
+                        self.assertTrue(controls[iid] and risks[iid], "INV-4: a control and a risk")
+                        self.assertFalse(controls[iid] & orphans, "INV-4: never an orphan control")
+                        self.assertTrue(any((c, r) in mitigates for c in controls[iid] for r in risks[iid]),
+                                        "INV-4: the linked control mitigates the linked risk")
+                        self.assertEqual(owners[iid], 1, "INV-4: exactly one owner")
+                        self.assertTrue("2023-01-01" <= issue["opened_date"] <= "2025-12-31", "INV-5 window")
+                        if issue["closed_date"]:
+                            self.assertTrue(issue["opened_date"] <= issue["closed_date"] <= "2025-12-31",
+                                            "INV-5: closure after opening, inside the window")
+                        if iid in audit_of:
+                            self.assertGreaterEqual(issue["opened_date"], audits[audit_of[iid]]["end_date"],
+                                                    "INV-5: an issue never opens before its audit ends")
+                for audit in audits.values():
+                    self.assertTrue("2023-01-01" <= audit["start_date"] <= audit["end_date"] <= "2025-12-31",
+                                    "INV-5: audits inside the window")
 
     def test_ac3_inv2_each_entity_has_exactly_one_owner(self):
         for size in SIZES:

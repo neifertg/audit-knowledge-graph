@@ -6,7 +6,7 @@ from . import checks
 from .dictionary import deny_entries
 from .difficulty import Controls
 from .helpers import answer_key, build, read
-from .test_risks import linking_rules, no_identical_rows
+from .test_risks import no_identical_rows
 
 FULL = ("--size", "full")
 
@@ -127,7 +127,7 @@ class ControlTests(unittest.TestCase):
                 checks.data_dictionary(self, out)
                 checks.output_names(self, out, deny_entries())
                 no_identical_rows(self, out)
-                linking_rules(self, out)
+                checks.linking_rules(self, out)
 
     def test_ac4_control_matching_is_hard_but_possible(self):
         out = build(*FULL)
