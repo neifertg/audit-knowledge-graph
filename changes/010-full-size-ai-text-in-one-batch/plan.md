@@ -4,7 +4,7 @@
 {
   "id": "010-full-size-ai-text-in-one-batch",
   "tier": "standard",
-  "status": "in-progress",
+  "status": "draft",
   "created": "2026-11-20",
   "objective": "O3",
   "areas": [
@@ -33,7 +33,7 @@
     {
       "id": "AC-3",
       "when": "a batch result is checked before it is stored",
-      "then": "a batch result is stored only if it passes every per-item rule: no system its draft lacks (write_text.added_systems); ERM control descriptions are one sentence of at most 30 words; full-size issue descriptions begin with their draft's opening words, which the full-size prompt instructs explicitly (the four openings stay varied, 009 AC-4 a); no deny-list name; no capitalized word outside the name lists and allow-list (005 AC-4). The tests feed one failing result per rule and assert each is rejected. A failing item is resubmitted once, with the same prompt version and the failure stated, in a second batch; an item that fails twice is not stored and the script prints its key and reason. The block is mechanical: without its text the AI-text full build fails on the missing key, so AC-5 cannot pass until the owner chooses (keep templated text for that file, a hand edit checked by the same rules, or revise the plan). Each full-size entry's input hash includes the full-size prompt version (a hash of the system prompt, voices and the opening instruction), so text from two prompt versions is detected as stale; the sample keeps its original prompt and its existing hashes, so the frozen sample build and golden do not change; any prompt change means regenerating the whole set (L-002), which is a second complete pass and needs a fresh owner approval",
+      "then": "a batch result is stored only if it passes every per-item rule: no system its draft lacks (write_text.added_systems); ERM control descriptions are one sentence of at most 30 words; full-size issue descriptions begin with their draft's opening words, which the full-size prompt instructs explicitly (the four openings stay varied, 009 AC-4 a); no deny-list name; no capitalized word outside the name lists, the allow-list, the bank's own published names (segments, business units, auditable entities, processes, taxonomy nodes), the words of the item's own draft, months and ID/IDs, a hyphenated word passing when each capitalized part does (005 AC-4, calibrated in revision 1). The tests feed one failing result per rule and assert each is rejected. A failing item is resubmitted once, with the same prompt version and the failure stated, in a second batch; an item that fails twice is not stored and the script prints its key and reason. The block is mechanical: without its text the AI-text full build fails on the missing key, so AC-5 cannot pass until the owner chooses (keep templated text for that file, a hand edit checked by the same rules, or revise the plan). Each full-size entry's input hash includes the full-size prompt version (a hash of the system prompt, voices and the opening instruction), so text from two prompt versions is detected as stale; the sample keeps its original prompt and its existing hashes, so the frozen sample build and golden do not change; any prompt change means regenerating the whole set (L-002), which is a second complete pass and needs a fresh owner approval",
       "test": "generator.test_batch.BatchTests.test_ac3_rules_resubmit_once_then_block",
       "status": "pending"
     },
@@ -47,7 +47,7 @@
     {
       "id": "AC-5",
       "when": "`python -m akg build` runs (full size, now defaulting to AI text)",
-      "then": "full size defaults to AI text, and every description at default counts comes from the committed AI text; `--count` overrides at full size (whose new items have no AI text) build with `--text templated`, and drift tests that compare an override with the default build compare templated with templated (009 AC-7, 006 AC-6); 006's guard is removed and its AC-9 test retired; the difficulty and leakage tests of 007 (AC-1, AC-4, AC-5), 008 (AC-1, AC-4, AC-5) and 009 (AC-4) pass on the AI-text full build with bands unchanged; the cue measurements docs/data-model.md publishes (control citation lookups, the repeat-finding finding-sentence cue) are computed by helpers in tests/generator/difficulty.py, recorded in tests/golden/cue_figures.json and quoted in docs/data-model.md, and a named test fails when the build's figures differ from the recorded ones by more than 0.01, or when docs/data-model.md does not quote each recorded figure (so the published numbers can never go stale silently); the full golden is regenerated for AI text; the sample golden is unchanged; the whole suite passes (done = full suite); `sample-pack --size full` shows templated and AI descriptions side by side under the full-size introduction, with no text-choice prompt (007 AC-7's no-AI-column assertion is updated accordingly)",
+      "then": "full size defaults to AI text, and every description at default counts comes from the committed AI text; `--count` overrides at full size (whose new items have no AI text) build with `--text templated`, and drift tests that compare an override with the default build compare templated with templated (009 AC-7, 006 AC-6); 006's guard is removed and its AC-9 test retired; the difficulty and leakage tests of 007 (AC-1, AC-4, AC-5), 008 (AC-1, AC-4, AC-5) and 009 (AC-4) pass on the AI-text full build with bands unchanged except two floors set in revision 1 from the measured AI text: control TF-IDF F1 at least 0.25 (was 0.40; AI 0.282, templated 0.439) and ERM duplicate F1 at least 0.10 (was 0.30; AI 0.133, templated 0.375); every ceiling, every other floor and every leakage check stays as it was, and docs/data-model.md states the two floors and why; the cue measurements docs/data-model.md publishes (control citation lookups, the repeat-finding finding-sentence cue) are computed by helpers in tests/generator/difficulty.py, recorded in tests/golden/cue_figures.json and quoted in docs/data-model.md, and a named test fails when the build's figures differ from the recorded ones by more than 0.01, or when docs/data-model.md does not quote each recorded figure (so the published numbers can never go stale silently); the full golden is regenerated for AI text; the sample golden is unchanged; the whole suite passes (done = full suite); `sample-pack --size full` shows templated and AI descriptions side by side under the full-size introduction, with no text-choice prompt (007 AC-7's no-AI-column assertion is updated accordingly)",
       "test": "generator.test_risks, generator.test_controls and generator.test_issues run on the default (AI-text) full build; generator.test_determinism.DeterminismTests.test_ac3_inv7_output_matches_golden_checksums and test_ac5_full_build_matches_full_golden; generator.test_batch.BatchTests.test_ac5_published_cue_figures_match_the_build; generator.test_sample_pack.SamplePackTests.test_ac7_full_size_pack_describes_full_size",
       "status": "pending"
     },
@@ -61,14 +61,17 @@
   ],
   "epic": "001-e1-synthetic-bank-generator",
   "child": "f",
-  "approved": "2026-11-20",
-  "approved_hash": "fbe4f82f909f3fe3",
-  "in_progress": "2026-11-20"
+  "revised": "2026-11-21"
 }
 ```
 
 ## Why
 E2 publishes reconciliation accuracy on the AI-text build (epic revision 1), and R2 chose AI-written text because templated frames are a cue a matcher could exploit. This change writes all 1,274 full-size descriptions once, through the Message Batches API, under the owner's budget, and proves the difficulty bands still hold on the text E2 will actually see.
+
+## Revision 1 (2026-11-21)
+The batch ran: 1,274 requested, 1,248 stored first time, 25 more on the one resubmission, $5.01 spent of $10 (two batches, both in cost_log.md). Two things changed, both chosen by the owner:
+1. **Capitalized-word rule calibrated (AC-3).** 63 of the first 88 failures were the rule flagging the bank's own auditable-entity, business-unit and process names, which the drafts themselves contain. The rule now also allows those published names, the item's own draft words, months and ID/IDs. These rule-only words are kept out of allow_terms.txt, because editing that file changes the full prompt version and makes all text stale. Invented names are still rejected, and a test pins both directions.
+2. **Two difficulty floors lowered (AC-5)**, as given in AC-5. One item failed twice and holds an owner-approved hand edit checked by the same rules (marked `written_by`).
 
 ## Data impact
 - **Budget.** Owner approved up to **$10** on 2026-11-20 (R2 decision.md), counted cumulatively in `cost_log.md`. Measured cost is about $0.0039 per item at batch prices (from 6 sample calls; IA controls have longer drafts, so the estimate is re-taken from actual usage after the first collection), about $5 per full pass of 1,274 items. The cap covers one full pass and the resubmission of failures (same prompt). Any prompt change means regenerating the whole set (L-002), a second complete pass, which needs a fresh owner approval. The script refuses any run that would cross the cap.
@@ -86,6 +89,7 @@ E2 publishes reconciliation accuracy on the AI-text build (epic revision 1), and
 
 ## Risks
 - **AI text makes matching easier** (L-002, L-008): bands re-run on AI text (AC-5); if a file fails after one prompt revision, the owner decides (keep templated for that file, or revise the epic).
+- **AI text makes matching harder** (found in the build, revision 1): paraphrase removed shared wording, so two word-overlap floors failed. The owner chose to lower those two floors rather than restore cues and pay to regenerate: real records written by different teams share little wording, so a TF-IDF baseline should struggle and E2's structural signals carry more of the work. The ceilings and leakage checks, which guard against matching being too easy, are unchanged.
 - **Batch turnaround or partial failures**: progress saved per collection; resubmission once; nothing stored that fails the rules.
 - **Budget overrun**: estimate before submit, refuse over cap, log actuals.
 
