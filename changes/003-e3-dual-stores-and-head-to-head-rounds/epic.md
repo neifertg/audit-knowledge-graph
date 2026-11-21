@@ -83,6 +83,8 @@ Rules:
 - Review-queue rows become `REVIEW_CANDIDATE` edges carrying `kind`, `logit`, `reason` and `drivers`.
 - One sampled row per file has matching properties in both stores.
 
+**Verdicts are measured, not assumed.** Each round's "expected verdict" below is a hypothesis written before the queries exist. The export also carries a **measured verdict** from a rule child c's plan pins: lines of code, joins against hops, and the moving parts each engine needs (recursive CTEs, new tables, schema changes). The page publishes the measured verdict. Where it differs from the expected one, the page says so; that is part of the honest comparison.
+
 **Every round is checked three ways:**
 1. *Agreement:* the SQL and Cypher answers are identical rows, after normalising and sorting.
 2. *Oracle:* the answer equals an independent Python computation from the CSVs, written in the test, so a query that returns everything cannot pass.
@@ -95,7 +97,7 @@ Rules:
   - Tests: every CSV row lands exactly once; foreign keys hold; reloading is idempotent; the answer key is never loaded.
 - **b. Neo4j loader with fact parity (1 day).** Areas: as a, plus `requirements.txt`.
   - Graph model: one label per entity, with a `source` property on per-source types; one relationship type per relationship file; `CanonicalRisk` and `CanonicalControl` nodes, `MAPS_TO`, `IA_MAPS_TO_ERM` and `REVIEW_CANDIDATE`.
-  - Batched `UNWIND` loading with uniqueness constraints and a load lock.
+  - Batched `UNWIND` loading with uniqueness constraints and a load lock. The lock node carries a timestamp, a lock older than 10 minutes is treated as stale and replaced, and the lock is excluded from parity counts.
   - The INV-8 parity test above; the env helper; `AKG_REQUIRE_NEO4J`; pinning `neo4j==6.4.1`.
 - **c. Rounds 1-4 (1.5 days).** Areas: `src/features/rounds/**`, `tests/**`, `docs/data-model.md`, `akg/**`. Each round is one `.sql`, one `.cypher` and the three checks. Exact attribution and path rules are pinned in c's plan.
   1. *Open issues by business unit and rating* (expected verdict: SQL). An issue is attributed to the business units that own the auditable entities exposed to the risk it is against.
@@ -111,11 +113,11 @@ Rules:
      - The new data: `system.csv` already names each system's vendor. Round 5 adds what is new, a deterministic overlay of **fourth-party dependencies** (vendor relies on vendor), drawn from E1's fictional vendor list (`names/vendors.txt`, INV-9).
      - The question: which auditable entities are exposed to a given critical vendor, directly through its systems or through a chain of fourth parties? The answer marks which are newly exposed through fourth parties only, against the direct-only baseline.
      - Effort: SQL needs a new table and a recursive CTE; the graph needs new nodes and edges and a variable-length path.
-     - Isolation: both stores apply the overlay inside a transaction and roll it back, so the stores and INV-8 parity are unchanged afterwards.
-  6. *Repeat finding in disguise* (expected verdict: graph; replaces "why is this audit on the plan", which had no forward-plan data; owner decision 2026-11-21): IA controls with issues in two or more years under different titles, and their issue groups. It must equal the planted `repeat_finding` groups exactly; E1 guarantees that the listed groups are all such controls. This is the page's second story.
-  7. *Year-over-year finding trend by ERM L1* (expected verdict: SQL), counted like `rising_category`: regulator, self-identified and 2nd-line issues on the published ERM taxonomy, with IA issues excluded. The top riser must equal `rising_category`.
+     - Isolation: both stores apply the overlay inside an explicit transaction (SQLite opens it with `BEGIN`, since Python's sqlite3 otherwise commits DDL) and roll it back. A test checks that both stores' counts and INV-8 parity are identical before and after round 5. The vendor asked about and the overlay's construction are pinned in d's plan.
+  6. *Repeat finding in disguise* (expected verdict: close; in SQL it is one join and a group by year; replaces "why is this audit on the plan", which had no forward-plan data; owner decision 2026-11-21): IA controls with issues in two or more years under different titles, and their issue groups. It must equal the planted `repeat_finding` groups exactly; E1 guarantees that the listed groups are all such controls. This is the page's second story.
+  7. *Year-over-year finding trend by ERM L1* (expected verdict: SQL), counted like `rising_category`: regulator, self-identified and 2nd-line issues on the published ERM taxonomy, with IA issues excluded. The top riser (the largest 2023-to-2025 increase in issues opened, with E1's thresholds) must equal `rising_category`. "Tested" in round 2 uses the audit's end date; c's plan pins both rules exactly.
 
-  *Supporting query (not a scored round):* **owner concentration**, the people owning the most key controls across business units. This is the page's third story, with an agreement and oracle check.
+  *Supporting query (not a scored round):* **owner concentration**. For each person, it counts the key controls (`key_control = Y`, both sources) they own and the distinct business units those controls' risks reach (control, mitigates risk, exposed entity, owning unit). It ranks by key controls, then business units, then person ID, so ties are broken deterministically. It has agreement and oracle checks. This is the page's third story; it is derived, not a planted scenario, and the page must say so (E4 needs a matching revision).
 
   *The export:* `rounds.json`. For each round it holds:
   - the question and both queries;
@@ -123,11 +125,12 @@ Rules:
   - a readability note and the expected verdict;
   - the result: row count and up to 20 rows;
   - the agreement, oracle and scenario outcomes;
-  - the engines run.
+  - the engines run, the expected and measured verdicts;
+  - and, once for the file, the seed, the build's reconciled-golden checksum and the weights fingerprint.
 
   The supporting query's result is included too. No speed claims (GOALS non-goal).
 - **e. GitHub repo and CI with a Neo4j service container (1 day).** Areas: `tests/**`, `docs/**`, plus governance files the owner commits.
-  - The owner confirms visibility (public, per GOALS), then creates the repo and pushes main from one copy-paste block. This child creates the repo; E4's publishing child then only turns on Pages.
+  - The owner confirms visibility (public, per GOALS), then creates the repo and pushes main from one copy-paste block. This child creates the repo; E4's publishing child then only turns on Pages (E4 needs a matching revision before its children are planned).
   - A GitHub Actions workflow (in `.github/`, governance, owner-committed through allow-governance from a copy-paste block). It runs the full suite on push and pull request, with:
     - a `neo4j:5.26.33-community` service container and a readiness wait;
     - the `NEO4J_*` env and `AKG_REQUIRE_NEO4J=1`;
