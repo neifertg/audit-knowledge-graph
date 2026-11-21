@@ -4,7 +4,7 @@
 {
   "id": "014-score-reconciliation-against-the-answer",
   "tier": "standard",
-  "status": "draft",
+  "status": "approved",
   "created": "2026-11-21",
   "objective": "O3",
   "areas": [
@@ -51,7 +51,9 @@
     }
   ],
   "epic": "002-e2-erm-ia-reconciliation",
-  "child": "d"
+  "child": "d",
+  "approved": "2026-11-21",
+  "approved_hash": "174cfab48c229526"
 }
 ```
 
