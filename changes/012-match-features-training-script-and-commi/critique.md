@@ -1,32 +1,35 @@
-VERDICT: REVISE
+VERDICT: READY
 
-Reproduction: I rebuilt seeds 7 (templated), 42 (AI) and 1 (templated) and reran the pre-plan script with PCT=1. Every figure in the plan's evidence table came out exactly the same (training took 2 s, features about 3 s per bank). The figures are real. The issues below are about whether the plan text pins what produced them and whether the tests are sound.
+Reproduction: I rebuilt seeds 7 (templated), 42 (AI) and 1 (templated) and reran the new pre-plan script (`e2b_v2.py`, TAIL=1, balanced weighting). Every figure in AC-3, AC-4 and the evidence table came out the same: seed 42 risks 38 accepted (0.95), queue 122, 2 of 103 missed; controls 68 (1.00), 341, 5 missed; duplicates 3 + 11 = 14 queued, 1 of 13 missed. Seed 1 risks 42 (0.93), 131, 0 missed; controls 95 (0.98), 318, 2 missed; duplicates 1 + 14 = 15 queued, 0 missed. All three fits converged well under `max_iter`.
 
-1. [major] AC-2 says "`LogisticRegression(max_iter=5000, class_weight='balanced')`, deterministic with lbfgs" and the full test expects "coefficients within 1e-6". With the default `tol=1e-4`, lbfgs stops early: 23 iterations for risks and 18 for duplicates on seed 7. Refitting the same data with `tol=1e-10` moves coefficients by up to 0.29 (risks) and 0.38 (duplicates). So the committed weights are wherever the optimizer happened to stop, not the unique optimum of a convex problem. A Linux CI retrain with different BLAS or thread counts can stop somewhere else, far outside 1e-6, and that is exactly the Windows-vs-Linux case the epic's 1e-6 rule exists for. -> Pin a tight `tol` (for example 1e-10) in AC-2 so the fit converges to the optimum, then re-measure. With `tol=1e-10` all the bars still hold, but the control figures shift: seed 42 gives 49 auto-accepted (1.00) and a queue of 378; seed 1 gives 64 (0.97) and 381. Record the re-measured figures (L-012).
+The revision answers the previous critique:
+- #1: `tol=1e-10` is pinned and the figures were re-measured.
+- #2: tail scores fix the saturation. The seed-7 top-20 duplicate scores now span 0.965-1.000, not 1e-5. The full AC-2 test now checks the band of every seed-42 pair.
+- #3 and #4: the duplicate corpus, the 16,110-pair table, the max-of-directions rank, the reason for the dropped features, the `shared_unit_only` and `citation` definitions, the text and the row/candidate roles are all pinned. They match the script.
+- #6: duplicates are now review-only.
+- #7: the modules are named, and `match.py` is fingerprinted.
+- #8: numpy only, no scipy.
 
-2. [major] The duplicate model is saturated, so its bands rest on differences of about 1e-6. On seed 7, the top 20 duplicate scores all fall between 0.994788 and 0.994800, true and false pairs interleaved. The auto-accept threshold is 0.994798 and the review floor 0.994792, only 6e-6 apart. That spread is the same size as AC-2's coefficient tolerance and as plausible cross-platform drift. A retrain that "passes" within 1e-6 could still select a different training pair, or put different seed-42 pairs in `accept` or `review`. The likely cause is that whole-table percentiles over about 32,000 cells compress the top pairs to nearly 1.0. -> At minimum, the AC-2 full test should also assert that the seed-42 band of every duplicate pair is unchanged after the retrain. The plan should also state this fragility in Risks and docs (AC-6). Better, re-check whether the duplicate features (see 3) give a usable score spread before approval.
+Review-only duplicates fit the epic's contract. The canonical rule's clause about an "auto-accepted within-ERM duplicate pair" simply never fires: an IA risk that clears auto-accept against both members of a duplicate pair merges its best edge and queues the other. INV-3 ("nothing below the confidence threshold is merged silently") is served better than before. The remaining issues are minor.
 
-3. [major] The duplicate features in AC-1 do not describe what was measured (L-012). The script:
-   - fits the duplicate TF-IDF on IA plus ERM texts, while the plan does not say which corpus;
-   - takes the percentile over the full symmetric ERM x ERM matrix with the diagonal set to -1, not "within its own table" of 16,110 unordered pairs. The two differ by a bank-dependent affine shift, because the ERM count differs per seed;
-   - sets `rank` to the max of the two directions' 1/position. The plan's "1/position of the pair among the row item's candidates" is undefined for an unordered pair.
+1. [minor] L-007 says to use one sorted sweep for the thresholds, because "the naive loop timed out at 27,000 pairs". The plan says only "at tie-group boundaries" and "Training runs in seconds". The measured script's `thresholds()` re-scans the whole score array once per unique score. On seed 7 that took about 70 s of a 73 s training run, mostly on 118,105 control pairs. Features and all three fits took under 3 s together. Copied as-is, it would make the full AC-2 test slow in CI. -> In AC-2, pin a single sorted sweep (cumulative true and total counts over descending tie groups), and in the Test plan state the full retrain's measured time, which the epic requires ("child b states its measured time").
 
-   An implementer following AC-1 literally builds different features than the ones behind the 12/13 and 13/13 figures. -> Pin all three in AC-1 as measured, or re-measure with the plan's wording. Also say why duplicates drop `shared_entity`/`shared_unit_only` and `taxonomy` and add `same_node`. The epic says "the same features except cross-source ones", and shared entity is not inherently cross-source; ERM's business-unit-wide exposure is presumably the reason.
+2. [minor] The previous critique's #5 asked for a fixture covering the threshold edge cases. AC-1's fixture covers tail-score ties, rank, `shared_unit_only`, taxonomy and citation, but not the threshold rule. AC-2's tests only compare the committed and retrained results. A wrong rule could slip through:
+   - first failure instead of the lowest qualifying score;
+   - ties split at the cut;
+   - no qualifying score not giving "none";
+   - the floor not capped at auto-accept.
 
-4. [minor] Other unpinned cross-source definitions in AC-1:
-   - `rank`'s "row item" should be named: rows are IA items, candidates are ERM items, as in R1 and the script.
-   - `shared_unit_only` is never defined. It should read: the two risks share a business unit of their exposed entities but no exposed entity.
-   - Control text is not stated (`title + '. ' + description`, as `risk_text`).
-   - `citation` should say: case-insensitive, and 0 when the ERM title has no ':'.
+   Both the committed file and the retrain would carry the same bug, so the currency test still passes. -> Add a small hand-built scores/labels fixture to the AC-2 test that covers those four cases.
 
-   -> Add one line each.
+3. [minor] The duplicate floor's cap is ambiguous. The plan says "*review floor:* ... capped at the auto-accept threshold", and duplicates have "no auto-accept". It does not say whether the duplicate floor is capped at the notional auto-accept threshold or left uncapped. On seed 7 it makes no difference: the floor is 0.9922 and the notional threshold 0.99999. On another training bank it could. -> State that the duplicate floor is uncapped (and that the notional threshold is neither computed nor stored). The 8e-3 "gap to notional auto-accept" sentence in the evidence can then go, since that threshold no longer exists.
 
-5. [minor] The threshold rule leaves edge cases open. The script takes the *last* index where cumulative precision is at least 0.95, the global lowest qualifying score, not the first failure while "scanning scores from the top". It falls back to the top score when nothing qualifies, and tied scores at the cut are all admitted by `>=`. -> Pin these behaviours in AC-2 and cover the no-qualifying-score case and ties in the AC-1/AC-2 fixture.
+4. [minor] The tail score's scaling is described loosely: "percentile `p` ... (average rank of ties, scaled 0-1)". The measured code uses the 0-based average rank divided by (n - 1). Other readings, such as (rank + 1) / n, shift every value, and could move a threshold's training pair. -> Write the formula exactly in AC-1: p = (0-based average rank) / (n - 1). The fixture test then pins it.
 
-6. [minor] "ERM duplicates | (only 4 auto-accepted, no bar)", while seed 1 measured auto-accepted precision 0.50 (1 of 2 wrong). Under the epic's canonical rule, child c merges auto-accepted duplicate pairs, so one wrong merge in two would be silent, against O3's "not merged silently". -> Keep no bar if the owner agrees, but have the test print it and AC-6's docs state it, and flag it to child c (for example, child c could send duplicate auto-accepts to the queue).
+5. [minor] AC-2 says "measured: 29-71 iterations". On this machine the pinned script took 46 (risks), 31 (duplicates) and 48 (controls). The 29-71 range may come from an earlier variant. -> Quote the build's own counts per model in the docs (L-012), or drop the number. Convergence (`n_iter_ < max_iter`) is what matters, and the test could assert it.
 
-7. [minor] The plan never names the module that holds `pair_features` and `pair_scores` (`features.py`? a `matching.py`, given `test_matching`?). The fingerprint covers only `similarity.py`, `taxonomy_map.py`, `features.py` and `train.py`. If scoring code lives elsewhere, a change to it would not stale the weights. -> Name the module(s), and fingerprint every file the training path imports.
+6. [minor] Review-only duplicates move away from the epic's "trained the same way" for duplicates: the epic gives every model an auto-accept threshold. The move is conservative and fits O3. It is stated only in the plan's Risks and in AC-6's docs. -> At approval, the owner should acknowledge it explicitly as an amendment to the epic's threshold rule, so child c's plan and child d's reporting ("auto-accepted, queued and missed" per kind) treat duplicates as queue-only without a revision dispute.
 
-8. [minor] The measurement computes percentiles with `scipy.stats.rankdata`. scipy is pinned in requirements.txt only as a scikit-learn dependency and is not on the approved list. -> Pin the implementation to pandas `rank(method="average")` (approved) or numpy, or get the owner's OK to import scipy directly.
-
-Not checked: the plan's figures on Linux, since my reproduction ran on Windows only. Whether CI time is acceptable for the full-retrain test, which builds seed 7 and computes features and should take about 5-10 s. Goal fit, areas, timebox and INV-6 handling (AC-5, deferring the new wording to child c) all look consistent with the epic.
+Not checked:
+- The figures on Linux and in CI; my run was on Windows only. The AC-2 band check is the right guard. Around each threshold, the neighbouring training scores are 2e-7 to 1e-2 apart in probability, which is large in logit terms near p = 1.
+- Whether the refactor of `similarity.py` to expose separate word and character cosines stays inside 011's existing tests. It is in the plan's areas.
