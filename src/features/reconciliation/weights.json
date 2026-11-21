@@ -1,0 +1,103 @@
+{
+ "control": {
+  "auto_accept": 0.9999965792226895,
+  "auto_accept_pair": [
+   "ERM-C3602",
+   "IAC-8532"
+  ],
+  "coefficients": [
+   0.7059336815157842,
+   1.2678639479901195,
+   2.499518585820933,
+   8.445366828167149,
+   10.433167378948747,
+   10.529806578272813,
+   2.043580387949536,
+   1.0571355102707294,
+   5.617286830553943
+  ],
+  "columns": [
+   "word",
+   "char",
+   "rank",
+   "risk_link",
+   "same_type",
+   "same_nature",
+   "same_frequency",
+   "shared_system",
+   "citation"
+  ],
+  "intercept": -30.895871313514018,
+  "iterations": 48,
+  "review_floor": 0.942133935134534,
+  "review_floor_pair": [
+   "ERM-C1623",
+   "IAC-9142"
+  ],
+  "review_only": false,
+  "training_true_pairs": 237
+ },
+ "duplicate": {
+  "auto_accept": null,
+  "auto_accept_pair": null,
+  "coefficients": [
+   3.353775773677551,
+   5.9124619529047315,
+   0.6926196628886511,
+   0.030376141622070273,
+   3.0147620439123175
+  ],
+  "columns": [
+   "word",
+   "char",
+   "rank",
+   "same_node",
+   "same_rating"
+  ],
+  "intercept": -26.59139898179793,
+  "iterations": 31,
+  "review_floor": 0.9922435889773831,
+  "review_floor_pair": [
+   "ERM-R1970",
+   "ERM-R4245"
+  ],
+  "review_only": true,
+  "training_true_pairs": 13
+ },
+ "fingerprint": "df64df658ac61f2b22981e3cf992b50961c3dd1df02d267e617c841b368e8ce5",
+ "risk": {
+  "auto_accept": 0.9999363657878788,
+  "auto_accept_pair": [
+   "ERM-R1854",
+   "IAR-9955"
+  ],
+  "coefficients": [
+   0.020574050425212514,
+   5.202675464725838,
+   3.86709788258408,
+   8.285984709629686,
+   -0.00453362118519131,
+   2.695504588730012,
+   2.075420860213489
+  ],
+  "columns": [
+   "word",
+   "char",
+   "rank",
+   "shared_entity",
+   "shared_unit_only",
+   "taxonomy",
+   "same_rating"
+  ],
+  "intercept": -20.32423929927809,
+  "iterations": 46,
+  "review_floor": 0.9069966515136386,
+  "review_floor_pair": [
+   "ERM-R1482",
+   "IAR-7274"
+  ],
+  "review_only": false,
+  "training_true_pairs": 103
+ },
+ "training_seed": 7
+}
