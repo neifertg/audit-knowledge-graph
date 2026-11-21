@@ -17,28 +17,28 @@
     {
       "id": "AC-1",
       "when": "`map_taxonomy(build_dir)` runs on a full build",
-      "then": "it returns one row per IA taxonomy node (all 75 at seed 42): `ia_node_id`, `erm_node_id` or `unmapped`, and `score` (the winning vote share, 0-1). Every target is an ERM node at an allowed level for its IA node's level (IA L1 -> ERM L1; IA L2 -> ERM L1 or L2; IA L3 -> ERM L2 or L3, the E1 answer-key schema). Ties break by the lower ERM node ID, and two runs give identical rows",
+      "then": "it returns one row per IA taxonomy node (all 75 at seed 42): `ia_node_id`, `erm_node_id` or `unmapped`, `score` and `basis`. `basis` is `vote` for a node whose subtree holds IA risks, and `no_risks` otherwise; a `no_risks` node is `unmapped` with score 0, since there is nothing to map it by and no risk depends on it. `score` is the winning ERM node's vote share; for a `vote` node left `unmapped` it is the best allowed share found (below 0.5). Every target is an ERM node at an allowed level for its IA node's level (IA L1 -> ERM L1; IA L2 -> ERM L1 or L2; IA L3 -> ERM L2 or L3, the E1 answer-key schema). Two runs give identical rows",
       "test": "reconciliation.test_taxonomy_map.TaxonomyMapTests.test_ac1_one_row_per_ia_node_at_allowed_levels_deterministic",
       "status": "pending"
     },
     {
       "id": "AC-2",
       "when": "the method runs",
-      "then": "it is the risk-level vote measured before this plan. Each IA risk votes for the ERM risk most similar to it: word plus character TF-IDF on title and description, +0.3 when they share an exposed entity, +0.15 when they share only a business unit. Each IA node takes the deepest allowed ERM node holding at least 0.5 of the votes of the IA risks in its subtree, or `unmapped` when none does. A node whose subtree holds no IA risk maps by name similarity (character TF-IDF), with score 0. The weights 0.3, 0.15 and 0.5 are module constants, set from the pre-plan experiment and documented in the feature README",
-      "test": "reconciliation.test_taxonomy_map.TaxonomyMapTests.test_ac2_vote_picks_deepest_node_with_majority (hand-built two-tree fixture with known votes, including an unmapped case and a no-risk node)",
+      "then": "it is the risk-level vote measured before this plan, with every setting a module constant in `src/features/reconciliation/similarity.py` (shared with child b) or `taxonomy_map.py`:\n- *Risk similarity:* the text is `title + '. ' + description`. Word TF-IDF uses 1-2 grams and character TF-IDF uses `char_wb` 3-5 grams, both with `sublinear_tf`, both fitted on all ERM and IA risk texts. Similarity is the sum of the two cosines, plus 0.3 when the risks share an exposed entity, or else plus 0.15 when they share a business unit of their exposed entities.\n- *Votes:* each IA risk votes for its most similar ERM risk, with ties going to the lowest ERM risk ID. The vote counts for every ancestor of the IA risk's node, toward every ancestor of the ERM risk's node.\n- *Shares:* an IA node's share for an ERM node is votes divided by the number of IA risks in the IA node's subtree.\n- *Pick:* among ERM nodes at an allowed level with share of at least 0.5, take the deepest, then the highest share, then the lowest ERM node ID. If none qualifies, the node is `unmapped`.",
+      "test": "reconciliation.test_taxonomy_map.TaxonomyMapTests.test_ac2_vote_picks_deepest_node_with_majority (hand-built two-tree fixture with known votes: a majority at L3, a split that falls back to L2, a no-majority `unmapped`, a tie broken by ID, and a `no_risks` node)",
       "status": "pending"
     },
     {
       "id": "AC-3",
       "when": "the mapping is scored against the answer key's taxonomy_map on the seed-42 full build with AI text (the default)",
-      "then": "overall accuracy (exact target, `unmapped` counting as a target) is at least 0.55, against 0.65 measured and 0.33 for names alone. Each level's accuracy is at least the names-only baseline's at that level (measured L1 4/9, L2 5/22, L3 16/44). At least 3 of the 6 truly unmapped nodes are predicted `unmapped`. The test prints the measured figures",
+      "then": "on the 62 IA nodes holding risks: accuracy is at least 0.65 (measured 0.74, 46 of 62); each level's correct count is at least the names-only baseline's on all nodes at that level (L1 4, L2 5, L3 16; measured L1 6/9, L2 16/20, L3 24/33); and at most 5 are falsely `unmapped` (measured 2). On all 75 nodes, accuracy is at least 0.55 (measured 0.65). Known limit, stated and not barred: the 3 truly unmapped nodes that hold risks are not detected, because their risks truly sit in one ERM node (a generator design point); only the 3 truly unmapped `no_risks` nodes come out `unmapped`. The test prints counts as well as ratios",
       "test": "reconciliation.test_taxonomy_map.TaxonomyMapTests.test_ac3_accuracy_beats_names_only_baseline",
       "status": "pending"
     },
     {
       "id": "AC-4",
       "when": "the same mapping runs on the seed-1 and seed-7 full builds with templated text",
-      "then": "overall accuracy is at least 0.50 on each (measured 0.56 and 0.57), so the method is not fitted to seed 42",
+      "then": "on the nodes holding risks, accuracy is at least 0.55 on each (measured 0.64 on seed 7 and 0.62 on seed 1), and at most 12 are falsely `unmapped` (measured 7 and 9), so the method is not fitted to seed 42. Builds for other seeds use a small cached builder in `tests/reconciliation/helpers.py` that takes the seed as a parameter",
       "test": "reconciliation.test_taxonomy_map.TaxonomyMapTests.test_ac4_holds_on_other_seeds",
       "status": "pending"
     },
@@ -52,7 +52,7 @@
     {
       "id": "AC-6",
       "when": "docs/data-model.md is read after this change",
-      "then": "it describes the IA-to-ERM mapping as E2 output: `ia_maps_to_erm` with columns `ia_node_id`, `erm_node_id` (or `unmapped`) and `score`, the allowed levels, the method in one paragraph, and the measured accuracy; and `src/features/reconciliation/README.md` exists (capitan feature)",
+      "then": "it describes the IA-to-ERM mapping as E2 output: `ia_maps_to_erm` with columns `ia_node_id`, `erm_node_id` (or `unmapped`), `score` and `basis`, the allowed levels, the method in one paragraph, the measured accuracy, and the known limit (unmapped nodes that hold risks are not detected; `no_risks` nodes are left `unmapped`); and `src/features/reconciliation/README.md` exists (capitan feature)",
       "test": "reconciliation.test_taxonomy_map.TaxonomyMapTests.test_ac6_data_model_and_readme_describe_the_mapping",
       "status": "pending"
     }
@@ -66,7 +66,7 @@
 E2 child a (O3). IA's audit universe and ERM's Basel-style taxonomy are separate trees that map unevenly: level mismatches, 6 IA nodes with no ERM counterpart, and misfiled risks. Child b uses this mapping as a matching feature, and child c uses it to place IA risks that match no ERM risk. Names alone get only a third of nodes right, so the mapping has to come from what the nodes hold.
 
 ## Data impact
-- **New E2 output relationship** `TAXONOMY_NODE ia_maps_to_erm` (already in the ER diagram as E2 output): `ia_node_id`, `erm_node_id` or `unmapped`, `score`. In this child it is a function result; child c writes it to `<out>/reconciled/ia_maps_to_erm.csv` (the epic's output contract).
+- **New E2 output relationship** `TAXONOMY_NODE ia_maps_to_erm` (already in the ER diagram as E2 output): `ia_node_id`, `erm_node_id` or `unmapped`, `score`, `basis`. In this child it is a function result; child c writes it to `<out>/reconciled/ia_maps_to_erm.csv` (the epic's output contract).
 - **Reads published files only:** both taxonomies and their parent links, the classifies, risk, exposure and business-unit files.
 - **Invariants:**
   - INV-6: this module never reads the answer key (AC-5); tests read it only to score.
@@ -77,16 +77,19 @@ E2 child a (O3). IA's audit universe and ERM's Basel-style taxonomy are separate
 ## Test plan
 Tests live in `tests/reconciliation/`, using real builds (seeds 42, 1 and 7, full size) through the existing `tests/generator/helpers.build`, which caches each build. The whole suite stays the done-check.
 
-**Evidence behind the bars.** A scratch experiment on 2026-11-21 measured accuracy across all 75 IA nodes:
+**Evidence behind the bars.** A scratch experiment on 2026-11-21 measured each method. Seed 42 uses AI text; seeds 7 and 1 use templated text.
 
-| Method | Seed 42 (AI) | Seed 7 | Seed 1 |
+| Method | Seed 42 | Seed 7 | Seed 1 |
 |---|---|---|---|
-| Names only (character TF-IDF) | 0.33 | 0.33 | 0.32 |
-| Path words | 0.41-0.45 | | |
-| Pooled risk text under each node | 0.60 | 0.56 | |
-| Risk vote (top-1, majority 0.5) | 0.65 | 0.57 | 0.56 |
+| Names only (character TF-IDF), all 75 nodes | 0.33 | 0.33 | 0.32 |
+| Pooled risk text under each node, all nodes | 0.60 | 0.56 | |
+| **Risk vote, nodes holding risks** | **0.74 (46/62)** | **0.64 (40/63)** | **0.62 (39/63)** |
+| Risk vote, all 75 nodes (`no_risks` counted as `unmapped`) | 0.65 | 0.57 | 0.56 |
+| Falsely `unmapped`, nodes holding risks | 2 | 7 | 9 |
 
-The bars sit below the measured figures with margin, and above the names-only baseline. No band is tuned after the fact (L-007): if a bar fails, stop and report.
+12-13 IA nodes per seed hold no risks. They produce every correct `unmapped` (3 of 6), and they don't affect risk placement. A first critique showed the earlier draft's name fallback for those nodes contradicted the experiment, and that the vote cannot detect unmapped nodes that hold risks. Both are now stated.
+
+The bars sit below the measured figures with margin. If the build measures differently from the experiment (for example, a different tie-break), the figures are re-measured once before the bars are checked, and the plan is not changed to fit (L-007): if a bar fails, stop and report.
 
 **Not tested here:** the build step and the CSV file (child c), and use as a matching feature (child b).
 
