@@ -65,3 +65,7 @@ Source: 013-canonical-layer-review-queue-and-build-s
 ### L-015 (2026-11-21) [src/features/reconciliation] Check published caveats against the code that builds the candidates
 014: the first plan claimed orphan controls were excluded from the pair figures and could not inflate them; features.control_table actually puts every control in the candidate pairs, so orphans are easy negatives that help precision (0 merged, 2 queue rows). The epic's wording ('helps the figures, not matcher skill') was right. Next time: before writing any sentence about what a published figure includes or excludes, trace the candidate set in code and add a figure that shows it (here: orphans merged and queued).
 Source: 014-score-reconciliation-against-the-answer
+
+### L-016 (2026-11-21) [src/features/reconciliation] A fingerprint over source code ripples into every artifact that copies it
+015: adding --no-load to train.py's build changed train.py's source, which the training fingerprint hashes; that moved weights.json's fingerprint and, because score.py copies it into provenance, scores.json too. Two critique rounds found the chain one link at a time. Next time: before editing any fingerprinted file, grep for every place the fingerprint is stored or copied (weights.json, scores.json, later rounds.json) and plan to regenerate all of them, proving with git diff that only the fingerprint line moved.
+Source: 015-sqlite-schema-and-loader
