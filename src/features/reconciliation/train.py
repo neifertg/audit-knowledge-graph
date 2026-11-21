@@ -31,7 +31,8 @@ ROOT = HERE.parents[2]
 
 def build_training_bank(out: Path) -> None:
     subprocess.run([sys.executable, "-m", "akg", "build", "--seed", str(TRAINING_SEED), "--size", "full",
-                    "--text", "templated", "--out", str(out)], cwd=ROOT, check=True, capture_output=True)
+                    "--text", "templated", "--out", str(out), "--no-load"],  # no akg.sqlite in the fingerprint (015)
+                   cwd=ROOT, check=True, capture_output=True)
 
 
 def fingerprint(bank: Path) -> str:

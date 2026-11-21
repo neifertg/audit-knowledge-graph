@@ -12,7 +12,7 @@ _TMP = tempfile.TemporaryDirectory(prefix="akg-recon-")
 def full_build(seed: int = 42, text: str = "ai") -> Path:
     """A full-size build. AI text exists only for seed 42; other seeds use templated text."""
     out = Path(_TMP.name) / f"seed{seed}-{text}"
-    run_akg("build", "--seed", str(seed), "--size", "full", "--text", text, "--out", str(out))
+    run_akg("build", "--seed", str(seed), "--size", "full", "--text", text, "--out", str(out), "--no-load")  # reconciliation only (015)
     return out
 
 

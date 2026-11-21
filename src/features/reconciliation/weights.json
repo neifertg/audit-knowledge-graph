@@ -100,7 +100,7 @@
   "review_only": true,
   "training_true_pairs": 13
  },
- "fingerprint": "57be9a5e0120eda40c57a32a09db94b715824fe83afe076a80bcff03fd44ca0f",
+ "fingerprint": "421d7c38fd77cf362375d99d6cdc67db046584343277dc0a7970063acfde9825",
  "risk": {
   "auto_accept": 0.9999363657878788,
   "auto_accept_pair": [

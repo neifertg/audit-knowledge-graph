@@ -88,7 +88,7 @@
   "size": "full",
   "text": "ai",
   "training_seed": 7,
-  "weights_fingerprint": "57be9a5e0120eda40c57a32a09db94b715824fe83afe076a80bcff03fd44ca0f"
+  "weights_fingerprint": "421d7c38fd77cf362375d99d6cdc67db046584343277dc0a7970063acfde9825"
  },
  "review_queue": {
   "control/review_band": 341,
