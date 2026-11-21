@@ -4,7 +4,7 @@
 {
   "id": "011-map-ia-taxonomy-onto-erm-taxonomy",
   "tier": "standard",
-  "status": "approved",
+  "status": "in-progress",
   "created": "2026-11-21",
   "objective": "O3",
   "areas": [
@@ -60,7 +60,8 @@
   "epic": "002-e2-erm-ia-reconciliation",
   "child": "a",
   "approved": "2026-11-21",
-  "approved_hash": "080962f701c7fe35"
+  "approved_hash": "080962f701c7fe35",
+  "in_progress": "2026-11-21"
 }
 ```
 
