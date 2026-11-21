@@ -33,7 +33,7 @@ def _parser() -> argparse.ArgumentParser:
         sub.add_argument("--count", type=_count, action="append", default=[],
                          metavar="TYPE=N", help="override one entity type's row count")
         sub.add_argument("--text", choices=["templated", "ai"], default=None,
-                         help="default: ai at sample size; templated at full size until c-e add full-size AI text")
+                         help="default: ai (committed AI text); --count overrides need templated")
         sub.add_argument("--text-dir", type=Path, default=DEFAULT_TEXT_DIR)
 
     build = commands.add_parser("build", help="generate the synthetic bank (full size by default)")

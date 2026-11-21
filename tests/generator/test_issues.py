@@ -70,7 +70,7 @@ class IssueTests(unittest.TestCase):
             pack = Path(tmp) / "pack.md"
             run_akg("sample-pack", "--out", str(pack))
             self.assertIn("# Sample pack", pack.read_text(encoding="utf-8"))
-        floor = build(*FULL, "--count", "AUDIT=30", "--count", "ISSUE=100")
+        floor = build(*FULL, "--text", "templated", "--count", "AUDIT=30", "--count", "ISSUE=100")  # new items have no AI text (010)
         planted = Counter(r["scenario"].split(":")[0] for r in answer_key(floor, "scenarios"))
         self.assertGreaterEqual(len({r["scenario"] for r in answer_key(floor, "scenarios")
                                      if r["scenario"].startswith("repeat_finding:")}), 5, "minimum counts: repeats")
@@ -222,8 +222,8 @@ class IssueTests(unittest.TestCase):
                                      check=False).returncode, 0)
 
     def test_ac7_person_count_leaves_other_files_unchanged(self):
-        default = checksums(build(*FULL))
-        override = build(*FULL, "--count", "PERSON=100")
+        default = checksums(build(*FULL, "--text", "templated"))  # templated vs templated: overrides have no AI text (010)
+        override = build(*FULL, "--text", "templated", "--count", "PERSON=100")
         self.assertEqual(len(read(override, "person")), 100, "the override must take effect")
         changed = checksums(override)
         drift = [p for p in default if "person" not in Path(p).name and default[p] != changed[p]]

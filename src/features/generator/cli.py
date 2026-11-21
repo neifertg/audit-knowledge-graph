@@ -7,9 +7,9 @@ from .writer import write
 
 def run(args) -> int:
     if getattr(args, "text", "") is None:
-        # R2 chose AI text; full-size AI text arrives with children c-e, so full size
-        # defaults to templated until then. An explicit --text ai always applies strictly.
-        args.text = "templated" if args.size == "full" else "ai"
+        # R2 chose AI text, committed for both sizes (010). It applies strictly: an item with
+        # no current entry (e.g. new items from --count) fails the build; use --text templated.
+        args.text = "ai"
     try:
         if args.command == "build":
             dataset = build(args.seed, dict(args.count), args.text, args.text_dir, args.size)
