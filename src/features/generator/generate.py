@@ -840,6 +840,8 @@ def _full_audits_issues(seed, n, t, concepts, ia_concepts, ia_risk, ia_ctrl, erm
             years_of_control[k].add(year)
     multi_year = sorted(k for k, ys in years_of_control.items() if len(ys) >= 2)
     planted = irng.sample(multi_year, min(REPEAT_GROUPS, len(multi_year)))
+    if len(planted) < 5:
+        raise GenerationError("too few IA controls tested in two or more years to plant 5 repeat findings")
     ia_pairs = []  # (audit info, control key, repeat group or None)
     for g, k in enumerate(planted, 1):
         hosts = [info for info in audit_info if k in info[3]]
@@ -849,9 +851,14 @@ def _full_audits_issues(seed, n, t, concepts, ia_concepts, ia_risk, ia_ctrl, erm
         years = sorted(by_year)[:4]
         for year in years:
             ia_pairs.append((irng.choice(by_year[year]), k, g))
+    # other findings: a control outside the planted groups gets issues in one year only, so the
+    # planted groups are exactly the repeat findings (009 review)
     candidates = [(info, k) for info in audit_info for k in info[3] if k not in planted]
+    year_of = {}
     while len(ia_pairs) < counts["IA"] and candidates:
         info, k = candidates.pop(irng.randrange(len(candidates)))
+        if year_of.setdefault(k, info[1]) != info[1]:
+            continue
         ia_pairs.append((info, k, None))
 
     # --- non-IA issues: a rising ERM L1 category, other categories flat ------------------------
@@ -881,6 +888,7 @@ def _full_audits_issues(seed, n, t, concepts, ia_concepts, ia_risk, ia_ctrl, erm
     # --- issue rows ---------------------------------------------------------------------------
     issue_ids = _ids(seed, "issue", "ISS-", len(ia_pairs) + len(non_ia), 1000, 10000)
     trng = stream(seed, "issue/text")
+    drng_dup = stream(seed, "issue_against_risk_erm")  # either copy of an ERM duplicate (009 review)
     crng = stream(seed, "issue/dates")
     rrng = stream(seed, "issue/rating")
     issues, raised, owned = [], [], []
@@ -897,7 +905,7 @@ def _full_audits_issues(seed, n, t, concepts, ia_concepts, ia_risk, ia_ctrl, erm
         used_templates[k].add(tmpl)
         title = lib.FULL_ISSUE_TITLES["IA"][tmpl].format(subject=subject, Subject=_cap(subject))
         desc = lib.FULL_ISSUE_OPENINGS["IA"][tmpl].format(f=finding(k, subject))
-        opened = min(end + timedelta(days=crng.randint(0, 20)), WINDOW_END)
+        opened = min(end + timedelta(days=crng.randint(0, 20)), date(year, 12, 31))  # within the audit year
         issues.append((iid, "IA", title, desc, opened))
         raised.append((aid, iid))
         against_c["ia"].append((iid, ia_ctrl[k]))
@@ -913,7 +921,8 @@ def _full_audits_issues(seed, n, t, concepts, ia_concepts, ia_risk, ia_ctrl, erm
         opened = date(year, 1, 1) + timedelta(days=crng.randint(0, 364 if year < 2025 else 300))
         issues.append((iid, source, title, desc, opened))
         against_c["erm"].append((iid, erm_ctrl[inst]))
-        against_r["erm"].append((iid, erm_risk[(inst, 0)]))
+        copies = [o for o in (0, 1) if (inst, o) in erm_risk]
+        against_r["erm"].append((iid, erm_risk[(inst, drng_dup.choice(copies))]))
         pending.append((source, inst, opened.isoformat(), title, iid, desc))
 
     orng = stream(seed, "issue_owned_by_person")

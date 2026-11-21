@@ -37,7 +37,7 @@ Ideas that came up mid-change. Review them when planning the next milestone; pro
 - 2026-11-19 Review-queue UI and learning from reviewer decisions
 - 2026-11-19 E3 round 2: change 'controls untested 3+ years' to E1's stale-coverage definition (never tested in the 3-year window, or last tested >24 months before window end) (from 001-e1-synthetic-bank-generator)
 - 2026-11-19 E3 round 2 should run on reconciled (canonical) items, since audits test only IA controls and ERM-only risks are untested by construction (from 001-e1-synthetic-bank-generator)
-- 2026-11-19 E1 children c-e: define the rising-L1 scenario by each issue's ERM L1 via the answer key (IA issues reach IA L1 nodes), not by 'first risk'; align with E3 round 7 (from 001-e1-synthetic-bank-generator)
+- 2026-11-19 RESOLVED in 009: the rising-L1 scenario is carried by regulator, self-identified and 2nd-line issues on the published ERM taxonomy (no answer key; IA issues excluded); E3 round 7 should count the same way (from 001-e1-synthetic-bank-generator)
 - 2026-11-19 E1 children b-e: list requirements.txt in areas if they bump a pin or add an approved package (from 001-e1-synthetic-bank-generator)
 - 2026-11-19 E1 children d/e: decide who writes answer_key/scenarios.csv (d appends shared-system rows, e the rest) (from 001-e1-synthetic-bank-generator)
 - 2026-11-19 Vendors: E3 round 5 adds third-party vendors live; decide whether E1 needs a vendor name list or E3 brings its own (from 001-e1-synthetic-bank-generator)

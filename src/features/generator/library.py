@@ -1738,7 +1738,7 @@ FULL_ISSUE_TITLES = {
 }
 # Four ways a description opens around the recurring finding.
 FULL_ISSUE_OPENINGS = {
-    "IA": ["Testing found that {f}", "Follow-up testing again showed that {f}", "The audit sample showed that {f}",
+    "IA": ["Testing found that {f}", "Follow-up testing showed that {f}", "The audit sample showed that {f}",
            "Walkthroughs and sample testing revealed that {f}"],
     "Regulator": ["Examiners found that {f}", "The examination concluded that {f}", "Supervisors noted that {f}",
                   "During the examination, staff observed that {f}"],

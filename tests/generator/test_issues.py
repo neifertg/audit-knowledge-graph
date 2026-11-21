@@ -45,8 +45,9 @@ class IssueTests(unittest.TestCase):
         out = build(*FULL)
         audits = read(out, "audit")
         self.assertTrue(68 <= len(audits) <= 82, f"{len(audits)} audits")
-        for year, count in Counter(a["audit_year"] for a in audits).items():
-            self.assertGreaterEqual(count, 20, f"{year}: {count} audits")
+        per_year = Counter(a["audit_year"] for a in audits)
+        for year in ("2023", "2024", "2025"):
+            self.assertGreaterEqual(per_year[year], 20, f"{year}: {per_year[year]} audits")
         issues = read(out, "issue")
         self.assertTrue(225 <= len(issues) <= 275, f"{len(issues)} issues")
         share = Counter(i["source"] for i in issues)
@@ -70,7 +71,11 @@ class IssueTests(unittest.TestCase):
             run_akg("sample-pack", "--out", str(pack))
             self.assertIn("# Sample pack", pack.read_text(encoding="utf-8"))
         floor = build(*FULL, "--count", "AUDIT=30", "--count", "ISSUE=100")
-        self.assertTrue(answer_key(floor, "scenarios"), "the minimum counts still plant scenarios")
+        planted = Counter(r["scenario"].split(":")[0] for r in answer_key(floor, "scenarios"))
+        self.assertGreaterEqual(len({r["scenario"] for r in answer_key(floor, "scenarios")
+                                     if r["scenario"].startswith("repeat_finding:")}), 5, "minimum counts: repeats")
+        self.assertGreaterEqual(planted["untested_high_risk"], 8, "minimum counts: untested High risks")
+        self.assertEqual(planted["rising_category"], 1, "minimum counts: rising category")
 
     def test_ac3_audit_plan_is_risk_based(self):
         out = build(*FULL)
@@ -118,6 +123,10 @@ class IssueTests(unittest.TestCase):
                 self.assertTrue(2 <= len(ids) <= 4)
                 self.assertGreaterEqual(len({issues[i]["opened_date"][:4] for i in ids}), 2)
                 self.assertEqual(len({issues[i]["title"] for i in ids}), len(ids), "titles differ within a group")
+        qualifying = {cid for cid, ids in ia_by_control.items()
+                      if len({issues[i]["opened_date"][:4] for i in ids}) >= 2}
+        listed_controls = {control_of[next(iter(ids))] for ids in groups.values()}
+        self.assertEqual(listed_controls, qualifying, "every repeat finding is listed, and only those")
         for iid, cid in control_of.items():
             self.assertNotIn(control_titles[cid], issues[iid]["title"].lower(), "IA title quotes its control")
         ia_ids = [i for i in issues if issues[i]["source"] == "IA"]
