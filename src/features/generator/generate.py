@@ -92,11 +92,6 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
     if size not in SIZES:
         raise GenerationError(f"unknown size {size}; choose from {sorted(SIZES)}")
     full = size == "full"
-    if full and text == "ai":
-        # AC-9 (006): sample AI text must never leak into a full-size build. Children c-e
-        # narrow this guard as they add full-size AI text, and e removes it.
-        raise GenerationError("AI-written text exists only at sample size so far (children c-e add it at full "
-                              "size); build full size with --text templated")
     n = dict(FULL_COUNTS if full else SAMPLE_COUNTS)
     for name, value in (counts or {}).items():
         if name not in OVERRIDABLE:
@@ -500,7 +495,7 @@ def build(seed: int = 42, counts: dict[str, int] | None = None, text: str = "tem
         table.rows.sort()
 
     if text == "ai":
-        _apply_ai_text(t, texts, text_dir)
+        _apply_ai_text(t, texts, text_dir, size)
     return Dataset(t, key, texts)
 
 
@@ -957,13 +952,33 @@ def _full_audits_issues(seed, n, t, concepts, ia_concepts, ia_risk, ia_ctrl, erm
     return {"tables": out, "scenarios": scenarios}
 
 
-AI_TEXT_FILE = "ai_text.jsonl"
+AI_TEXT_FILE = "ai_text.jsonl"            # sample text (005), hashes without a prompt version
+FULL_AI_TEXT_FILE = "ai_text_full.jsonl"  # full-size text (010), hashes include the full prompt version
 
 
-def load_ai_text(text_dir: Path) -> dict[str, dict]:
-    path = Path(text_dir) / AI_TEXT_FILE
+def duplicate_source(key: str) -> str | None:
+    """The original's key for a full-size ERM duplicate (risk_erm:<concept>:1), else None."""
+    return key[:-1] + "0" if key.startswith("risk_erm:") and key.endswith(":1") else None
+
+
+def duplicate_hashes(original_text: str, own_draft: str) -> dict:
+    """What a rewritten duplicate's entry must record: its original's text and its note (010 rev. 1)."""
+    from .prompts import duplicate_note
+
+    return {"source_text_hash": _hash(original_text), "note_hash": _hash(duplicate_note(own_draft))}
+
+
+def full_text_hash(input_hash: str) -> str:
+    """A full-size entry's stored hash: the item's inputs plus the full prompt version (010 AC-3)."""
+    from .prompts import full_prompt_version
+
+    return _hash(input_hash, full_prompt_version())
+
+
+def load_ai_text(text_dir: Path, size: str = "sample") -> dict[str, dict]:
+    path = Path(text_dir) / (FULL_AI_TEXT_FILE if size == "full" else AI_TEXT_FILE)
     if not path.exists():
-        raise GenerationError(f"no committed AI text at {path}; run write_text.py first")
+        raise GenerationError(f"no committed AI text at {path}")
     entries = {}
     for line in path.read_text(encoding="utf-8").splitlines():
         if line.strip():
@@ -972,17 +987,26 @@ def load_ai_text(text_dir: Path) -> dict[str, dict]:
     return entries
 
 
-def _apply_ai_text(tables: dict[str, Table], texts: list[TextItem], text_dir: Path | None) -> None:
+def _apply_ai_text(tables: dict[str, Table], texts: list[TextItem], text_dir: Path | None,
+                   size: str = "sample") -> None:
     if text_dir is None:
         raise GenerationError("--text ai needs --text-dir")
-    entries = load_ai_text(text_dir)
+    entries = load_ai_text(text_dir, size)
     replacement: dict[tuple[str, str], str] = {}
     for item in texts:
         entry = entries.get(item.key)
         if entry is None:
             raise GenerationError(f"AI text missing for key {item.key}")
-        if entry["input_hash"] != item.input_hash:
-            raise GenerationError(f"AI text is stale for key {item.key}: its inputs changed; regenerate it")
+        expected = full_text_hash(item.input_hash) if size == "full" else item.input_hash
+        if entry["input_hash"] != expected:
+            raise GenerationError(f"AI text is stale for key {item.key}: its inputs or prompt changed")
+        source = duplicate_source(item.key) if size == "full" else None
+        if source:
+            original = entries.get(source, {}).get("text", "")
+            wanted = duplicate_hashes(original, item.templated)
+            if any(entry.get(k) != v for k, v in wanted.items()):
+                raise GenerationError(f"AI text is stale for key {item.key}: rewrite this duplicate from its "
+                                      f"original's text ({source})")
         replacement[(item.file, item.item_id)] = entry["text"]
     for name, table in tables.items():
         if "description" not in table.columns:
@@ -992,7 +1016,7 @@ def _apply_ai_text(tables: dict[str, Table], texts: list[TextItem], text_dir: Pa
                       for row in table.rows]
 
 
-def orphan_ai_keys(dataset: Dataset, text_dir: Path) -> list[str]:
-    """Committed AI text keys that no generated item uses."""
+def orphan_ai_keys(dataset: Dataset, text_dir: Path, size: str = "sample") -> list[str]:
+    """Committed AI text keys (of that size's file) that no generated item uses."""
     used = {item.key for item in dataset.text_items}
-    return sorted(k for k in load_ai_text(text_dir) if k not in used)
+    return sorted(k for k in load_ai_text(text_dir, size) if k not in used)

@@ -19,6 +19,11 @@ def _f1(predicted: set, truth: set) -> float:
     return 2 * precision * recall / (precision + recall)
 
 
+def chance_f1(pairs, truth) -> float:
+    """F1 of predicting every candidate pair a match: the floor any matcher must beat."""
+    return 2 * len(truth) / (len(pairs) + len(truth)) if truth else 0.0
+
+
 def _best_threshold_f1(scored: dict, truth: set) -> float:
     """Best F1 over thresholds, predicting every pair scored at or above the threshold (one sorted sweep)."""
     if not truth:
@@ -101,6 +106,18 @@ class Risks:
 
     def tfidf_f1(self) -> float:
         return _best_threshold_f1({p: self.cos(*p) for p in self.cross_pairs}, self.truth)
+
+    def theme(self, rid: str) -> str:
+        """An ERM risk's theme: its title before the entity in brackets ('Sanctions list update delays')."""
+        return self.title[rid].split(" (")[0]
+
+    def same_theme_sibling_median(self) -> float:
+        """Median cosine of ERM pairs sharing a theme that are not duplicates (L-007's near-copies)."""
+        return statistics.median(self.cos(*p) for p in self.erm_pairs
+                                 if p not in self.erm_truth and self.theme(p[0]) == self.theme(p[1]))
+
+    def duplicate_median(self) -> float:
+        return statistics.median(self.cos(*p) for p in self.erm_truth)
 
     def erm_duplicate_f1(self) -> float:
         return _best_threshold_f1({p: self.cos(*p) for p in self.erm_pairs}, self.erm_truth)
@@ -322,6 +339,27 @@ class Controls:
                 predicted.add((hits[0], i))
         return _f1(predicted, self.truth)
 
+    def subject_citation_f1(self, with_kind_map: bool = False) -> float:
+        """008 review's measure: pair an IA control with every ERM control whose title subject (before ':')
+        occurs in the IA description and that agrees on control type and nature; with the 8-entry map from
+        IA's citation phrase to ERM's kind label, also require the cited kind to match ERM's label."""
+        from src.features.generator import library
+
+        label_of_phrase = {library.IA_CITATION[k.key]: k.erm_label.lower() for k in library.CONTROL_KINDS}
+        predicted = set()
+        for e, i in self.pairs:
+            erm, ia = self.row[e], self.row[i]
+            if ":" not in erm["title"]:
+                continue
+            subject, label = (part.strip().lower() for part in erm["title"].split(":", 1))
+            desc = ia["description"].lower()
+            if subject not in desc or (erm["control_type"], erm["nature"]) != (ia["control_type"], ia["nature"]):
+                continue
+            if with_kind_map and not any(p in desc and l == label for p, l in label_of_phrase.items()):
+                continue
+            predicted.add((e, i))
+        return _f1(predicted, self.truth)
+
     def count_cue(self, source: str) -> float:
         """|mean controls per risk on matched risks - on unmatched risks| for one source."""
         ids = self.erm_ids if source == "erm" else self.ia_ids
@@ -335,3 +373,49 @@ class Controls:
         a = [per_risk[r] for r in risks if matched(r)]
         b = [per_risk[r] for r in risks if not matched(r)]
         return abs(statistics.mean(a) - statistics.mean(b))
+
+
+def repeat_finding_cue(out) -> tuple[float, float]:
+    """(recall, pair precision) of grouping IA issues by their text after the fixed opening words:
+    the share of planted repeat groups that land in one bucket, and how many same-bucket pairs are
+    issues on the same IA control (009 review's measure; the cue docs/data-model.md publishes)."""
+    from src.features.generator.text_rules import ISSUE_OPENING
+
+    issues = [r for r in read(out, "issue") if r["source"] == "IA"]
+    finding = {r["issue_id"]: ISSUE_OPENING.sub("", r["description"]).strip().lower() for r in issues}
+    groups = defaultdict(set)
+    for row in answer_key(out, "scenarios"):
+        if row["scenario"].startswith("repeat_finding:") and row["item_id"] in finding:
+            groups[row["scenario"]].add(row["item_id"])
+    buckets = defaultdict(set)
+    for iid, text in finding.items():
+        buckets[text].add(iid)
+    recall = sum(any(ids <= b for b in buckets.values()) for ids in groups.values()) / len(groups)
+    control_of = {r["issue_id"]: r["control_id"] for r in read(out, "issue_against_control_ia")}
+    same = total = 0
+    for bucket in buckets.values():
+        ids = sorted(bucket)
+        for n, a in enumerate(ids):
+            for b in ids[n + 1:]:
+                total += 1
+                same += a in control_of and control_of.get(a) == control_of.get(b)
+    return recall, (same / total if total else 0.0)
+
+
+def cue_figures(out) -> dict[str, float]:
+    """Every figure docs/data-model.md publishes about matching cues and difficulty (010 AC-5)."""
+    r, c = Risks(out), Controls(out)
+    recall, precision = repeat_finding_cue(out)
+    return {
+        "control_title_in_description_f1": c.title_in_description_f1(),
+        "control_subject_citation_f1": c.subject_citation_f1(),
+        "control_subject_citation_kind_map_f1": c.subject_citation_f1(with_kind_map=True),
+        "control_tfidf_f1": c.tfidf_f1(),
+        "control_chance_f1": chance_f1(c.pairs, c.truth),
+        "risk_tfidf_f1": r.tfidf_f1(),
+        "erm_duplicate_f1": r.erm_duplicate_f1(),
+        "erm_duplicate_median_cosine": r.duplicate_median(),
+        "erm_same_theme_sibling_median_cosine": r.same_theme_sibling_median(),
+        "repeat_finding_recall": recall,
+        "repeat_finding_pair_precision": precision,
+    }

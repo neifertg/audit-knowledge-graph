@@ -39,18 +39,18 @@ def _labels(dataset: Dataset) -> dict[str, str]:
     return labels
 
 
-def render_text(templated: Dataset, ai: Dataset | None) -> str:
+def render_text(templated: Dataset, ai: Dataset | None, full: bool = False) -> str:
     institution = load("institution")[0]
-    if ai is None:
-        # full size (007 AC-7): templated text only until child f; no text choice to make
+    if full:
+        # full size (007 AC-7, 010 AC-5): both descriptions side by side; the text choice is made
         counts = ", ".join(f"{len(templated.tables[n].rows)} {n}" for n in
                            ("auditable_entity", "risk_erm", "risk_ia", "control_erm", "control_ia"))
         out = [
             f"# Full-size pack: {institution} (synthetic)",
             "",
             f"The full-size bank ({counts}) for a realism skim: do the organization, taxonomies and risk "
-            "registers read like a real US regional bank? Descriptions are templated; AI-written text at full "
-            "size arrives with E1 child f. Audits and issues are still at sample size (child e).",
+            "registers read like a real US regional bank? Risks, controls and issues show the templated "
+            "description beside the AI-written one the build uses by default (E1 child f).",
             "",
             "## Your review",
             "",
@@ -128,10 +128,9 @@ def render_text(templated: Dataset, ai: Dataset | None) -> str:
 
 def render(args) -> None:
     templated = build(args.seed, dict(args.count), "templated", size=args.size)
-    # AI text exists only at sample size until children c-e (006 AC-9); full packs show templated text
-    ai = None if args.size == "full" else build(args.seed, dict(args.count), "ai", args.text_dir, args.size)
+    ai = build(args.seed, dict(args.count), "ai", args.text_dir, args.size)
     path = Path(args.out)
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8", newline="\n") as f:
-        f.write(render_text(templated, ai))
+        f.write(render_text(templated, ai, full=args.size == "full"))
     print(f"wrote {path}")

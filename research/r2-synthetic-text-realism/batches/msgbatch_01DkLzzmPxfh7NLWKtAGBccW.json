@@ -1,0 +1,8 @@
+{
+ "attempt": 2,
+ "failures": {},
+ "requests": {
+  "k0f6a6a985b28e566a1b12a43b1940b50887c1e33": "risk_erm:cm_riskrating@credit-administration:1",
+  "k5eacc47ab9353546b5105938f96ce8db9a18390f": "risk_erm:udaap_sales@online-mobile-banking:1"
+ }
+}
