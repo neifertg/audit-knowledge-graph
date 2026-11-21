@@ -1,0 +1,22 @@
+{
+ "attempt": 1,
+ "failures": {
+  "risk_erm:cm_riskrating@credit-administration:1": "stop_reason max_tokens",
+  "risk_erm:udaap_sales@online-mobile-banking:1": "stop_reason max_tokens"
+ },
+ "requests": {
+  "k0bf6689c34fd84997b5c91e6e0b8013804089f0b": "risk_erm:wire_fraud@real-time-payments:1",
+  "k0f6a6a985b28e566a1b12a43b1940b50887c1e33": "risk_erm:cm_riskrating@credit-administration:1",
+  "k12e01ec762b10c038f1359904f6f8adb1861f5ec": "risk_erm:cfp_test@liquidity-management:1",
+  "k14b70a5eaebbb025d9c0b305260fcc44379ee287": "risk_erm:model_risk@bsa-aml-program:1",
+  "k50802ab52f3f386f8a6a311c5e494395d26f40e2": "risk_erm:securities_valuation@investment-securities-portfolio:1",
+  "k53dde51ab638f4e3d94952b7c0b4f4edaa348a49": "risk_erm:aml_sanctions@wire-transfer-operations:1",
+  "k5eacc47ab9353546b5105938f96ce8db9a18390f": "risk_erm:udaap_sales@online-mobile-banking:1",
+  "k84e1f9165071b0ba2cf907ca3fa40cb97ba44c7e": "risk_erm:udaap_sales@branch-operations:1",
+  "k9e04d6c717fc9a5ac11a66cbd449de6c9a5f43ff": "risk_erm:regreport@regulatory-reporting-data:1",
+  "kae96c72d3cd1b118d806f24993808dc07dece17a": "risk_erm:cm_covenant@construction-lending:1",
+  "kc754da140d79e081658ede3457f2aa5aa71b3921": "risk_erm:collections_workout@mortgage-servicing:1",
+  "kd67f384a7b2a51e57e5c09c3c795bfee9189d06e": "risk_erm:dr_resilience@it-operations-resilience:1",
+  "kf487636a5b839072e7385d58d2aed759d497f644": "risk_erm:cmp_rootcause@card-disputes:1"
+ }
+}

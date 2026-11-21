@@ -59,10 +59,10 @@ def full_prompt_version() -> str:
 
 # 010 revision 1: an ERM duplicate is the same risk re-entered by another team, so its AI text is
 # rewritten from its original's AI text (per-item note; the system prompt is unchanged).
-DUPLICATE_NOTE = ("This is the same risk re-entered in another team's register, so the draft above is the "
-                  "original team's statement. Keep its statement, structure and most of its wording, as a "
-                  "team copying it would, and reword only the cause, following this team's own wording of it: "
-                  "{own_draft}")
+DUPLICATE_NOTE = ("This is the same risk recorded independently in another team's register; the draft above is "
+                  "the original team's statement. Keep the same facts and a similar impact, but write the cause "
+                  "and the event in this team's own sentences and vocabulary rather than paraphrasing the "
+                  "original line by line. This team's own wording of the cause: {own_draft}")
 
 
 def duplicate_note(own_draft: str) -> str:
