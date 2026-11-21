@@ -1,0 +1,20 @@
+{
+ "_note": "Seed-42 full build with the committed AI text (010 AC-5). docs/data-model.md quotes each figure; a test fails if the build drifts by more than 0.01.",
+ "figures": {
+  "control_chance_f1": 0.0041,
+  "control_subject_citation_f1": 0.636,
+  "control_subject_citation_kind_map_f1": 0.7371,
+  "control_tfidf_f1": 0.2819,
+  "control_title_in_description_f1": 0.4479,
+  "erm_duplicate_f1": 0.6,
+  "erm_duplicate_median_cosine": 0.5568,
+  "erm_same_theme_sibling_median_cosine": 0.3073,
+  "repeat_finding_pair_precision": 0.0,
+  "repeat_finding_recall": 0.0,
+  "risk_tfidf_f1": 0.4715
+ },
+ "thresholds": {
+  "control_tfidf_floor": 0.25,
+  "erm_duplicate_sibling_margin_min": 0.15
+ }
+}

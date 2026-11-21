@@ -188,6 +188,9 @@ class BatchTests(unittest.TestCase):
                 self.assertEqual(stray_capitals(text, draft="The Front Office reviews it."), [])
         self.assertEqual(stray_capitals("Reviewed by the Zorblat team.", draft="The Front Office reviews it."),
                          ["Zorblat"])
+        # a plausible invented product name is rejected too, not only nonsense
+        self.assertEqual(stray_capitals("Balances are tied out in Ledgerwise Pro each day.", draft="Balances are tied out."),
+                         ["Ledgerwise", "Pro"])
 
     def test_ac3_rules_resubmit_once_then_block(self):
         cases = [
@@ -332,6 +335,21 @@ class BatchTests(unittest.TestCase):
                 result = self.full_build(text_dir)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn(key, result.stderr)
+
+    def test_ac5_published_cue_figures_match_the_build(self):
+        from .difficulty import cue_figures
+        from .helpers import build
+
+        recorded = json.loads((ROOT / "tests" / "golden" / "cue_figures.json").read_text(encoding="utf-8"))
+        doc = (ROOT / "docs" / "data-model.md").read_text(encoding="utf-8")
+        measured = cue_figures(build("--size", "full"))  # the default: AI text
+        self.assertEqual(set(measured), set(recorded["figures"]))
+        quote = lambda v: f"{v:.3f}" if 0 < v < 0.1 else f"{v:.2f}"
+        for name, value in {**recorded["figures"], **recorded["thresholds"]}.items():
+            with self.subTest(figure=name):
+                if name in measured:
+                    self.assertAlmostEqual(measured[name], value, delta=0.01, msg="re-record cue_figures.json")
+                self.assertIn(quote(value), doc, f"docs/data-model.md must quote {name} ({quote(value)})")
 
     # --- AC-6 -------------------------------------------------------------------------------
     def test_ac6_tests_never_import_anthropic(self):

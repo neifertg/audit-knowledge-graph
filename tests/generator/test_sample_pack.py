@@ -31,7 +31,8 @@ class SamplePackTests(unittest.TestCase):
         self.assertIn("Full-size pack", pack)
         self.assertNotIn("about 15 rows", pack)
         self.assertNotIn("Text choice", pack)
-        self.assertNotIn("description (AI)", pack)
+        # 010 AC-5: full size shows templated and AI descriptions side by side, all generated
+        self.assertEqual(pack.count("| description (templated) | description (AI) |"), 5)
         self.assertNotIn("(not generated)", pack)
 
     def test_ac8_committed_pack_is_current(self):

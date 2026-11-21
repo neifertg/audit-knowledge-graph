@@ -28,16 +28,17 @@ sys.exit(code)
 
 
 class OfflineTests(unittest.TestCase):
-    def run_guarded(self, *args: str) -> subprocess.CompletedProcess:
+    def run_guarded(self, *args: str, size: str = "sample") -> subprocess.CompletedProcess:
         with tempfile.TemporaryDirectory() as out:
-            return subprocess.run([sys.executable, "-c", GUARDED_BUILD, "build", "--seed", "42", "--size", "sample", "--out", out, *args],
+            return subprocess.run([sys.executable, "-c", GUARDED_BUILD, "build", "--seed", "42", "--size", size, "--out", out, *args],
                                   cwd=ROOT, capture_output=True, text=True)
 
     def test_ac5_build_is_offline_and_never_imports_anthropic(self):
-        for text in ("templated", "ai"):
-            with self.subTest(text=text):
-                result = self.run_guarded("--text", text)
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for size in ("sample", "full"):  # full size with AI text since 010 (AC-6)
+            for text in ("templated", "ai"):
+                with self.subTest(size=size, text=text):
+                    result = self.run_guarded("--text", text, size=size)
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 
 if __name__ == "__main__":
