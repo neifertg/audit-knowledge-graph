@@ -4,7 +4,7 @@
 {
   "id": "010-full-size-ai-text-in-one-batch",
   "tier": "standard",
-  "status": "draft",
+  "status": "approved",
   "created": "2026-11-20",
   "objective": "O3",
   "areas": [
@@ -61,7 +61,9 @@
   ],
   "epic": "001-e1-synthetic-bank-generator",
   "child": "f",
-  "revised": "2026-11-21"
+  "revised": "2026-11-21",
+  "approved": "2026-11-21",
+  "approved_hash": "6ec3a846da493c0f"
 }
 ```
 
