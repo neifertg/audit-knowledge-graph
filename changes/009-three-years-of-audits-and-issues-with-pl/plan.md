@@ -26,35 +26,35 @@
     {
       "id": "AC-2",
       "when": "either size is built",
-      "then": "INV-4 holds (every IA issue links to exactly one audit and every other issue to none; every issue links to at least one risk and at least one control, never an orphan control, and has exactly one owner and one source) and INV-5 holds (audits start and end inside 2023-01-01..2025-12-31; issues open and close inside the window; closure never before opening; an IA issue never opens before the end of the audit that raised it)",
+      "then": "INV-4 holds (every IA issue links to exactly one audit and every other issue to none; every issue links to at least one risk and at least one control, never an orphan control, and its linked risk is one its linked control mitigates (IA and non-IA alike), and has exactly one owner and one source) and INV-5 holds (audits start and end inside 2023-01-01..2025-12-31; issues open and close inside the window; closure never before opening; an IA issue never opens before the end of the audit that raised it)",
       "test": "generator.test_invariants.InvariantTests.test_ac2_inv4_inv5_issue_links_and_dates",
       "status": "pending"
     },
     {
       "id": "AC-3",
       "when": "the full build has run",
-      "then": "the audit plan reads as risk-based: every audit covers 1-3 auditable entities and tests IA controls of a subset of the risks those entities are exposed to (audits scope in some of an entity's risks, not all); among entities with at least one IA risk, those with a High IA risk average at least 1.25 times as many audits as those without, and 10-30% of them are never audited in the window; the epic's linking rules hold through `linking_rules`, moved from tests/generator/test_risks.py into tests/generator/checks.py",
+      "then": "the audit plan reads as risk-based: every audit covers 1-3 auditable entities and tests IA controls of a subset of the risks those entities are exposed to; among entities with at least two IA risks, at least 30% of their audits leave at least one of the entity's IA risks untested, and at least one `untested_high_risk` sits in an audited entity (scoping, not only unaudited entities); among entities with at least one IA risk, those with a High IA risk average at least 1.25 times as many audits as those without, and 10-30% of them are never audited in the window; the epic's linking rules hold through `linking_rules`, moved from tests/generator/test_risks.py into tests/generator/checks.py",
       "test": "generator.test_issues.IssueTests.test_ac3_audit_plan_is_risk_based",
       "status": "pending"
     },
     {
       "id": "AC-4",
       "when": "the full build has run",
-      "then": "the planted scenarios exist and answer_key/scenarios.csv lists them, each recomputed by the test from published files: (a) `repeat_finding:<n>` for at least 5 groups, each 2-4 IA issues against the same IA control opened in at least 2 different years with pairwise different titles (4 title templates per source); (b) `untested_high_risk` for at least 8 High-rated IA risks none of whose IA controls any audit tested, arising from audit scoping and unaudited entities; (c) `rising_category` naming one ERM L1 node whose issue count rises at least 50% from 2023 to 2025 from a floor of at least 8 issues in 2023, while total issues change less than 15% (year = opened-date year; each issue's ERM L1 is that of the answer key's true ERM node for its first linked risk by sorted risk ID, the epic's 'ERM L1 category'); (d) at full size every regulation reaches at least one business unit through requires -> control -> mitigates -> risk -> exposed entity -> owning unit (checked, not listed; the Fair Credit Reporting Act gains a requiring control in a full-size-only theme, and 008's shared-regulation F1 is rechecked; the frozen sample keeps its known Regulation E gap)",
+      "then": "the planted scenarios exist and answer_key/scenarios.csv lists them, each recomputed by the test from published files: (a) `repeat_finding:<n>` for at least 5 groups, each 2-4 IA issues against the same IA control opened in at least 2 different years; every listed group qualifies (other chance groups may exist unlisted); they are filed under different names: no two issues in a group share a title, no IA issue title contains its control's title, grouping IA issues by exact title finds none of the planted groups, and grouping by exact description finds at most half of them (descriptions share the recurring finding but open differently; documented as a realistic cue); (b) `untested_high_risk` equals exactly the set of High-rated IA risks none of whose IA controls any audit tested, and has at least 8 members; (c) `rising_category` names the only ERM L1 node meeting the rule on regulator, self-identified and 2nd-line issues (their ERM risks classified in the published ERM taxonomy, no answer key): count by opened-date year rises at least 50% from 2023 to 2025 from a floor of at least 8 in 2023, while total issues of all sources change less than 15%; (d) at full size every regulation reaches at least one business unit through requires -> control -> mitigates -> risk -> exposed entity -> owning unit (checked, not listed; the Fair Credit Reporting Act gains a requiring control in a full-size-only theme, and 008's control bands are rechecked; the frozen sample keeps its known Regulation E gap)",
       "test": "generator.test_issues.IssueTests.test_ac4_planted_scenarios_are_present_and_listed",
       "status": "pending"
     },
     {
       "id": "AC-5",
       "when": "the full build has run",
-      "then": "every entity and relationship type parsed from the ER diagram in docs/data-model.md has at least one row at full size, with an explicit exemption list for E2's outputs (CANONICAL_RISK, CANONICAL_CONTROL, maps_to, ia_maps_to_erm); at least one ERM duplicate risk group exists so 008's shared-controls check exercises data; every control frequency is one of library.FREQUENCIES (parked from 008's review)",
+      "then": "every entity and relationship type parsed from the ER diagram in docs/data-model.md has at least one row at full size, counting a source-split relationship once across its `_erm`/`_ia` files and distinguishing edges by (from, label, to) so both `owned_by` edges are checked, with an explicit exemption list for E2's outputs (CANONICAL_RISK, CANONICAL_CONTROL, maps_to, ia_maps_to_erm); at least one ERM duplicate risk group exists so 008's shared-controls check exercises data; every control frequency is one of library.FREQUENCIES (parked from 008's review)",
       "test": "generator.test_issues.IssueTests.test_ac5_every_entity_and_relationship_is_populated",
       "status": "pending"
     },
     {
       "id": "AC-6",
       "when": "AI issue text is looked up",
-      "then": "issue text keys are natural: `issue:<source>:<control key>:<ordinal>`, where control key is the control's internal key (specific or generic) and ordinal counts that source's issues against that control; the test fails on any key matching `issue:<digits>` and checks every control key names a generated control. The 15 committed sample issue texts are re-keyed and re-hashed by a one-off script with their text unchanged and no API call, so `--size sample --text ai` still builds, check-text finds no orphans, and the sample golden is unchanged",
+      "then": "issue text keys are natural: `issue:<source>:<control key>:<ordinal>`, where control key is the control's internal key (specific or generic) and ordinal counts that source's issues against that control in order of opened date, then title; the input hash no longer includes any global index; the test fails on any key matching `issue:<digits>` and checks every control key names a generated control. The 15 committed sample issue texts are re-keyed and re-hashed by a one-off script with their text unchanged and no API call, so `--size sample --text ai` still builds, check-text finds no orphans, and the sample golden is unchanged",
       "test": "generator.test_issues.IssueTests.test_ac6_issue_text_keys_are_natural",
       "status": "pending"
     },
@@ -82,7 +82,7 @@
 The milestone's story rests on what audits and issues reveal: repeat findings filed under different names, high risks never tested, and a category whose issues are rising. E3's rounds query exactly these, and the page shows them. This change scales audits and issues to three years at full size, plants the scenarios on purpose and records them, and makes full size the default build.
 
 ## Data impact
-- **Audit plan (full size).** About 75 audits, 25 per year, each covering 1-3 auditable entities and testing the IA controls (specific and generic) of the risks those entities are exposed to. Entities with High IA risks are sampled more often; 10-25% of entities go unaudited (a coverage gap, realistic and useful for E3 round 2).
+- **Audit plan (full size).** About 75 audits, 25 per year, each covering 1-3 auditable entities and testing the IA controls (specific and generic) of the risks those entities are exposed to. Entities with High IA risks are sampled more often; 10-30% of entities with IA risk go unaudited (a coverage gap, realistic and useful for E3 round 2).
 - **Issues (full size).** About 250 from four sources. IA issues come from audits and link to a tested control and the risk it mitigates; regulator (MRA/MRIA), self-identified and 2nd-line issues link to ERM controls and risks. Titles come from several templates per source so repeat findings read differently.
 - **Planted scenarios** written to `answer_key/scenarios.csv` after d's `shared_system` rows: `repeat_finding:<n>` (issue IDs), `untested_high_risk` (risk IDs), `rising_category` (one ERM L1 node ID). The rising trend is defined through the answer key's true ERM node (parked note), so ERM and IA issues count in one taxonomy, matching E3 round 7.
 - **Stale coverage** (for E3 round 2): a control is stale when never tested in the window, or last tested more than 24 months before window end. Recorded in docs/data-model.md.
@@ -90,7 +90,8 @@ The milestone's story rests on what audits and issues reveal: repeat findings fi
 - **Text keys.** Issue AI-text keys become natural; the sample's 15 committed texts are re-keyed by a one-off script (text unchanged). Full-size issue text stays templated until child f.
 - **Default size.** `python -m akg build` now builds full size; tests that mean sample pass `--size sample` explicitly. Affected and updated: the test helper's default, `test_offline` and `test_ai_text` (sample, explicitly), the AC-11 count test (sample, explicitly), and 006's assertion that full-size audits and issues keep sample counts (retired, as planned). `sample-pack` and `check-text` keep defaulting to the sample.
 - **Audit scoping.** An audit scopes in roughly two thirds of each covered entity's risks; untested High risks arise from that scoping and from unaudited entities, not from skipping the riskiest entities.
-- **Library.** The full-size-only collections theme cites the Fair Credit Reporting Act; issue titles get four templates per source. Sample-mode content is untouched.
+- **Library.** The full-size-only collections theme cites the Fair Credit Reporting Act. At full size, IA issue titles use four phrasings built on IA's subject wording (never the control title) and descriptions open in four different ways around the recurring finding; sample-mode content is untouched.
+- **Rising category** is carried by regulator, self-identified and 2nd-line issues, whose ERM risks are classified in the published ERM taxonomy, so E3 can reproduce it without the answer key.
 - **docs/data-model.md**: INV-4 and INV-5 get test names; audit plan, issue sources, scenarios and stale coverage are documented.
 
 ## Test plan
@@ -110,7 +111,7 @@ The milestone's story rests on what audits and issues reveal: repeat findings fi
 - L-005: own streams for every per-row choice at full size (AC-7).
 - L-006: sample output frozen (AC-8); AC-7 applies at full size only, so no criterion needs sample output to change.
 - L-007: measure at the checkpoint; tune allocation, not bands.
-- L-008: no new shared text vocabulary across sources here; issues are not cross-source matched.
+- L-008: the exact-phrase lookups that could find repeat findings (title, description) are measured and capped in AC-4 (a); the shared finding sentence is documented as a realistic cue.
 
 ## Slices
 1. Make sample explicit in test helpers; flip the default to full; natural issue keys and the sample re-key script; AC-6.
