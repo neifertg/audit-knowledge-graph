@@ -17,7 +17,7 @@ def run(args) -> int:
             print(f"wrote {len(dataset.tables)} tables and {len(dataset.answer_key)} answer-key files to {args.out}")
             return 0
         if args.command == "check-text":
-            orphans = orphan_ai_keys(build(args.seed, size=args.size), args.text_dir)
+            orphans = orphan_ai_keys(build(args.seed, size=args.size), args.text_dir, args.size)
             if orphans:
                 print("AI text keys that no item uses: " + ", ".join(orphans), file=sys.stderr)
                 return 1

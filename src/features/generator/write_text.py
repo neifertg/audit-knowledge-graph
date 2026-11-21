@@ -14,37 +14,9 @@ from pathlib import Path
 
 from .generate import AI_TEXT_FILE, build
 from .names import load
+from .prompts import MODEL, VOICE, system_prompt  # noqa: F401 (re-exported)
 
 TEXT_DIR = Path(__file__).resolve().parent / "text"
-MODEL = "claude-opus-5-5"
-
-VOICE = {
-    "risk_erm": "an ERM risk register (RCSA) risk statement: one or two sentences in cause, event, impact form",
-    "risk_ia": "an Internal Audit universe entry: one or two sentences naming the risk area and what the audit "
-               "of it covers",
-    "control_erm": "an ERM RCSA control description: one short, high-level sentence written by the business, "
-                   "with no step-by-step detail",
-    "control_ia": "an Internal Audit risk and control matrix (RCM) control description: two to four sentences "
-                  "saying who performs it, what they do, when, and what evidence is kept",
-    "issue": "an issue description recorded by {source}: one to three sentences stating the condition found",
-}
-
-
-def system_prompt() -> str:
-    proper = ", ".join(load("systems") + load("allow_terms"))
-    return (
-        "You write record text for a fictional US regional bank's risk and audit data. Rewrite the draft "
-        "you are given so it reads like a real record written by the stated author.\n"
-        "Rules:\n"
-        "- Keep every fact in the draft: numbers, thresholds, systems, roles and timeframes. You may reword, "
-        "reorder and add plausible operational detail.\n"
-        "- Add no new names of people, companies, vendors, products, systems, laws or places. Mention a "
-        "system only if the draft names it.\n"
-        f"- The only capitalized terms you may use, other than the first word of a sentence, are: {proper}.\n"
-        "- Do not reuse any full sentence from the draft.\n"
-        "- Plain prose only: no headings, lists, quotation marks or preamble. Reply with the rewritten text "
-        "and nothing else."
-    )
 
 
 def api_key() -> str:
