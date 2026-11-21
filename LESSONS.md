@@ -37,3 +37,7 @@ Source: 007-erm-and-ia-risk-populations-with-answer
 ### L-008 (2026-11-20) [src/features/generator] Any exact shared phrase becomes a lookup key; measure it
 008: to lift control TF-IDF above its 0.40 floor, IA text cited ERM's exact title words; a title-in-description lookup then paired generic controls at F1 0.76. Rewording IA's kind label dropped it to 0.30 while TF-IDF stayed 0.44, but ERM's subject phrase still gives F1 0.64-0.78 with a small hand map (owner accepted as a realistic cue, documented). Next time: whenever shared vocabulary is added to help text matching, add the matching exact-phrase lookup as a measure in the same change and decide consciously which cues are realistic.
 Source: 008-erm-and-ia-control-populations-with-answ
+
+### L-009 (2026-11-20) [src/features/generator] Planted scenarios need a completeness rule, not just a minimum
+009 listed the 6 planted repeat-finding groups, but 9 more controls had issues in two years by chance, so E3's obvious query would have scored correct answers as false positives. The fix: keep non-planted items out of the scenario (one year per control) and test listed == every qualifying item. Next time: for every planted scenario, define the qualifying set from published data and require the answer key to equal it exactly; also say which seeds the targets are guaranteed for.
+Source: 009-three-years-of-audits-and-issues-with-pl
