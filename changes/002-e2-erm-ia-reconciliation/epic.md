@@ -31,15 +31,60 @@
 O3: the realistic hard part. ERM and IA keep separate, overlapping populations with no common framework. This epic turns them into one canonical framework (ERM's Basel-style taxonomy) and measures how well that worked, instead of assuming clean data like most knowledge graph demos.
 
 ## Shape
-- `src/features/reconciliation/`. Depends on E1 (generator output).
-- **a:** map each IA L1-L3 node to an ERM node, or flag it unmapped, from node names and the text of the risks each node classifies. The answer key's `taxonomy_map` is used only to score (precision and recall per level).
-- **b:** match risks and controls with the method R1 chose (`research/r1-reconciliation-matching-method/decision.md`, GO 2026-11-21).
-  - *Features:* word and character TF-IDF on title and description, plus structural features. For risks: shared exposed entity, shared business unit, child a's taxonomy mapping, equal rating, and candidate rank. For controls: whether they mitigate a predicted risk match, equal type, nature and frequency, a shared system, and the documented citation cue.
-  - *Weights:* a logistic model's weights and its two thresholds (auto-accept and review floor) are learned once by a separate training script on a *training bank* (seed 7, templated text) and its answer key, and committed as a small JSON file. The build reads that file and never trains. A test re-runs training and asserts the committed file is current.
-  - *Output:* canonical risks and controls (INV-3). Pairs above the auto-accept threshold merge; pairs between the two thresholds go to `review_queue.csv` with their score and the features that drove it; nothing below the auto-accept threshold merges silently.
-  - *Leakage:* the pipeline never reads the published bank's answer key (INV-6, enforced by a test). INV-6's wording is clarified in docs/data-model.md in this child: only the training bank's answer key may train, and only in the training script.
-  - *Reference figures (R1, seed 42, AI text):* risks F1 about 0.81, controls about 0.74 at the best threshold. E2 reports its figures at the thresholds fixed on the training bank, not the best one.
-- **c:** precision, recall and review-queue size (auto-accepted, queued, and missed, per source type) against the published bank's answer key, plus child a's mapping accuracy, exported for the page. Scoring is the only code that reads the published answer key.
+`src/features/reconciliation/` (one feature folder with a README). Depends on E1 (generator output, AI text). Method: research R1 (`research/r1-reconciliation-matching-method/decision.md`, GO 2026-11-21).
+
+**Output contract (for E3).** `python -m akg build` runs the generator, then reconciliation, which writes to `<out>/reconciled/`:
+- `canonical_risk.csv` (`canonical_risk_id`, `erm_l3_node_id`)
+- `canonical_control.csv` (`canonical_control_id`)
+- `risk_maps_to_canonical.csv` and `control_maps_to_canonical.csv` (`source`, source ID, canonical ID, `score`)
+- `ia_maps_to_erm.csv` (`ia_node_id`, `erm_node_id` or `unmapped`, `score`)
+- `review_queue.csv` (`kind`, item A, item B, `score`, and the features that drove the score)
+
+The column lists are final in each child's plan and in docs/data-model.md, the same change. Canonical IDs are deterministic: seeded, and assigned in sorted order. `tests/generator/golden.py`'s generator checksums skip `reconciled/`, so E1's frozen golden files are untouched (L-006). A separate `tests/golden/checksums_reconciled.sha256` covers the reconciled output, which is the determinism check for E2 (INV-7).
+
+**Canonical assignment rule (INV-3).** Pairs scored at or above the auto-accept threshold are merged edges; connected components of merged edges become canonical items.
+- A component may hold at most one IA risk per ERM duplicate group. If one IA item clears auto-accept against two ERM items that are not themselves an auto-accepted within-ERM duplicate pair, only its highest-scoring edge merges and the other goes to the queue.
+- An item in no merged edge becomes a singleton canonical item.
+- A pair scored between the review floor and the auto-accept threshold goes to `review_queue.csv`. Its two items stay in their own canonical items until a reviewer decides, and reviewer decisions are out of scope for M1.
+- A whole-output test asserts every source risk and control maps to exactly one canonical item, and every merged edge scored at or above the auto-accept threshold.
+
+**Leakage (INV-6).** New wording, landing in docs/data-model.md in child b:
+"The reconciliation pipeline never reads the published bank's answer key; only the scoring step does. The training script alone may read the *training* bank's (seed 7) answer key, to learn the committed weights."
+
+Tests:
+- Running reconciliation on a copy of the build with `answer_key/` deleted gives byte-identical `reconciled/` output.
+- A static check: only the scoring module and the training script mention `answer_key`.
+
+**Training and thresholds.** A separate script, `python -m src.features.reconciliation.train`, builds the training bank, computes the same features with the same code the build uses (including child a's real taxonomy mapper, not R1's stand-in), fits the logistic models, and commits their weights and thresholds as a small JSON file. The build only reads that file. The rule for setting the thresholds on the training bank is:
+- the *auto-accept* threshold is the lowest score at which the pairs at or above it have at least 95% precision;
+- the *review floor* is the highest score at which the pairs at or above it hold at least 99% of the true pairs.
+
+Both rules are applied unchanged to the published bank. Two tests check that the committed file is current:
+- a fast one that compares a fingerprint of the training inputs (the seed-7 build's checksums plus a hash of the feature code);
+- a full retrain, comparing weights within 1e-6 and thresholds within 1e-6, so Windows and Linux floats agree.
+
+The seed-7 build takes under a second. The retrain is bounded by feature computation; child b states its measured time.
+
+**Children:**
+- **a. Map IA taxonomy onto ERM (1 day).** Areas: `src/features/reconciliation/**`, `tests/**`, `docs/data-model.md`. Each IA L1-L3 node maps to one ERM node at an allowed level (the E1 answer-key schema), or to `unmapped`. Evidence comes from node names and the text of the risks each node classifies. A low-confidence node maps to `unmapped`, and the risks under it are placed by b. a's plan measures a name-only baseline first and sets its accuracy bars from it, per level, as R1 did for b. It is scored against `taxonomy_map`.
+- **b. Match risks and controls, canonical layer, review queue (2 days).** Areas: as a, plus `akg/**` (the build step) and `tests/golden/**`.
+  - *Features (R1):* word and character TF-IDF on title and description, plus structural features.
+    - Risks: shared exposed entity, shared business unit, a's mapping, equal rating, candidate rank.
+    - Controls: whether they mitigate a predicted risk match, equal type, nature and frequency, a shared system, and the documented citation cue.
+    - Within-ERM duplicates: their own pair model, trained the same way and using the same features except cross-source ones.
+  - *Placement:* each IA risk's canonical ERM L3 is its matched ERM risk's L3. Without a match, it is the target of its IA node under a's mapping, or the ERM L3 whose risks' text it is most similar to, if that target is `unmapped` or above L3.
+  - *R1 reference figures* (seed 42, AI text, best threshold): risks about 0.81, controls about 0.74. b reports its figures at the thresholds fixed on the training bank.
+- **c. Score and export for the page (1 day).** Areas: `src/features/reconciliation/**`, `tests/**`, `docs/data-model.md`. Scoring is the only code that reads the published answer key. It reports, each against the answer key:
+  - taxonomy mapping precision and recall per level;
+  - cross-source risk and control matching: precision, recall, auto-accepted, queued and missed;
+  - within-ERM duplicate detection, scored separately;
+  - per-risk ERM L3 placement accuracy, including on misfiled IA risks;
+  - review-queue size by kind;
+  - how much control accuracy the citation cue carries, as data-model.md asks: the controls score with and without that feature.
+
+  The figures are exported as one JSON for the page, with a test that the export matches a fresh scoring run. The page text must state two caveats:
+  - controls that mitigate no risk (orphans) always score as "unmatched", which helps the figures and is not matcher skill;
+  - the training bank comes from the same generator, so its weights know the generator's habits in a way a real bank's history would not.
 
 ## Out of scope
 - A UI for working the review queue: it is a CSV for now (park any UI idea).
