@@ -11,7 +11,9 @@
     "src/features/stores/**",
     "tests/**",
     "docs/data-model.md",
-    "akg/**"
+    "akg/**",
+    "src/features/reconciliation/train.py",
+    "src/features/reconciliation/weights.json"
   ],
   "timebox": "1 day. Past this, stop and re-plan or split.",
   "criteria": [
@@ -25,21 +27,21 @@
     {
       "id": "AC-2",
       "when": "the schema is generated",
-      "then": "it follows these rules:\n- Columns appear in dictionary order.\n- `id` becomes TEXT. `primary key` becomes the table's PRIMARY KEY; a table with no `primary key` column (a relationship file) gets a composite PRIMARY KEY over its `id` columns.\n- A value naming `x.csv` becomes a FOREIGN KEY to `x`'s primary key.\n- `enum` becomes TEXT with a CHECK on the listed values; `int` becomes INTEGER; `date` and `text` become TEXT.\n- A column is NOT NULL unless its values mention `blank`. A blank CSV cell loads as NULL.\n\nReconciled columns that point to either source (`source` plus item ID in the maps-to files; `item_a` and `item_b` in the review queue) carry no FOREIGN KEY, because SQLite cannot reference two tables. AC-3's test checks them against the right table instead. `ia_maps_to_erm.erm_node_id` is a nullable FOREIGN KEY, holding NULL for `unmapped` (as the epic's INV-8 plan states)",
+      "then": "it follows these rules:\n- Columns appear in dictionary order.\n- `id` becomes TEXT. `primary key` becomes the table's PRIMARY KEY; a table with no `primary key` column gets a composite PRIMARY KEY over its `id` columns.\n- A value that is exactly one `x.csv` becomes a FOREIGN KEY to `x`'s primary key.\n- A value naming two files with `by` (for example ``risk_erm.csv` or `risk_ia.csv` by `source``) gets no FOREIGN KEY; AC-3 checks those columns instead.\n- `enum` becomes TEXT with a CHECK on the listed values; `int` becomes INTEGER; the new `decimal` type becomes REAL; `date` and `text` become TEXT.\n- A column is NOT NULL unless its values mention `blank` or `unmapped`. A blank cell loads as NULL, and so does the literal `unmapped` in a column whose values mention it (only `ia_maps_to_erm.erm_node_id`).\n\n`reconciled_dictionary.md` uses these forms for the reconciled files: `logit` and `score` are `decimal`, the maps-to item IDs and the review queue's `item_a` and `item_b` are two-file values, and `erm_node_id` is ``taxonomy_node_erm.csv`, or `unmapped` (stored as NULL)``. The tables are created and loaded in foreign-key dependency order, with `PRAGMA foreign_keys = ON` throughout.",
       "test": "stores.test_sqlite.SqliteTests.test_ac2_type_and_key_rules (a hand-written two-table dictionary fixture with an enum, a blank-allowed date, a foreign key and a relationship table)",
       "status": "pending"
     },
     {
       "id": "AC-3",
       "when": "the load runs on the seed-42 full build",
-      "then": "`<out>/akg.sqlite` holds exactly the CSV rows: per table, the set of row tuples equals the CSV's, with blanks as NULL and `unmapped` as NULL. The load runs with `PRAGMA foreign_keys = ON`, and `PRAGMA foreign_key_check` reports no violation. Every cross-source reference in the reconciled tables exists in the table its `source` names. The load takes under 5 s (prototype: 7,530 rows in 0.7 s)",
+      "then": "`<out>/akg.sqlite` holds exactly the CSV rows: per table, the row count equals the CSV's, and the sorted list of row tuples equals the CSV's (a multiset comparison, so dropped duplicates fail), with blanks and `unmapped` as NULL and decimals compared as floats. `PRAGMA foreign_key_check` reports no violation.\n\nEvery two-file reference exists in the table it names:\n- maps-to rows by `source` (ERM or IA);\n- review-queue rows by `kind`: `risk` is `risk_erm` then `risk_ia`; `duplicate` is `risk_erm` twice; `control` is `control_erm` then `control_ia`.\n\nThe load takes under 5 s (prototype: 7,530 published rows in 0.7 s, with foreign keys off; the build re-measures with them on and with the reconciled tables)",
       "test": "stores.test_sqlite.SqliteTests.test_ac3_every_row_lands_once_and_keys_hold",
       "status": "pending"
     },
     {
       "id": "AC-4",
       "when": "`python -m akg build` or `python -m akg load --out <dir>` runs",
-      "then": "build runs generate, reconcile, then load, writing `<out>/akg.sqlite`. `--no-load` stops after reconcile, and `--no-reconcile` still stops after generate. Neo4j loading comes in child b, and rounds in c and d.\n\n`akg load` (re)builds `<out>/akg.sqlite` from scratch for an existing reconciled build. Loading twice gives identical row sets, so the load is idempotent. No table, row or file in the database comes from `answer_key/`: a build whose `answer_key/` is deleted loads identically.\n\nThe reconciliation test helper (`tests/reconciliation/helpers.full_build`) passes `--no-load`, and new store tests reuse one cached seed-42 build, so the suite gains one load (under a second) rather than one per test (L-014)",
+      "then": "build runs generate, reconcile, then load, writing `<out>/akg.sqlite`. `--no-load` stops after reconcile, and `--no-reconcile` stops after generate. Neo4j comes in child b, and rounds in c and d.\n\n**No stale database:** `build --no-load`, `build --no-reconcile` and `akg reconcile` each remove an existing `<out>/akg.sqlite`, so a database never outlives the files it was loaded from.\n\n`akg load --out <dir>` (re)builds `<out>/akg.sqlite` for an existing build. If `reconciled/` is missing, it fails with a nonzero exit naming it. It writes to a temporary file and renames it at the end, so a failed load leaves no partial database. Loading twice gives identical rows. No table or row comes from `answer_key/`: a copy of the build without `answer_key/` loads identically.\n\n**Existing callers** (L-014):\n- `train.build_training_bank` passes `--no-load`, so the training bank and its fingerprint are unchanged. `train.py`'s source changes, so `weights.json` is regenerated with only its fingerprint moving, and 012's currency test confirms the coefficients and thresholds are unchanged.\n- `tests/generator/golden.checksums()` counts only `*.csv` files outside `reconciled/`, so the generator goldens ignore `akg.sqlite` (and later `rounds.json`) and stay unchanged.\n- `tests/reconciliation/helpers.full_build` passes `--no-load`.\n- The about 10 other plain-build callers (test_determinism, test_issues, test_canonical, test_ai_text, test_batch, test_offline, score.py's regeneration) each gain one load, about 0.7 s each, roughly 7-10 s on the suite. That is stated, not hidden",
       "test": "stores.test_sqlite.SqliteTests.test_ac4_build_and_load_commands_idempotent_and_answer_key_free",
       "status": "pending"
     },
@@ -60,7 +62,7 @@
 E3 child a (O2). The head-to-head rounds need the same facts in SQLite and Neo4j. This child builds the relational side: a schema that cannot drift from the published data dictionary, and a loader that lands every published and reconciled row exactly once, with keys enforced. It also implements the `load` step of the pipeline contract in AGENTS.md.
 
 ## Data impact
-- **New derived store:** `<out>/akg.sqlite`, with 47 tables (41 published files and 6 reconciled files). Nothing in E1's or E2's outputs changes, and no golden changes.
+- **New derived store:** `<out>/akg.sqlite`, with 47 tables (41 published files and 6 reconciled files). Nothing in E1's or E2's outputs changes. The goldens stay unchanged because `golden.checksums()` counts CSV files only. `weights.json` gets a new fingerprint (`train.py` changes) with identical coefficients.
 - **New dictionary:** `src/features/stores/reconciled_dictionary.md`, describing the reconciled files in the generator's dictionary format. The columns are the ones docs/data-model.md already lists for 013.
 - **Invariants:**
   - INV-6: the store never holds the answer key, tested in AC-4.
@@ -70,14 +72,15 @@ E3 child a (O2). The head-to-head rounds need the same facts in SQLite and Neo4j
 ## Test plan
 Tests go in `tests/stores/test_sqlite.py`, using one cached seed-42 full build (built with `--no-load` and loaded once by the test fixture) and a small dictionary fixture for AC-2. The whole suite stays the done-check.
 
-**Evidence** (pre-plan prototype on 2026-11-21): the generator's dictionary parses into 41 tables (a 311-line schema). The seed-42 build loads 7,530 rows in 0.7 s with zero foreign-key violations and every enum CHECK satisfied. Every published CSV has a dictionary entry.
+**Evidence** (pre-plan prototype on 2026-11-21; a critique reproduced it): the generator's dictionary parses into 41 tables (a 311-line schema). The seed-42 build loads 7,530 rows in 0.6-0.7 s with zero violations from `foreign_key_check`, and every enum CHECK is satisfied. The sample build loads 585 rows. Every published CSV has a dictionary entry. The prototype ran with foreign keys off and without the reconciled tables; the build measures both.
 
 **Not tested here:** Neo4j (child b) and the rounds (c and d).
 
 ## Risks
 - **The dictionary is wrong or stale for a file.** Then the generated schema fails the load (CHECK or FOREIGN KEY), which is the point. E1's own test (`checks.data_dictionary`) already ties the dictionary to the output.
 - **Reconciled columns that point to either source** can't be foreign keys; AC-3 checks them explicitly.
-- **Suite time:** the pipeline gains a load step at about 0.7 s per full build. Reconciliation helpers use `--no-load`, and store tests share one build.
+- **Suite time:** about 10 plain-build callers each gain about 0.7 s (roughly 7-10 s in all). Reconciliation helpers and the training bank use `--no-load`, and store tests share one build.
+- **Partial or stale databases:** handled by AC-4's atomic write and stale-file removal.
 
 ## Out of scope
 - Neo4j and parity (child b); rounds (c and d); CI (e).
