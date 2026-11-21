@@ -4,7 +4,7 @@
 {
   "id": "012-match-features-training-script-and-commi",
   "tier": "standard",
-  "status": "in-progress",
+  "status": "done",
   "created": "2026-11-21",
   "objective": "O3",
   "areas": [
@@ -61,7 +61,8 @@
   "child": "b",
   "approved": "2026-11-21",
   "approved_hash": "240cb70b186a667f",
-  "in_progress": "2026-11-21"
+  "in_progress": "2026-11-21",
+  "done": "2026-11-21"
 }
 ```
 
