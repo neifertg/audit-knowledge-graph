@@ -57,3 +57,7 @@ Source: 011-map-ia-taxonomy-onto-erm-taxonomy
 ### L-013 (2026-11-21) [src/features/reconciliation] Learned models must transfer across text styles: use scale-free features and converge the fit
 012: a model trained on templated text (seed 7) missed 10 of 13 AI-text duplicates with raw cosine features, because templated duplicates are near-copies and AI ones paraphrases. Within-bank percentiles fixed transfer but, with class_weight='balanced' and 13 positives, bunched duplicate scores within 1e-5; a tail transform -log10(1-p+1/n) spread them. sklearn's default tol=1e-4 stopped lbfgs early (coefficients moved up to 0.38 when converged). Next time: make similarity features relative to their own bank, check score spread near thresholds, pin tol tightly before comparing retrains, and route kinds with too few positives to review-only.
 Source: 012-match-features-training-script-and-commi
+
+### L-014 (2026-11-21) [tests] Estimate test-suite cost by counting the builds each new step adds
+013: adding reconciliation (about 7 s per full build) to akg build took the suite from about 65 s to about 180 s; the plan estimated 30-40 s because it counted only some direct run_akg callers. Next time: before adding a step to the build, grep every test path that builds (helpers.build, run_akg('build'...), subprocess builds) and multiply by the step's time; give generator-only tests an opt-out flag (--no-reconcile) from the start.
+Source: 013-canonical-layer-review-queue-and-build-s
