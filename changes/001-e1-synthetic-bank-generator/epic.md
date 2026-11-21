@@ -4,7 +4,7 @@
 {
   "id": "001-e1-synthetic-bank-generator",
   "tier": "epic",
-  "status": "approved",
+  "status": "draft",
   "created": "2026-11-19",
   "objective": "O3",
   "children": [
@@ -49,9 +49,7 @@
       ]
     }
   ],
-  "revised": "2026-11-20",
-  "approved": "2026-11-20",
-  "approved_hash": "cfb0dea0463effb7"
+  "revised": "2026-11-21"
 }
 ```
 
@@ -109,7 +107,7 @@ CANONICAL_* and maps_to / ia_maps_to_erm are E2 output; E1 writes only their tru
 **Names (INV-9).** Name lists are checked against a committed deny-list of real US bank, vendor and core-system names (test, from a), plus a one-time owner review in a.
 
 **f (full-size AI text).** Timebox: 1 working day of build time, not counting the owner's budget approval or batch turnaround (epic total 11 days).
-- *Done only on the AI text:* f is done when c-e's difficulty and leakage tests (TF-IDF F1 bands, hard-negative rate, exposure baseline, child a's leakage rules, for risks and controls) pass on the AI-text full build. f never loosens a band. If a file still fails after one prompt revision, the owner decides: keep templated text for that file, or `capitan revise` the epic.
+- *Done only on the AI text:* f is done when c-e's difficulty and leakage tests (TF-IDF F1 bands, hard-negative rate, exposure baseline, child a's leakage rules, for risks and controls) pass on the AI-text full build. f never loosens a band, except as recorded in the 2026-11-21 revision below. If a file still fails after one prompt revision, the owner decides: keep templated text for that file, or `capitan revise` the epic.
 - *Per-item checks:* every result passes `write_text.added_systems` (no system its draft lacks), a brevity check for ERM controls (one sentence, at most 30 words, per L-002), the deny-list and the capitalized-term check (005 AC-4). An item that fails is resubmitted once, in a second batch, with the failure stated; an item that fails twice blocks the commit and goes to the owner.
 - *Budget:* the owner approves one budget that covers both batches; the script estimates cost from measured per-item usage, refuses to submit over the budget, and logs actual tokens and cost to `research/r2-synthetic-text-realism/cost_log.md`.
 - *Mechanics:* batch custom IDs are a hash of each internal key (keys contain `:`, which custom IDs do not allow), and results are matched by ID, never by order. Full-size text is stored in `text/ai_text_full.jsonl`, apart from the sample text, and `check-text`/`orphan_ai_keys` check each size against its own file. f flips the full-size default to `--text ai`, retires 006's AC-9 guard test, and regenerates the full golden.
@@ -117,6 +115,14 @@ CANONICAL_* and maps_to / ia_maps_to_erm are E2 output; E1 writes only their tru
 - *E2* publishes precision and recall only from the AI-text build, after f.
 
 **Invariant tests.** Each child names the tests for its invariants (a: INV-9, INV-7 checksums; b: INV-1 taxonomy part, INV-2; c: INV-1 risk part; e: INV-4, INV-5; every child after a refreshes the checksums) and replaces the matching `TBD (E1)` in `docs/data-model.md`.
+
+## Revision 2026-11-21: what child f (010) found on AI text
+The full-size AI text passed every band except two, and the owner decided each case in 010's revision 1. This epic records those decisions:
+- **Control TF-IDF F1 floor lowered from 0.40 to 0.25** (AI 0.28, templated 0.44; chance level 0.004). This is the one band f loosened, by owner decision and knowingly against L-007. The reason: real records written by different teams share little wording, so a word-overlap baseline should struggle and E2's structural signals carry more of the work. Every ceiling and leakage check is unchanged.
+- **ERM duplicate F1 kept at its 0.30 floor through content.** The 13 duplicates are rewritten from their original's AI text (F1 0.60). A new test also requires duplicates to stand clear of same-theme siblings by at least 0.15 cosine, which guards L-007's near-copy failure directly.
+- **Per-item checks calibrated.** The capitalized-term check also allows the bank's own published names, the item's own draft words, months and ID/IDs. One item failed twice and holds an owner-approved hand edit, listed in docs/data-model.md.
+- **The text cue for repeat findings is gone** (recall 1.0 to 0.0). Repeat findings stay discoverable through the issue-to-control links; docs/data-model.md says so.
+- **Cost:** $5.26 over eight batches, within the owner's $10 budget. "Both batches" became a first batch, one resubmission, and small duplicate batches with their own one-time resubmissions.
 
 ## Out of scope
 - Documents (workpapers, RCMs as documents, reports): M2.
