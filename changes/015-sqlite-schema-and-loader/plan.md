@@ -4,7 +4,7 @@
 {
   "id": "015-sqlite-schema-and-loader",
   "tier": "standard",
-  "status": "draft",
+  "status": "approved",
   "created": "2026-11-21",
   "objective": "O2",
   "areas": [
@@ -55,7 +55,9 @@
     }
   ],
   "epic": "003-e3-dual-stores-and-head-to-head-rounds",
-  "child": "a"
+  "child": "a",
+  "approved": "2026-11-21",
+  "approved_hash": "4cf8d88f9e753a16"
 }
 ```
 
