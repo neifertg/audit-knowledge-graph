@@ -49,3 +49,7 @@ Source: 010-full-size-ai-text-in-one-batch
 ### L-011 (2026-11-21) [src/features/generator] Check-only allowances must stay out of prompt-listed name files
 010: adding 'IDs' to allow_terms.txt to fix a rule false positive silently changed the full prompt version (the prompt lists allow_terms), which would have marked all 1,274 paid entries stale; test_sample_prompt_is_pinned caught it. Next time: words the rule check may accept but the prompt need not list go in text_rules.RULE_ONLY_WORDS, never in a file the prompt reads.
 Source: 010-full-size-ai-text-in-one-batch
+
+### L-012 (2026-11-21) [src/features/reconciliation] Quote the built module's figures, not the pre-plan experiment's
+011: the plan's bars came from a scratch experiment whose tie-break (highest ERM node ID, not lowest) and small details differed from the pinned method, so the build measured 44/62 not 46/62 on seed 42 (seeds 7/1 moved by +-0.02). The bars had margin, so nothing failed. Next time: implement the experiment with the same constants the plan pins (or re-measure with the module before the plan is approved), and downstream plans quote the figures recorded in docs/data-model.md from the build, never the plan's pre-plan numbers.
+Source: 011-map-ia-taxonomy-onto-erm-taxonomy
