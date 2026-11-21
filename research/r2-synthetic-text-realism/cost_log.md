@@ -6,3 +6,4 @@ If a submission's outcome is ambiguous (a crash or lost response leaves a `submi
 
 | batch_id | files | items | estimated_usd | actual_usd | status |
 |---|---|---|---|---|---|
+| msgbatch_01CPTdmg3kWqsNyc8z73sS1W | control_erm,control_ia,issue,risk_erm,risk_ia | 1274 | 6.2617 |  | submitted |
