@@ -134,7 +134,8 @@ class ControlTests(unittest.TestCase):
         c = Controls(out)
         self.assertLess(c.exact_text_f1(), 0.5)
         self.assertLess(c.owner_frequency_f1(), 0.5)
-        self.assertTrue(0.40 <= c.tfidf_f1() <= 0.75, f"TF-IDF F1 {c.tfidf_f1():.3f}")
+        # floor lowered from 0.40 to 0.25 for AI text by the owner, overriding L-007 (010 revision 1)
+        self.assertTrue(0.25 <= c.tfidf_f1() <= 0.75, f"TF-IDF F1 {c.tfidf_f1():.3f}")
         self.assertGreaterEqual(c.hard_negative_rate(), 0.10)
         checks.leakage(self, out, "control")
 

@@ -19,6 +19,11 @@ def _f1(predicted: set, truth: set) -> float:
     return 2 * precision * recall / (precision + recall)
 
 
+def chance_f1(pairs, truth) -> float:
+    """F1 of predicting every candidate pair a match: the floor any matcher must beat."""
+    return 2 * len(truth) / (len(pairs) + len(truth)) if truth else 0.0
+
+
 def _best_threshold_f1(scored: dict, truth: set) -> float:
     """Best F1 over thresholds, predicting every pair scored at or above the threshold (one sorted sweep)."""
     if not truth:
@@ -101,6 +106,18 @@ class Risks:
 
     def tfidf_f1(self) -> float:
         return _best_threshold_f1({p: self.cos(*p) for p in self.cross_pairs}, self.truth)
+
+    def theme(self, rid: str) -> str:
+        """An ERM risk's theme: its title before the entity in brackets ('Sanctions list update delays')."""
+        return self.title[rid].split(" (")[0]
+
+    def same_theme_sibling_median(self) -> float:
+        """Median cosine of ERM pairs sharing a theme that are not duplicates (L-007's near-copies)."""
+        return statistics.median(self.cos(*p) for p in self.erm_pairs
+                                 if p not in self.erm_truth and self.theme(p[0]) == self.theme(p[1]))
+
+    def duplicate_median(self) -> float:
+        return statistics.median(self.cos(*p) for p in self.erm_truth)
 
     def erm_duplicate_f1(self) -> float:
         return _best_threshold_f1({p: self.cos(*p) for p in self.erm_pairs}, self.erm_truth)

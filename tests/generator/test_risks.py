@@ -54,6 +54,10 @@ class RiskTests(unittest.TestCase):
         self.assertTrue(0.40 <= r.tfidf_f1() <= 0.75, f"TF-IDF F1 {r.tfidf_f1():.3f}")
         self.assertGreaterEqual(r.hard_negative_rate(), 0.10)
         self.assertTrue(0.30 <= r.erm_duplicate_f1() <= 0.80, f"ERM duplicate F1 {r.erm_duplicate_f1():.3f}")
+        # L-007's failure, guarded directly: duplicates stand out from same-theme siblings (010 revision 1)
+        margin = r.duplicate_median() - r.same_theme_sibling_median()
+        self.assertGreaterEqual(margin, 0.15, f"duplicates {r.duplicate_median():.3f} vs siblings "
+                                              f"{r.same_theme_sibling_median():.3f}")
         for kind in ("risk", "control"):
             with self.subTest(kind=kind):
                 checks.leakage(self, out, kind)
