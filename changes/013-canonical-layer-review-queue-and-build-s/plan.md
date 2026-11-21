@@ -4,7 +4,7 @@
 {
   "id": "013-canonical-layer-review-queue-and-build-s",
   "tier": "standard",
-  "status": "in-progress",
+  "status": "done",
   "created": "2026-11-21",
   "objective": "O3",
   "areas": [
@@ -62,7 +62,8 @@
   "child": "c",
   "approved": "2026-11-21",
   "approved_hash": "cf8f228b823682ff",
-  "in_progress": "2026-11-21"
+  "in_progress": "2026-11-21",
+  "done": "2026-11-21"
 }
 ```
 
