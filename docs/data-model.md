@@ -37,6 +37,20 @@ Notes:
 - **Controls.** ERM controls come from the RCSA; IA controls from the RCMs. Attributes: type (preventive/detective), nature (manual/automated), frequency, key flag, owner.
 - **Canonical layer.** Output of reconciliation. ERM's taxonomy is the common framework: IA taxonomy nodes map onto ERM nodes, and source risks and controls map to canonical items. Matches below the confidence threshold sit in a review queue instead.
 - **Issue sources.** IA, Regulator (MRA/MRIA), self-identified, 2nd line. Only IA issues link to an audit.
+- **IA-to-ERM taxonomy mapping** (E2 child a, 011; `src/features/reconciliation/taxonomy_map.py`). `ia_maps_to_erm` has one row per IA node, with columns `ia_node_id`, `erm_node_id` (or `unmapped`), `score` and `basis`. The allowed levels match the answer key's: IA L1 -> ERM L1, IA L2 -> ERM L1 or L2, IA L3 -> ERM L2 or L3. Method:
+  - Each IA risk votes for its most similar ERM risk (word plus character TF-IDF, plus a bonus for a shared exposed entity or business unit).
+  - An IA node maps to the deepest allowed ERM node holding at least half its subtree's votes (`basis` = `vote`; `score` is that share), or is `unmapped`.
+  - A node with no IA risks under it is `unmapped` with `basis` = `no_risks` (12-13 per seed). No risk's placement depends on those nodes.
+
+  Measured accuracy on nodes holding risks:
+
+  | Seed | Accuracy | Per level | Falsely `unmapped` |
+  |---|---|---|---|
+  | 42 (AI text) | 44/62 = 0.71 | L1 6/9, L2 14/20, L3 24/33 | 2 |
+  | 7 (templated) | 0.62 | | 7 |
+  | 1 (templated) | 0.65 | | 9 |
+
+  Node names alone score 0.33. Known limit: IA nodes that are truly unmapped but hold risks are not detected, because their risks truly sit in one ERM node; only the truly unmapped `no_risks` nodes come out `unmapped`.
 - **Answer key.** The generator records which source items are true duplicates and the true taxonomy mapping, in a separate folder. It is used only for scoring.
 - **Published layout** (005). ERM and IA are separate systems, so taxonomy nodes, risks and controls are published one file per source (`risk_erm.csv`, `risk_ia.csv`, ...), as is every relationship touching them. Audits test IA controls only. The column-level data dictionary is `src/features/generator/README.md`.
 - **Documents (M2).** Workpapers, RCMs and reports, linked to audits, controls and issues. Not in M1.
