@@ -41,3 +41,11 @@ Source: 008-erm-and-ia-control-populations-with-answ
 ### L-009 (2026-11-20) [src/features/generator] Planted scenarios need a completeness rule, not just a minimum
 009 listed the 6 planted repeat-finding groups, but 9 more controls had issues in two years by chance, so E3's obvious query would have scored correct answers as false positives. The fix: keep non-planted items out of the scenario (one year per control) and test listed == every qualifying item. Next time: for every planted scenario, define the qualifying set from published data and require the answer key to equal it exactly; also say which seeds the targets are guaranteed for.
 Source: 009-three-years-of-audits-and-issues-with-pl
+
+### L-010 (2026-11-21) [src/features/generator] AI paraphrase erases shared-wording cues; tune derived text in both directions
+010: rewriting every description independently dropped control TF-IDF F1 0.44->0.28, ERM duplicate F1 0.38->0.13 and the repeat-finding text cue to 0. Rewriting duplicates from their original's AI text first overshot (0.93, near-copies), then a looser note undershot (0.16); a middle note (keep the impact sentence, own words for cause and event) landed at 0.60. Next time: measure every band on AI text before the full batch (a small pilot is cheap), generate dependent items (duplicates, repeats) from their source's AI text, and expect to calibrate the per-item note once in each direction.
+Source: 010-full-size-ai-text-in-one-batch
+
+### L-011 (2026-11-21) [src/features/generator] Check-only allowances must stay out of prompt-listed name files
+010: adding 'IDs' to allow_terms.txt to fix a rule false positive silently changed the full prompt version (the prompt lists allow_terms), which would have marked all 1,274 paid entries stale; test_sample_prompt_is_pinned caught it. Next time: words the rule check may accept but the prompt need not list go in text_rules.RULE_ONLY_WORDS, never in a file the prompt reads.
+Source: 010-full-size-ai-text-in-one-batch
