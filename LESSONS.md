@@ -61,3 +61,7 @@ Source: 012-match-features-training-script-and-commi
 ### L-014 (2026-11-21) [tests] Estimate test-suite cost by counting the builds each new step adds
 013: adding reconciliation (about 7 s per full build) to akg build took the suite from about 65 s to about 180 s; the plan estimated 30-40 s because it counted only some direct run_akg callers. Next time: before adding a step to the build, grep every test path that builds (helpers.build, run_akg('build'...), subprocess builds) and multiply by the step's time; give generator-only tests an opt-out flag (--no-reconcile) from the start.
 Source: 013-canonical-layer-review-queue-and-build-s
+
+### L-015 (2026-11-21) [src/features/reconciliation] Check published caveats against the code that builds the candidates
+014: the first plan claimed orphan controls were excluded from the pair figures and could not inflate them; features.control_table actually puts every control in the candidate pairs, so orphans are easy negatives that help precision (0 merged, 2 queue rows). The epic's wording ('helps the figures, not matcher skill') was right. Next time: before writing any sentence about what a published figure includes or excludes, trace the candidate set in code and add a figure that shows it (here: orphans merged and queued).
+Source: 014-score-reconciliation-against-the-answer
