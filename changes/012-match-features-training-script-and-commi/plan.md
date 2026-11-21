@@ -4,7 +4,7 @@
 {
   "id": "012-match-features-training-script-and-commi",
   "tier": "standard",
-  "status": "approved",
+  "status": "in-progress",
   "created": "2026-11-21",
   "objective": "O3",
   "areas": [
@@ -60,7 +60,8 @@
   "epic": "002-e2-erm-ia-reconciliation",
   "child": "b",
   "approved": "2026-11-21",
-  "approved_hash": "240cb70b186a667f"
+  "approved_hash": "240cb70b186a667f",
+  "in_progress": "2026-11-21"
 }
 ```
 
