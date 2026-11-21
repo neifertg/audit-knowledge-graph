@@ -4,7 +4,7 @@
 {
   "id": "009-three-years-of-audits-and-issues-with-pl",
   "tier": "standard",
-  "status": "in-progress",
+  "status": "done",
   "created": "2026-11-20",
   "objective": "O3",
   "areas": [
@@ -77,7 +77,8 @@
   "child": "e",
   "approved": "2026-11-20",
   "approved_hash": "f98d6787bc50a6a2",
-  "in_progress": "2026-11-20"
+  "in_progress": "2026-11-20",
+  "done": "2026-11-20"
 }
 ```
 
