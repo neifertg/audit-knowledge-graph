@@ -2,7 +2,7 @@
 
     python -m akg build        generate the synthetic bank (E1), then reconcile it (E2)
     python -m akg reconcile    (re)write <out>/reconciled/ for an existing build
-    python -m akg load         (re)build <out>/akg.sqlite for an existing reconciled build (E3)
+    python -m akg load         (re)build <out>/akg.sqlite, and Neo4j when NEO4J_URI is set (E3)
     python -m akg sample-pack  render the realism-review sample pack
     python -m akg check-text   check committed AI text for orphan keys
 
@@ -107,6 +107,28 @@ def _load(out: Path) -> int:
     except LoadError as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
+    return _load_neo4j(out)
+
+
+def _load_neo4j(out: Path) -> int:
+    """E3: load akg.sqlite into Neo4j when NEO4J_URI is set (replaces that database's contents)."""
+    from src.features.stores.neo4j_store import Neo4jLoadError, configured
+
+    if not configured():
+        print("Neo4j: skipped (NEO4J_URI is not set)")
+        return 0
+    from src.features.stores.neo4j_store import connect, load_neo4j
+
+    try:
+        driver = connect()
+        try:
+            counts = load_neo4j(out, driver)
+        finally:
+            driver.close()
+    except Neo4jLoadError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    print(f"Neo4j: loaded {counts['nodes']} nodes and {counts['edges']} edges")
     return 0
 
 
