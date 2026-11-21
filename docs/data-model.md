@@ -133,6 +133,10 @@ Notes:
   2. The training bank comes from the same generator, so the weights know its habits in a way a real bank's history would not.
   3. These are one bank's figures with small samples. Raw auto-accept precision for risks was 36/38 here and 39/42 on seed 1.
   4. The thresholds are deliberately conservative, so merged F1 (0.49 risks, 0.43 controls) is not comparable with research R1's best-threshold F1 (about 0.81 and 0.74).
+- **Stores: SQLite** (E3 child a, 015; `src/features/stores/`). `python -m akg build` now generates, reconciles and loads; `--no-load` stops after reconciling; `python -m akg load --out <dir>` (re)loads an existing build. The store is `<out>/akg.sqlite`: one table per published file (41) and per reconciled file (6), from `schema.sql`. That schema is generated from the generator's data dictionary plus `src/features/stores/reconciled_dictionary.md`, so it cannot drift from the published data.
+  - Primary keys and foreign keys follow the dictionaries; enums are CHECKed. Columns that point to either source (maps-to item IDs, review-queue items) have no foreign key, and tests check them instead. `unmapped` taxonomy targets are NULL.
+  - The answer key is never loaded. The store is derived and **not golden**: the generator goldens count CSV files only.
+  - Measured on seed 42: 10,034 rows load in about 1.4 s with foreign keys on and no violations.
 - **Answer key.** The generator records which source items are true duplicates and the true taxonomy mapping, in a separate folder. It is used only for scoring.
 - **Published layout** (005). ERM and IA are separate systems, so taxonomy nodes, risks and controls are published one file per source (`risk_erm.csv`, `risk_ia.csv`, ...), as is every relationship touching them. Audits test IA controls only. The column-level data dictionary is `src/features/generator/README.md`.
 - **Documents (M2).** Workpapers, RCMs and reports, linked to audits, controls and issues. Not in M1.
@@ -165,7 +169,7 @@ Rules that must always hold. Each has an ID and a test that enforces it (tests n
 | INV-5 | Dates are consistent: closure never before open; audits within the 3-year window; an issue never before the audit that raised it. | `generator.test_invariants.InvariantTests.test_ac2_inv4_inv5_issue_links_and_dates` |
 | INV-6 | The reconciliation pipeline never reads the published bank's answer key; only the scoring step does. The training script alone may read the training bank's (seed 7) answer key, to learn the committed weights. | `reconciliation.test_canonical.CanonicalTests.test_ac4_inv6_reconciled_output_ignores_the_answer_key` |
 | INV-7 | The same seed produces byte-identical output. | Sample: `generator.test_determinism.DeterminismTests.test_ac3_inv7_output_matches_golden_checksums`; full: `generator.test_determinism.DeterminismTests.test_ac5_full_build_matches_full_golden`; reconciled: `reconciliation.test_canonical.CanonicalTests.test_ac5_reconciled_output_matches_its_golden` |
-| INV-8 | SQLite and Neo4j hold the same facts (row counts reconcile with node and edge counts). | TBD (E3) |
+| INV-8 | SQLite and Neo4j hold the same facts (row counts reconcile with node and edge counts). | SQLite side: `stores.test_sqlite.SqliteTests.test_ac3_every_row_lands_once_and_keys_hold`; the Neo4j side and parity arrive in E3 child b |
 | INV-9 | Institution, people, vendor and system names come only from the project's fictional name lists. | `generator.test_names.NameTests.test_ac4_inv9_names_from_lists_and_no_denied_name_anywhere` |
 | INV-10 | No relationship crosses sources: ERM controls mitigate ERM risks, IA controls IA risks, each taxonomy is its own tree, and so on. ERM-IA links exist only in the answer key (truth) and the canonical layer (E2 output). | `generator.test_referential.ReferentialTests.test_ac12_relationship_ids_exist_and_never_cross_sources` |
 

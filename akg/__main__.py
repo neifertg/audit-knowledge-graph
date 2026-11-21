@@ -2,6 +2,7 @@
 
     python -m akg build        generate the synthetic bank (E1), then reconcile it (E2)
     python -m akg reconcile    (re)write <out>/reconciled/ for an existing build
+    python -m akg load         (re)build <out>/akg.sqlite for an existing reconciled build (E3)
     python -m akg sample-pack  render the realism-review sample pack
     python -m akg check-text   check committed AI text for orphan keys
 
@@ -44,8 +45,14 @@ def _parser() -> argparse.ArgumentParser:
     build.add_argument("--no-reconcile", action="store_true",
                        help="generate only; removes any stale <out>/reconciled/")
 
+    build.add_argument("--no-load", action="store_true",
+                       help="generate and reconcile only; removes any stale <out>/akg.sqlite")
+
     reconcile = commands.add_parser("reconcile", help="(re)write <out>/reconciled/ for an existing build")
     reconcile.add_argument("--out", type=Path, default=DEFAULT_OUT)
+
+    load = commands.add_parser("load", help="(re)build <out>/akg.sqlite for an existing reconciled build")
+    load.add_argument("--out", type=Path, default=DEFAULT_OUT)
 
     pack = commands.add_parser("sample-pack", help="render the realism-review sample pack")
     add_generation_options(pack)
@@ -61,18 +68,46 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     if args.command == "reconcile":
+        _remove_database(args.out)  # a database never outlives the files it was loaded from
         return _reconcile(args.out)
+    if args.command == "load":
+        return _load(args.out)
     from src.features.generator import cli  # imported late so `--help` works without it
 
     code = cli.run(args)
-    if code == 0 and args.command == "build":
-        if args.no_reconcile:
-            import shutil
+    if code != 0 or args.command != "build":
+        return code
+    if args.no_reconcile:
+        import shutil
 
-            shutil.rmtree(Path(args.out) / "reconciled", ignore_errors=True)
-        else:
-            return _reconcile(args.out)
-    return code
+        shutil.rmtree(Path(args.out) / "reconciled", ignore_errors=True)
+        _remove_database(args.out)
+        return 0
+    code = _reconcile(args.out)
+    if code != 0:
+        return code
+    if args.no_load:
+        _remove_database(args.out)
+        return 0
+    return _load(args.out)
+
+
+def _remove_database(out: Path) -> None:
+    from src.features.stores.sqlite_store import remove_database
+
+    remove_database(out)
+
+
+def _load(out: Path) -> int:
+    """E3: load the published and reconciled files into <out>/akg.sqlite (never the answer key)."""
+    from src.features.stores.sqlite_store import LoadError, load
+
+    try:
+        print(f"loaded {load(out)}")
+    except LoadError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    return 0
 
 
 def _reconcile(out: Path) -> int:
