@@ -4,7 +4,7 @@
 {
   "id": "015-sqlite-schema-and-loader",
   "tier": "standard",
-  "status": "in-progress",
+  "status": "done",
   "created": "2026-11-21",
   "objective": "O2",
   "areas": [
@@ -58,7 +58,8 @@
   "child": "a",
   "approved": "2026-11-21",
   "approved_hash": "4cf8d88f9e753a16",
-  "in_progress": "2026-11-21"
+  "in_progress": "2026-11-21",
+  "done": "2026-11-21"
 }
 ```
 
