@@ -17,8 +17,9 @@ GOLDEN_FULL = ROOT / "tests" / "golden" / "checksums_full.sha256"
 
 
 def checksums(out: Path) -> dict[str, str]:
+    """Generator output only: `reconciled/` (E2 output) has its own golden (013)."""
     return {p.relative_to(out).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
-            for p in sorted(out.rglob("*")) if p.is_file()}
+            for p in sorted(out.rglob("*")) if p.is_file() and p.relative_to(out).parts[0] != "reconciled"}
 
 
 def render(sums: dict[str, str]) -> str:

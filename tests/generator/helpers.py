@@ -26,7 +26,7 @@ def build(*extra: str) -> Path:
     """
     size = () if "--size" in extra else ("--size", "sample")
     out = Path(_TMP.name) / f"build{abs(hash(size + extra))}"
-    run_akg("build", "--seed", "42", "--out", str(out), *size, *extra)
+    run_akg("build", "--seed", "42", "--out", str(out), "--no-reconcile", *size, *extra)  # generator only (013)
     return out
 
 
