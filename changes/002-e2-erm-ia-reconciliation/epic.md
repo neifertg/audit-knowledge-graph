@@ -4,7 +4,7 @@
 {
   "id": "002-e2-erm-ia-reconciliation",
   "tier": "epic",
-  "status": "draft",
+  "status": "approved",
   "created": "2026-11-19",
   "objective": "O3",
   "children": [
@@ -16,19 +16,27 @@
     {
       "key": "b",
       "title": "Match features, training script and committed weights",
-      "depends_on": ["a"]
+      "depends_on": [
+        "a"
+      ]
     },
     {
       "key": "c",
       "title": "Canonical layer, review queue and build step",
-      "depends_on": ["b"]
+      "depends_on": [
+        "b"
+      ]
     },
     {
       "key": "d",
       "title": "Score reconciliation against the answer key",
-      "depends_on": ["c"]
+      "depends_on": [
+        "c"
+      ]
     }
-  ]
+  ],
+  "approved": "2026-11-21",
+  "approved_hash": "8df719574438dfa9"
 }
 ```
 
