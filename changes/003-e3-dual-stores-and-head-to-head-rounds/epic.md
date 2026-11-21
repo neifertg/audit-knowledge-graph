@@ -29,7 +29,7 @@
     },
     {
       "key": "d",
-      "title": "Rounds 5-7 and the rounds export",
+      "title": "Rounds 5-7, owner concentration and the rounds export",
       "depends_on": [
         "c"
       ]
@@ -54,38 +54,85 @@ Two feature folders: `src/features/stores/` (schema, loaders) and `src/features/
 - E2's `<out>/reconciled/` (canonical risks and controls, maps-to files, `ia_maps_to_erm`, the review queue);
 - research R3 (`research/r3-neo4j-local-and-ci-setup/decision.md`, GO 2026-11-21).
 
-**Loading contract.** `python -m akg load --out <dir>` loads a built and reconciled directory into a SQLite file (`<out>/akg.sqlite`) and, when `NEO4J_URI` is set, into Neo4j. It loads the published entity and relationship files and the reconciled layer, **never the answer key** (the stores hold what a bank would hold; tests read the answer key only to check that rounds find planted scenarios). The load is idempotent: each load clears its store first. `akg build` does not load: Neo4j needs a running server, and the SQLite file is a derived artifact, so neither is part of any golden.
+**Pipeline contract (AGENTS.md's Build row).** `python -m akg build` runs, in order:
+1. generate;
+2. reconcile;
+3. load: SQLite always, into `<out>/akg.sqlite`; Neo4j when `NEO4J_URI` is set;
+4. run the rounds;
+5. export `<out>/rounds.json`.
+
+`--no-reconcile` stops after step 1 (generator tests). `--no-load` stops after step 2 (reconciliation tests). `python -m akg load --out <dir>` and `python -m akg rounds --out <dir>` run steps 3 and 4-5 on an existing build.
+
+Rules:
+- **Never the answer key.** Loading reads the published files and `reconciled/`. The stores hold what a bank would hold; tests read the answer key only to check planted scenarios.
+- **Idempotent.** Each load clears its store first.
+- **Not golden.** The SQLite file and the Neo4j store are derived, so neither is part of any golden.
+- **Rounds without Neo4j.** Without `NEO4J_URI`, the rounds run on SQLite only, and the export marks each round's Neo4j side "not run".
+- **The committed export.** `src/features/rounds/rounds.json` is the copy E4 reads. It is regenerated with both engines by `python -m src.features.rounds.export` and checked current by a test that runs when Neo4j is available.
 
 **Neo4j environment (R3).**
 - Neo4j 5.26.33 LTS Community and `neo4j==6.4.1`, pinned in `requirements.txt` in child b.
 - Connection comes from `NEO4J_URI`, `NEO4J_USER` and `NEO4J_PASSWORD`. Locally a helper bridges them at run time from `~/.claude/secrets.yaml` (`databases.akg_neo4j`), never copied into the repo.
-- Every test that needs Neo4j skips when `NEO4J_URI` is unset. In CI it is always set, so those tests always run there.
+- Every Neo4j test skips when `NEO4J_URI` is unset, **unless `AKG_REQUIRE_NEO4J=1`**, which turns the skip into a failure. CI sets it, so CI cannot go green with the Neo4j tests skipped.
+- Tests run sequentially, and the Neo4j store is one shared fixture loaded once per test run from the cached seed-42 build. Two test runs must not share one local server at the same time; the loader takes a lock node and refuses a concurrent load.
+
+**Store parity (INV-8)**, per published file, with the mapping table in docs/data-model.md:
+- Every entity file maps to a label, filtered by `source` for per-source files (taxonomy nodes, risks, controls share one label with a `source` property), and its row count equals that node count.
+- Every relationship file maps to a relationship type, filtered the same way, and its row count equals that edge count.
+- `ia_maps_to_erm` rows with a target become `IA_MAPS_TO_ERM` edges. `unmapped` rows become a `mapping: 'unmapped'` property on the IA node; their SQLite column is NULL, so no foreign key breaks. Mapped edges plus unmapped flags equal the rows.
+- Review-queue rows become `REVIEW_CANDIDATE` edges carrying `kind`, `logit`, `reason` and `drivers`.
+- One sampled row per file has matching properties in both stores.
+
+**Every round is checked three ways:**
+1. *Agreement:* the SQL and Cypher answers are identical rows, after normalising and sorting.
+2. *Oracle:* the answer equals an independent Python computation from the CSVs, written in the test, so a query that returns everything cannot pass.
+3. *Scenario:* where E1 planted a scenario, the answer finds exactly it (the scenario file is read in the test only).
 
 **Children:**
 - **a. SQLite schema and loader (1 day).** Areas: `src/features/stores/**`, `tests/**`, `docs/data-model.md`, `akg/**`.
-  - `stores/schema.sql`: one table per entity file and per relationship file, plus the reconciled layer. Primary and foreign keys follow the data dictionary, and sources stay separate as published.
-  - The loader and the `akg load` command (SQLite part).
+  - `stores/schema.sql`: one table per entity file and per relationship file, plus the reconciled layer (including the review queue). Primary and foreign keys follow the data dictionary.
+  - The loader, the `load` step of `akg build`, `akg load`, and the `--no-load` flag. The reconciliation test helpers move to `--no-load`.
   - Tests: every CSV row lands exactly once; foreign keys hold; reloading is idempotent; the answer key is never loaded.
 - **b. Neo4j loader with fact parity (1 day).** Areas: as a, plus `requirements.txt`.
-  - Graph model: one label per entity, with a `source` property on taxonomy nodes, risks and controls; one relationship type per relationship file, named after it. The reconciled layer adds `CanonicalRisk` and `CanonicalControl` nodes, `MAPS_TO` edges and `IA_MAPS_TO_ERM`.
-  - Batched `UNWIND` loading with uniqueness constraints (R3: about 2 s for 1,000 nodes).
-  - The INV-8 parity test: every table's row count equals its label's node count or its relationship type's edge count, and one sample of properties matches per type.
-  - The local env helper, and pinning `neo4j==6.4.1`.
-- **c. Rounds 1-4 (1.5 days).** Areas: `src/features/rounds/**`, `tests/**`, `docs/data-model.md`. Each round is one `.sql` and one `.cypher` file answering the same question, with an agreement test: both return the same rows, normalised and sorted. Where E1 planted a scenario, a test also checks the answer finds it, reading `answer_key/scenarios.csv` in the test only.
-  1. Open issues by business unit and rating (expected verdict: SQL).
-  2. High risks whose controls have **stale coverage**: never tested in the 3-year window, or last tested more than 24 months before the window ends (E1's definition). It runs on canonical risks and controls, because audits test only IA controls and ERM-only items are untested by construction. Checked against `untested_high_risk` (expected verdict: close).
-  3. Shared-system blast radius: the 3 systems whose dependent controls reach the most auditable entities. Checked against `shared_system` (expected verdict: graph).
-  4. Every path from a regulation to a business unit (expected verdict: graph).
-- **d. Rounds 5-7 and the rounds export (1.5 days).** Areas: as c.
-  5. Add third-party vendors live. A deterministic vendor overlay, drawn from E1's fictional vendor list (`names/vendors.txt`, INV-9), with vendors supplying systems. It is added at run time to both stores, showing what each needs (a new table plus a join table and query changes, against new nodes and edges with an unchanged schema). The answer is the auditable entities newly exposed through a vendor (expected verdict: graph).
-  6. "Why is this audit on the plan": the path from a planned audit to its high risks, controls and findings (expected verdict: graph).
-  7. Year-over-year finding trend by ERM L1, counted like `rising_category` (regulator, self-identified and 2nd-line issues on the published ERM taxonomy; IA issues excluded). Checked against `rising_category` (expected verdict: SQL).
+  - Graph model: one label per entity, with a `source` property on per-source types; one relationship type per relationship file; `CanonicalRisk` and `CanonicalControl` nodes, `MAPS_TO`, `IA_MAPS_TO_ERM` and `REVIEW_CANDIDATE`.
+  - Batched `UNWIND` loading with uniqueness constraints and a load lock.
+  - The INV-8 parity test above; the env helper; `AKG_REQUIRE_NEO4J`; pinning `neo4j==6.4.1`.
+- **c. Rounds 1-4 (1.5 days).** Areas: `src/features/rounds/**`, `tests/**`, `docs/data-model.md`, `akg/**`. Each round is one `.sql`, one `.cypher` and the three checks. Exact attribution and path rules are pinned in c's plan.
+  1. *Open issues by business unit and rating* (expected verdict: SQL). An issue is attributed to the business units that own the auditable entities exposed to the risk it is against.
+  2. *High risks with stale coverage,* on canonical items (expected verdict: close).
+     - A canonical risk is High when any of its member source risks is rated High.
+     - A control has stale coverage when it was never tested in the window (2023-01-01 to 2025-12-31, E1's audit years), or last tested more than 24 months before 2025-12-31.
+     - A canonical risk qualifies when it is High and none of the controls mitigating its members was tested in time.
+     - The oracle gives the exact set. The scenario check is containment, because the stale set is wider by definition: every `untested_high_risk` IA risk's canonical risk is in the answer.
+  3. *Shared-system blast radius* (expected verdict: graph): the 3 systems whose dependent controls reach the most auditable entities, through control, mitigates, risk and exposed entity, over both sources. It must equal `shared_system`, with E1's tie rule. This is the page's first story.
+  4. *Every path from a regulation to a business unit* (expected verdict: graph): regulation, requires control, mitigates risk, exposed entity, owned by business unit. The answer is the distinct (regulation, business unit) pairs with their path counts.
+- **d. Rounds 5-7, the supporting query and the export (1.5 days).** Areas: as c.
+  5. *A third-party register arrives* (expected verdict: graph).
+     - The new data: `system.csv` already names each system's vendor. Round 5 adds what is new, a deterministic overlay of **fourth-party dependencies** (vendor relies on vendor), drawn from E1's fictional vendor list (`names/vendors.txt`, INV-9).
+     - The question: which auditable entities are exposed to a given critical vendor, directly through its systems or through a chain of fourth parties? The answer marks which are newly exposed through fourth parties only, against the direct-only baseline.
+     - Effort: SQL needs a new table and a recursive CTE; the graph needs new nodes and edges and a variable-length path.
+     - Isolation: both stores apply the overlay inside a transaction and roll it back, so the stores and INV-8 parity are unchanged afterwards.
+  6. *Repeat finding in disguise* (expected verdict: graph; replaces "why is this audit on the plan", which had no forward-plan data; owner decision 2026-11-21): IA controls with issues in two or more years under different titles, and their issue groups. It must equal the planted `repeat_finding` groups exactly; E1 guarantees that the listed groups are all such controls. This is the page's second story.
+  7. *Year-over-year finding trend by ERM L1* (expected verdict: SQL), counted like `rising_category`: regulator, self-identified and 2nd-line issues on the published ERM taxonomy, with IA issues excluded. The top riser must equal `rising_category`.
 
-  The export: `src/features/rounds/rounds.json` for E4, holding each round's question, both queries, lines of code, join or hop count, a readability note, the expected verdict and the agreement result. A test keeps it current. No speed claims (GOALS non-goal).
+  *Supporting query (not a scored round):* **owner concentration**, the people owning the most key controls across business units. This is the page's third story, with an agreement and oracle check.
+
+  *The export:* `rounds.json`. For each round it holds:
+  - the question and both queries;
+  - lines of code, and the join or hop count;
+  - a readability note and the expected verdict;
+  - the result: row count and up to 20 rows;
+  - the agreement, oracle and scenario outcomes;
+  - the engines run.
+
+  The supporting query's result is included too. No speed claims (GOALS non-goal).
 - **e. GitHub repo and CI with a Neo4j service container (1 day).** Areas: `tests/**`, `docs/**`, plus governance files the owner commits.
-  - The owner creates the public GitHub repo and pushes main, from one copy-paste block (R3: there is no remote yet).
-  - A GitHub Actions workflow (in `.github/`, governance, owner-committed through allow-governance from a copy-paste block). It runs the full suite on push and pull request, with a `neo4j:5.26.33-community` service container, a readiness wait and `NEO4J_*` env set, and no secrets.
-  - Done when the first runs are green with the Neo4j tests actually running, not skipped.
+  - The owner confirms visibility (public, per GOALS), then creates the repo and pushes main from one copy-paste block. This child creates the repo; E4's publishing child then only turns on Pages.
+  - A GitHub Actions workflow (in `.github/`, governance, owner-committed through allow-governance from a copy-paste block). It runs the full suite on push and pull request, with:
+    - a `neo4j:5.26.33-community` service container and a readiness wait;
+    - the `NEO4J_*` env and `AKG_REQUIRE_NEO4J=1`;
+    - no secrets.
+  - Done when the first runs are green and the Neo4j tests ran, not skipped.
 
 **Test-suite time** (L-014): child a's plan counts every build a store test adds, and store tests reuse the cached seed-42 build.
 
