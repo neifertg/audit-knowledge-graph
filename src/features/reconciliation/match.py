@@ -19,9 +19,12 @@ def load_weights(path: Path = WEIGHTS) -> dict:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
+def logit(model: dict, X: np.ndarray) -> np.ndarray:
+    return X @ np.array(model["coefficients"]) + model["intercept"]
+
+
 def probability(model: dict, X: np.ndarray) -> np.ndarray:
-    z = X @ np.array(model["coefficients"]) + model["intercept"]
-    return 1.0 / (1.0 + np.exp(-z))
+    return 1.0 / (1.0 + np.exp(-logit(model, X)))
 
 
 def bands(model: dict, scores: np.ndarray) -> list[str]:
@@ -30,7 +33,7 @@ def bands(model: dict, scores: np.ndarray) -> list[str]:
 
 
 def pair_scores(build_dir: Path, weights: dict | None = None) -> dict:
-    """kind -> {"pairs": [...], "score": array, "band": [...]} for risk, duplicate and control pairs."""
+    """kind -> {"pairs", "score" (probability), "logit", "X" (features), "band"} for each pair kind."""
     weights = weights or load_weights()
     (rX, rpairs), (dX, dpairs) = risk_tables(build_dir)
     rscore = probability(weights["risk"], rX)
@@ -38,5 +41,6 @@ def pair_scores(build_dir: Path, weights: dict | None = None) -> dict:
     out = {}
     for kind, X, pairs in (("risk", rX, rpairs), ("duplicate", dX, dpairs), ("control", cX, cpairs)):
         score = rscore if kind == "risk" else probability(weights[kind], X)
-        out[kind] = {"pairs": pairs, "score": score, "band": bands(weights[kind], score)}
+        out[kind] = {"pairs": pairs, "score": score, "logit": logit(weights[kind], X), "X": X,
+                     "band": bands(weights[kind], score)}
     return out

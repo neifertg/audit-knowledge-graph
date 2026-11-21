@@ -1,8 +1,8 @@
 # reconciliation
 
 Purpose: reconciles ERM's and IA's separate taxonomies, risks and controls into one canonical framework (ERM's taxonomy), with a review queue for uncertain matches (epic E2).
-Entry point: `match.py` (`pair_scores()`, child b), which builds on `features.py` and `taxonomy_map.py` (`map_taxonomy()`, child a). Children c-d add the canonical layer and scoring.
-Owns: the canonical layer in `docs/data-model.md` (`ia_maps_to_erm` so far; canonical risks and controls from child c).
+Entry point: `canonical.py` (`write_reconciled()`, child c; run by `python -m akg build` or `python -m akg reconcile`), which uses `match.py` (`pair_scores()`, child b), `features.py` and `taxonomy_map.py` (child a). Child d adds scoring against the answer key.
+Owns: the canonical layer in `docs/data-model.md` (`<out>/reconciled/`: canonical risks and controls, maps-to files, `ia_maps_to_erm`, the review queue).
 Depends on: the generator's published files only (read from a build directory); scikit-learn.
 
 Notes for people and agents working here:
@@ -24,3 +24,5 @@ Notes for people and agents working here:
   It takes about 7 seconds, and a test fails if the fingerprint no longer matches.
 - **`match.py`** applies `weights.json` and gives every pair a probability and a band: `accept`, `review` or `below`. ERM duplicates are review-only, never `accept`.
 - **Circular by design:** the control feature `risk_link` uses risk scores. Training uses the risk model's in-sample scores on seed 7; scoring uses the committed risk model on the scored bank.
+- **`canonical.py`** merges accepted pairs, places every risk at an ERM L3 node, builds the review queue and writes `<out>/reconciled/`. The rules are in its docstring and the 013 plan. Its output is frozen by `tests/golden/checksums_reconciled.sha256`; regenerate that file with `.venv\Scripts\python -m tests.reconciliation.golden` after an intentional change.
+- Generator tests build with `--no-reconcile`, and the generator goldens skip `reconciled/`.

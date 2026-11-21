@@ -78,6 +78,34 @@ Notes:
   - With raw cosines, the templated-trained duplicate model missed 10 of 13 AI-text duplicates: templated duplicates are near-copies, AI ones paraphrases.
   - Plain percentiles under class weighting bunched the duplicate scores within 1e-5.
   - Unweighted models about doubled the control queue.
+- **Canonical layer** (E2 child c, 013; `src/features/reconciliation/canonical.py`). `python -m akg build` generates and then reconciles; `build --no-reconcile` generates only and removes any stale output; `python -m akg reconcile --out <dir>` reconciles an existing build. Reconciliation writes `<out>/reconciled/`:
+  - `canonical_risk.csv` (`canonical_risk_id`, `erm_l3_node_id`, `placement`)
+  - `canonical_control.csv` (`canonical_control_id`)
+  - `risk_maps_to_canonical.csv` and `control_maps_to_canonical.csv` (`source`, item ID, canonical ID, `logit`)
+  - `ia_maps_to_erm.csv` (child a's rows)
+  - `review_queue.csv` (`kind`, `item_a`, `item_b`, `logit`, `reason`, `drivers`)
+
+  Scores are logits (log-odds) with 6 decimals; bands and merge order use the unrounded value. Canonical IDs (`CR-`, `CC-`) are numbered in order of each item's lowest member ID.
+
+  *Assignment:*
+  - Accepted cross-source pairs merge in order of logit (then ERM ID, then IA ID).
+  - A canonical risk holds at most one ERM risk and one IA risk.
+  - A canonical control holds at most one ERM control, and each IA control joins its best accepted one.
+  - A losing accepted pair is queued with reason `conflict`.
+  - Review-band pairs and every duplicate pair at or above its floor are queued with reason `review_band`.
+  - `drivers` names the three features with the largest signed contribution.
+  - Everything unmerged is a singleton.
+
+  *Placement* gives every canonical risk an ERM L3 node: the ERM risk's own node (`erm`, `matched`), else the IA node's mapped L3 target (`mapped`), else the node of the most similar ERM risk within the mapped subtree, or among all ERM risks if none (`nearest`).
+
+  Measured by the built module on seed 42:
+  - Risks: 33 pairs merged, precision 1.00, recall 0.32; 5 conflicts queued, 3 of them true (an IA risk matching both an ERM risk and its duplicate).
+  - Controls: 68 pairs merged, precision 1.00, recall 0.28.
+  - Queue: 122 risk, 14 duplicate and 341 control review-band rows, plus the 5 conflicts (482 rows).
+  - Result: 297 canonical risks and 626 canonical controls.
+  - IA placement: 130/150 (matched 33/33, mapped 89/103, nearest 8/14).
+
+  `tests/golden/checksums_reconciled.sha256` freezes this output (INV-7). Regenerate it with `.venv\Scripts\python -m tests.reconciliation.golden`.
 - **Answer key.** The generator records which source items are true duplicates and the true taxonomy mapping, in a separate folder. It is used only for scoring.
 - **Published layout** (005). ERM and IA are separate systems, so taxonomy nodes, risks and controls are published one file per source (`risk_erm.csv`, `risk_ia.csv`, ...), as is every relationship touching them. Audits test IA controls only. The column-level data dictionary is `src/features/generator/README.md`.
 - **Documents (M2).** Workpapers, RCMs and reports, linked to audits, controls and issues. Not in M1.
@@ -105,11 +133,11 @@ Rules that must always hold. Each has an ID and a test that enforces it (tests n
 |---|---|---|
 | INV-1 | Each taxonomy is a strict tree; every L4 risk sits under exactly one L3 node of its own source's taxonomy. | Taxonomy part: `generator.test_invariants.InvariantTests.test_ac2_inv1_taxonomies_are_strict_trees`; risk part: `generator.test_invariants.InvariantTests.test_ac2_inv1_each_risk_under_one_l3_of_its_source` |
 | INV-2 | Every auditable entity belongs to exactly one business unit. | `generator.test_invariants.InvariantTests.test_ac3_inv2_each_entity_has_exactly_one_owner` |
-| INV-3 | Each source risk or control maps to at most one canonical item, or is in the review queue; nothing below the confidence threshold is merged silently. | TBD (E2) |
+| INV-3 | Each source risk or control maps to exactly one canonical item (a singleton when unmatched). An ERM-IA pair merges only at or above its kind's auto-accept threshold; uncertain pairs go to the review queue, so nothing below the confidence threshold merges silently. | `reconciliation.test_canonical.CanonicalTests.test_ac3_inv3_whole_output` |
 | INV-4 | Every IA issue links to exactly one audit; every issue links to at least one control or risk, and has exactly one owner and one source. | `generator.test_invariants.InvariantTests.test_ac2_inv4_inv5_issue_links_and_dates` |
 | INV-5 | Dates are consistent: closure never before open; audits within the 3-year window; an issue never before the audit that raised it. | `generator.test_invariants.InvariantTests.test_ac2_inv4_inv5_issue_links_and_dates` |
-| INV-6 | The reconciliation pipeline never reads the answer key; it is used only for scoring. | TBD (E2) |
-| INV-7 | The same seed produces byte-identical output. | Sample: `generator.test_determinism.DeterminismTests.test_ac3_inv7_output_matches_golden_checksums`; full: `generator.test_determinism.DeterminismTests.test_ac5_full_build_matches_full_golden` |
+| INV-6 | The reconciliation pipeline never reads the published bank's answer key; only the scoring step does. The training script alone may read the training bank's (seed 7) answer key, to learn the committed weights. | `reconciliation.test_canonical.CanonicalTests.test_ac4_inv6_reconciled_output_ignores_the_answer_key` |
+| INV-7 | The same seed produces byte-identical output. | Sample: `generator.test_determinism.DeterminismTests.test_ac3_inv7_output_matches_golden_checksums`; full: `generator.test_determinism.DeterminismTests.test_ac5_full_build_matches_full_golden`; reconciled: `reconciliation.test_canonical.CanonicalTests.test_ac5_reconciled_output_matches_its_golden` |
 | INV-8 | SQLite and Neo4j hold the same facts (row counts reconcile with node and edge counts). | TBD (E3) |
 | INV-9 | Institution, people, vendor and system names come only from the project's fictional name lists. | `generator.test_names.NameTests.test_ac4_inv9_names_from_lists_and_no_denied_name_anywhere` |
 | INV-10 | No relationship crosses sources: ERM controls mitigate ERM risks, IA controls IA risks, each taxonomy is its own tree, and so on. ERM-IA links exist only in the answer key (truth) and the canonical layer (E2 output). | `generator.test_referential.ReferentialTests.test_ac12_relationship_ids_exist_and_never_cross_sources` |

@@ -4,7 +4,7 @@
 {
   "id": "013-canonical-layer-review-queue-and-build-s",
   "tier": "standard",
-  "status": "approved",
+  "status": "done",
   "created": "2026-11-21",
   "objective": "O3",
   "areas": [
@@ -20,48 +20,50 @@
       "when": "`python -m akg build` runs (either size), or `python -m akg reconcile --out <dir>` runs on an existing build",
       "then": "reconciliation runs after generation, unless `build --no-reconcile` is given, and writes `<out>/reconciled/`.\n\nEvery file is UTF-8 with LF line endings. Scores are written as the pair's **logit**, the model's log-odds `X.w + b`, with 6 decimals. Bands and merge order use the unrounded value; the logit is what gets written because probabilities above 0.9999 lose precision. Each file and its row order:\n- `canonical_risk.csv`: `canonical_risk_id`, `erm_l3_node_id`, `placement` (`erm`, `matched`, `mapped` or `nearest`); sorted by ID.\n- `canonical_control.csv`: `canonical_control_id`; sorted by ID.\n- `risk_maps_to_canonical.csv`: `source`, `risk_id`, `canonical_risk_id`, `logit`; sorted by (`source`, `risk_id`). `logit` is the merged edge's value and is empty for an unmerged risk.\n- `control_maps_to_canonical.csv`: the same columns for controls, sorted the same way. An IA control's row carries its merged edge's logit, and an ERM control's row the highest logit among its merged edges.\n- `ia_maps_to_erm.csv`: `ia_node_id`, `erm_node_id`, `score`, `basis` (child a's rows, with score to 6 decimals); sorted by `ia_node_id`.\n- `review_queue.csv`: `kind`, `item_a`, `item_b`, `logit`, `reason`, `drivers`.\n  - `kind` is `risk`, `duplicate` or `control`. `item_a` is the ERM item, or the lower ID for a duplicate; `item_b` is the IA item, or the higher ERM ID.\n  - `reason` is `review_band` or `conflict`.\n  - `drivers` holds the names of the 3 features with the largest signed contribution (coefficient x value), largest first, ties in column order, joined by `;`.\n  - Rows are sorted by kind (risk, duplicate, control), then `logit` descending, then `item_a`, then `item_b`.\n\nCanonical IDs are `CR-0001...` and `CC-0001...`, numbered in plain string order of each item's lowest member ID.",
       "test": "reconciliation.test_canonical.CanonicalTests.test_ac1_build_writes_the_reconciled_files",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-2",
       "when": "the canonical assignment runs on the pair scores (child b's `pair_scores`)",
       "then": "merged edges are the cross-source pairs in the `accept` band, taken in the order (logit descending, ERM ID, IA ID):\n- *Risks:* an edge merges only if neither of its risks already has a merged edge, so a canonical risk holds at most one ERM and one IA risk. This is the mirror rule the epic critique asked for; ERM duplicates are review-only, so they never chain.\n- *Controls:* an edge merges only if its IA control has no merged edge yet, so each IA control joins its best accepted ERM control, and a canonical control holds at most one ERM control.\n- A losing accepted edge goes to the queue with reason `conflict`.\n- Pairs in the `review` band, and every duplicate pair at or above its floor, go to the queue with reason `review_band`.\n- Every other item is a singleton canonical item.\n\n*Placement:*\n- An ERM-only or matched canonical risk takes the ERM risk's node (`erm`, `matched`).\n- An IA-only risk whose IA node maps (child a) to an ERM L3 node takes that node (`mapped`).\n- Otherwise it takes the node of its most similar ERM risk (similarity.py), searched within the mapped target's subtree. If the node is unmapped, or that subtree holds no ERM risk, the search covers all ERM risks. Ties go to the lowest ERM risk ID (`nearest`).",
       "test": "reconciliation.test_canonical.CanonicalTests.test_ac2_assignment_and_placement_rules (hand-built scored pairs: a two-ERM conflict, a two-IA conflict, an IA control with two accepted edges, a review-band pair, a duplicate pair; placement on a small fixture)",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-3",
       "when": "the reconciled output of the seed-42 full build is checked as a whole (INV-3)",
       "then": "the structural rules hold exactly:\n- every source risk and control maps to exactly one canonical item;\n- every merged edge is in the accept band;\n- no canonical risk holds two ERM risks or two IA risks;\n- no canonical control holds two ERM controls.\n\nThe figures are floors: merged precision at least 0.95 for risks and controls, and IA placement at least 0.80. The test prints every count: merged, precision, recall, demoted for conflict, queue by kind and reason, and placement by kind. Before freezing, the counts are re-measured with the built module and recorded in docs/data-model.md (L-012). The pre-plan figures were: risks 33 merged (1.00), 5 demoted; controls 68 (1.00); placement 130/150. Child d publishes the final figures.",
       "test": "reconciliation.test_canonical.CanonicalTests.test_ac3_inv3_whole_output",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-4",
       "when": "`akg reconcile` runs on a copy of a full build with `answer_key/` deleted",
       "then": "a copy of the seed-42 full build with both `answer_key/` and `reconciled/` deleted is reconciled with `akg reconcile`. The test asserts all six files are recreated and byte-identical to those reconciled from the full build. Within `src/features/reconciliation/*.py`, only `train.py` mentions `answer_key`.\n\nINV-6 in docs/data-model.md reads: \"The reconciliation pipeline never reads the published bank's answer key; only the scoring step does. The training script alone may read the training bank's (seed 7) answer key, to learn the committed weights.\"\n\nINV-3 reads: \"Each source risk or control maps to exactly one canonical item (a singleton when unmatched). An ERM-IA pair merges only at or above its kind's auto-accept threshold; uncertain pairs go to the review queue, so nothing below the confidence threshold merges silently.\"\n\nThe invariants table names this test for INV-6 and AC-3's test for INV-3.",
       "test": "reconciliation.test_canonical.CanonicalTests.test_ac4_inv6_reconciled_output_ignores_the_answer_key",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-5",
       "when": "the goldens are checked",
       "then": "the generator goldens (`checksums.sha256`, `checksums_full.sha256`) are unchanged. `checksums()` in `tests/generator/golden.py` skips the `reconciled/` folder itself, so every caller (test_determinism, test_issues, the drift checks) compares generator files only. The generator test helper `build()` passes `--no-reconcile` for speed; tests that call `run_akg` directly still reconcile, and that is fine. A new `tests/golden/checksums_reconciled.sha256` holds the seed-42 full build's `reconciled/` files. It is regenerated with `.venv\\Scripts\\python -m tests.reconciliation.golden`, and a test regenerates and compares it (INV-7 for E2 output). Two runs are byte-identical.",
       "test": "reconciliation.test_canonical.CanonicalTests.test_ac5_reconciled_output_matches_its_golden; generator.test_determinism (unchanged goldens)",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-6",
       "when": "docs/data-model.md and the feature README are read after this change",
       "then": "they describe the reconciled files and their columns, the assignment rule, placement, the review queue's reasons and drivers, INV-3 (enforced by AC-3's test) and INV-6's new wording (enforced by AC-4's test), with the measured counts from the built module (L-012). The invariants table names the tests for INV-3 and INV-6",
       "test": "reconciliation.test_canonical.CanonicalTests.test_ac6_docs_describe_the_canonical_layer",
-      "status": "pending"
+      "status": "pass"
     }
   ],
   "epic": "002-e2-erm-ia-reconciliation",
   "child": "c",
   "approved": "2026-11-21",
-  "approved_hash": "cf8f228b823682ff"
+  "approved_hash": "cf8f228b823682ff",
+  "in_progress": "2026-11-21",
+  "done": "2026-11-21"
 }
 ```
 

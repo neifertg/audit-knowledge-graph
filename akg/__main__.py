@@ -1,6 +1,7 @@
 """Command-line entry point.
 
-    python -m akg build        generate the synthetic bank (E1); E2 and E3 add steps later
+    python -m akg build        generate the synthetic bank (E1), then reconcile it (E2)
+    python -m akg reconcile    (re)write <out>/reconciled/ for an existing build
     python -m akg sample-pack  render the realism-review sample pack
     python -m akg check-text   check committed AI text for orphan keys
 
@@ -40,6 +41,11 @@ def _parser() -> argparse.ArgumentParser:
     add_generation_options(build)
     build.set_defaults(size="full")
     build.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    build.add_argument("--no-reconcile", action="store_true",
+                       help="generate only; removes any stale <out>/reconciled/")
+
+    reconcile = commands.add_parser("reconcile", help="(re)write <out>/reconciled/ for an existing build")
+    reconcile.add_argument("--out", type=Path, default=DEFAULT_OUT)
 
     pack = commands.add_parser("sample-pack", help="render the realism-review sample pack")
     add_generation_options(pack)
@@ -54,9 +60,27 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
+    if args.command == "reconcile":
+        return _reconcile(args.out)
     from src.features.generator import cli  # imported late so `--help` works without it
 
-    return cli.run(args)
+    code = cli.run(args)
+    if code == 0 and args.command == "build":
+        if args.no_reconcile:
+            import shutil
+
+            shutil.rmtree(Path(args.out) / "reconciled", ignore_errors=True)
+        else:
+            return _reconcile(args.out)
+    return code
+
+
+def _reconcile(out: Path) -> int:
+    """E2: reconcile the published files in `out` (never reads its answer key, INV-6)."""
+    from src.features.reconciliation.canonical import write_reconciled
+
+    print(f"reconciled into {write_reconciled(out)}")
+    return 0
 
 
 if __name__ == "__main__":
