@@ -18,7 +18,8 @@ from src.features.generator.prompts import SAMPLE_PROMPT_HASH, prompt_hash
 
 from .helpers import ROOT
 
-EMPTY_LOG = Path(bt.COST_LOG).read_text(encoding="utf-8")
+_LOG = Path(bt.COST_LOG).read_text(encoding="utf-8")
+EMPTY_LOG = _LOG[:_LOG.index("|---|")] + "|---|---|---|---|---|---|\n"  # header only, no rows
 PER_ITEM = (bt.MEASURED_IN * bt.PRICE_IN + bt.MEASURED_OUT * bt.PRICE_OUT) * bt.MARGIN
 
 
@@ -176,6 +177,18 @@ class BatchTests(unittest.TestCase):
         self.assertEqual(outcome["missing"], [missing[1].key])
 
     # --- AC-3 -------------------------------------------------------------------------------
+    def test_ac3_capitalized_words_allow_bank_names_only(self):
+        from src.features.generator.text_rules import stray_capitals
+        allowed = ("The audit of Cash Management & Vault covers counts.",   # the bank's auditable entity
+                   "Reviewed by the Front Office team.",                       # a word in the item's own draft
+                   "Limits are Board-approved and reviewed in March.",         # compound of an allowed word; a month
+                   "Exceptions list the customer IDs.")
+        for text in allowed:
+            with self.subTest(text=text):
+                self.assertEqual(stray_capitals(text, draft="The Front Office reviews it."), [])
+        self.assertEqual(stray_capitals("Reviewed by the Zorblat team.", draft="The Front Office reviews it."),
+                         ["Zorblat"])
+
     def test_ac3_rules_resubmit_once_then_block(self):
         cases = [
             (item(1, draft="Wires are confirmed by callback."), "Wires in Brisance Wire Manager are confirmed.",

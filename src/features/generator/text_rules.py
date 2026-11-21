@@ -16,13 +16,28 @@ def _deny() -> tuple:
     return tuple(tuple(tokens(e)) for e in load("deny_list"))
 
 
+CAPITALIZED = re.compile(r"[A-Za-z][\w/&'-]*")
+# Ordinary capitalized words the check allows but the prompt does not list (adding them to
+# allow_terms.txt would change the full prompt version and make all stored full-size text stale).
+RULE_ONLY_WORDS = ("ID", "IDs", "January", "February", "March", "April", "May", "June", "July", "August",
+                   "September", "October", "November", "December")
+
+
 @cache
 def _allowed_words() -> frozenset:
+    """Name lists, the domain allow-list, and the bank's own published names (segments, business
+    units, auditable entities, processes, taxonomy nodes): the AI may use these, nothing invented."""
+    from . import library as lib
+
     terms = set()
     for list_name in ("systems", "vendors", "institution", "regulations", "titles", "allow_terms",
                       "first_names", "last_names"):
         terms |= set(load(list_name))
-    return frozenset(w for term in terms for w in re.findall(r"[A-Za-z][\w/&'-]*", term))
+    terms |= set(lib.SEGMENTS) | set(lib.FULL_BUSINESS_UNITS) | set(lib.FULL_AUDITABLE_ENTITIES)
+    terms |= set(lib.FULL_PROCESSES)
+    terms |= {name for path in lib.FULL_ERM_TAXONOMY + lib.FULL_IA_TAXONOMY for name in path}
+    terms |= set(RULE_ONLY_WORDS)
+    return frozenset(w for term in terms for w in CAPITALIZED.findall(term))
 
 
 def added_systems(text: str, draft: str) -> list[str]:
@@ -34,12 +49,16 @@ def denied(text: str) -> list[str]:
     return [" ".join(e) for e in _deny() if any(tuple(words[i:i + len(e)]) == e for i in range(len(words)))]
 
 
-def stray_capitals(text: str) -> list[str]:
+def stray_capitals(text: str, draft: str = "") -> list[str]:
+    """Capitalized words (not sentence-initial) that are neither allowed nor in the item's own draft."""
     words = []
     for sentence in re.split(r"(?<=[.!?])\s+|;\s+|:\s+", text):
-        found = re.findall(r"[A-Za-z][\w/&'-]*", sentence)
+        found = CAPITALIZED.findall(sentence)
         words += [t.removesuffix("'s") for t in found[1:] if t[0].isupper()]
-    return sorted(set(words) - _allowed_words())
+    allowed = _allowed_words() | set(CAPITALIZED.findall(draft))
+    # a hyphenated word ('Board-approved') passes when each capitalized part is allowed
+    return sorted(w for w in set(words)
+                  if w not in allowed and not all(p in allowed for p in w.split("-") if p[:1].isupper()))
 
 
 def sentences(text: str) -> list[str]:
@@ -72,7 +91,7 @@ def violations(file: str, draft: str, text: str) -> list[str]:
     names = denied(text)
     if names:
         reasons.append(f"real institution name: {', '.join(names)}")
-    caps = stray_capitals(text)
+    caps = stray_capitals(text, draft)
     if caps:
         reasons.append(f"capitalized words not on any list: {', '.join(caps)}")
     return reasons
