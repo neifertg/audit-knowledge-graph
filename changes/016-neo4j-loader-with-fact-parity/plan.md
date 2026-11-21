@@ -4,7 +4,7 @@
 {
   "id": "016-neo4j-loader-with-fact-parity",
   "tier": "standard",
-  "status": "in-progress",
+  "status": "done",
   "created": "2026-11-21",
   "objective": "O2",
   "areas": [
@@ -56,7 +56,8 @@
   "child": "b",
   "approved": "2026-11-21",
   "approved_hash": "d0f76497535fc262",
-  "in_progress": "2026-11-21"
+  "in_progress": "2026-11-21",
+  "done": "2026-11-21"
 }
 ```
 
