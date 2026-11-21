@@ -4,7 +4,7 @@
 {
   "id": "002-e2-erm-ia-reconciliation",
   "tier": "epic",
-  "status": "approved",
+  "status": "done",
   "created": "2026-11-19",
   "objective": "O3",
   "children": [
@@ -37,7 +37,9 @@
   ],
   "revised": "2026-11-21",
   "approved": "2026-11-21",
-  "approved_hash": "914054a09e9eb2bf"
+  "approved_hash": "914054a09e9eb2bf",
+  "in_progress": "2026-11-21",
+  "done": "2026-11-21"
 }
 ```
 
