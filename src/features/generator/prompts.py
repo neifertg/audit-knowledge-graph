@@ -55,3 +55,15 @@ def prompt_hash(full: bool) -> str:
 
 def full_prompt_version() -> str:
     return prompt_hash(full=True)
+
+
+# 010 revision 1: an ERM duplicate is the same risk re-entered by another team, so its AI text is
+# rewritten from its original's AI text (per-item note; the system prompt is unchanged).
+DUPLICATE_NOTE = ("This is the same risk re-entered in another team's register, so the draft above is the "
+                  "original team's statement. Keep its statement, structure and most of its wording, as a "
+                  "team copying it would, and reword only the cause, following this team's own wording of it: "
+                  "{own_draft}")
+
+
+def duplicate_note(own_draft: str) -> str:
+    return DUPLICATE_NOTE.format(own_draft=own_draft)

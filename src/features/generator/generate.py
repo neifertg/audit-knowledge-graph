@@ -956,6 +956,18 @@ AI_TEXT_FILE = "ai_text.jsonl"            # sample text (005), hashes without a 
 FULL_AI_TEXT_FILE = "ai_text_full.jsonl"  # full-size text (010), hashes include the full prompt version
 
 
+def duplicate_source(key: str) -> str | None:
+    """The original's key for a full-size ERM duplicate (risk_erm:<concept>:1), else None."""
+    return key[:-1] + "0" if key.startswith("risk_erm:") and key.endswith(":1") else None
+
+
+def duplicate_hashes(original_text: str, own_draft: str) -> dict:
+    """What a rewritten duplicate's entry must record: its original's text and its note (010 rev. 1)."""
+    from .prompts import duplicate_note
+
+    return {"source_text_hash": _hash(original_text), "note_hash": _hash(duplicate_note(own_draft))}
+
+
 def full_text_hash(input_hash: str) -> str:
     """A full-size entry's stored hash: the item's inputs plus the full prompt version (010 AC-3)."""
     from .prompts import full_prompt_version
@@ -988,6 +1000,13 @@ def _apply_ai_text(tables: dict[str, Table], texts: list[TextItem], text_dir: Pa
         expected = full_text_hash(item.input_hash) if size == "full" else item.input_hash
         if entry["input_hash"] != expected:
             raise GenerationError(f"AI text is stale for key {item.key}: its inputs or prompt changed")
+        source = duplicate_source(item.key) if size == "full" else None
+        if source:
+            original = entries.get(source, {}).get("text", "")
+            wanted = duplicate_hashes(original, item.templated)
+            if any(entry.get(k) != v for k, v in wanted.items()):
+                raise GenerationError(f"AI text is stale for key {item.key}: rewrite this duplicate from its "
+                                      f"original's text ({source})")
         replacement[(item.file, item.item_id)] = entry["text"]
     for name, table in tables.items():
         if "description" not in table.columns:

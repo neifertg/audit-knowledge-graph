@@ -15,12 +15,12 @@ import hashlib
 import json
 import re
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from . import text_rules
-from .generate import FULL_AI_TEXT_FILE, build, full_text_hash
-from .prompts import MODEL, VOICE, system_prompt
+from .generate import FULL_AI_TEXT_FILE, build, duplicate_hashes, duplicate_source, full_text_hash
+from .prompts import MODEL, VOICE, duplicate_note, system_prompt
 
 ROOT = Path(__file__).resolve().parents[3]
 TEXT_DIR = Path(__file__).resolve().parent / "text"
@@ -106,6 +106,7 @@ class Item:
     voice: str
     opening: str
     expected_hash: str
+    extra: dict = field(default_factory=dict)  # fields stored with the text (duplicates: source hashes)
 
 
 def full_items(seed: int = 42) -> list[Item]:
@@ -135,6 +136,23 @@ def save_text(path: Path, entries: dict[str, dict]) -> None:
 
 def pending(items: list[Item], existing: dict[str, dict]) -> list[Item]:
     return [i for i in items if i.key not in existing or existing[i.key]["input_hash"] != i.expected_hash]
+
+
+def duplicate_items(items: list[Item], existing: dict[str, dict]) -> tuple[list[Item], dict[str, str]]:
+    """ERM duplicates whose stored text is not yet rewritten from their original's current text:
+    (items whose draft is the original's AI text, per-key notes carrying the duplicate's own draft)."""
+    out, notes = [], {}
+    for item in items:
+        source = duplicate_source(item.key)
+        if not source or source not in existing:
+            continue
+        hashes = duplicate_hashes(existing[source]["text"], item.draft)
+        entry = existing.get(item.key, {})
+        if entry.get("input_hash") == item.expected_hash and all(entry.get(k) == v for k, v in hashes.items()):
+            continue
+        out.append(replace(item, draft=existing[source]["text"], extra=hashes))
+        notes[item.key] = duplicate_note(item.draft)
+    return out, notes
 
 
 def custom_id(key: str) -> str:
@@ -234,7 +252,7 @@ def collect(client_factory, batch_id: str, items: list[Item], text_path: Path, l
         if reasons:
             failures[key] = "; ".join(reasons)
             continue
-        entries[key] = {"key": key, "input_hash": item.expected_hash, "text": text}
+        entries[key] = {**item.extra, "key": key, "input_hash": item.expected_hash, "text": text}
     missing = sorted(expected[c] for c in expected if c not in seen)
     for key in missing:
         failures[key] = "no result returned"
@@ -280,11 +298,16 @@ def main(argv: list[str] | None = None) -> int:
     for name in ("submit", "resubmit"):
         sub.add_parser(name).add_argument("--budget", type=float, required=True)
     sub.add_parser("collect").add_argument("--batch", required=True)
+    sub.add_parser("duplicates").add_argument("--budget", type=float, required=True)
     args = parser.parse_args(argv)
 
     text_path = TEXT_DIR / FULL_AI_TEXT_FILE
     items = full_items()
-    todo = pending(items, load_text(text_path))
+    existing = load_text(text_path)
+    todo = pending(items, existing)
+    dups, dup_notes = duplicate_items(items, existing)
+    # collect and resubmit see a duplicate as its rewrite (draft = original's text, source hashes)
+    items = [next((d for d in dups if d.key == i.key), i) for i in items]
     if args.command == "estimate":
         by_file = estimate(todo)
         _, rows = parse_log()
@@ -294,12 +317,17 @@ def main(argv: list[str] | None = None) -> int:
               f"worst case ${sum(estimate(todo, MAX_TOKENS).values()):.2f}, spend so far ${spend(rows):.2f}")
         return 0
     try:
-        if args.command == "submit":
+        if args.command == "duplicates":
+            print(f"{len(dups)} duplicates to rewrite from their originals")
+            if dups:
+                print("submitted batch", submit(_real_client, dups, args.budget, notes=dup_notes))
+        elif args.command == "submit":
             print("submitted batch", submit(_real_client, todo, args.budget))
         elif args.command == "resubmit":
             retry, blocked = failures_to_retry()
-            again = [i for i in todo if i.key in retry]
-            notes = {k: f"Your previous attempt was rejected because: {reason}. Fix that." for k, reason in retry.items()}
+            again = [i for i in todo + dups if i.key in retry]
+            notes = {k: (dup_notes[k] + "\n" if k in dup_notes else "")
+                     + f"Your previous attempt was rejected because: {reason}. Fix that." for k, reason in retry.items()}
             for key, reason in sorted(blocked.items()):
                 print(f"BLOCKED (failed twice): {key}: {reason}")
             if again:
