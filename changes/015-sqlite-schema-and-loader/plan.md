@@ -23,35 +23,35 @@
       "when": "`python -m src.features.stores.schema` runs",
       "then": "it writes `src/features/stores/schema.sql`, generated from two data dictionaries in the same Markdown table format:\n- the generator's (`src/features/generator/README.md`, 41 published files);\n- a new `src/features/stores/reconciled_dictionary.md` for the 6 reconciled files.\n\nThere is one table per file, named after it; answer-key files get none. A test asserts that the committed `schema.sql` equals a fresh generation, that every published and reconciled CSV of the seed-42 build has a table, and that no table exists for an answer-key file",
       "test": "stores.test_sqlite.SqliteTests.test_ac1_schema_is_generated_from_the_dictionaries",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-2",
       "when": "the schema is generated",
       "then": "it follows these rules:\n- Columns appear in dictionary order.\n- `id` becomes TEXT. `primary key` becomes the table's PRIMARY KEY; a table with no `primary key` column gets a composite PRIMARY KEY over its `id` columns.\n- A value that is exactly one `x.csv` becomes a FOREIGN KEY to `x`'s primary key.\n- A value naming two files with `by` (for example ``risk_erm.csv` or `risk_ia.csv` by `source``) gets no FOREIGN KEY; AC-3 checks those columns instead.\n- `enum` becomes TEXT with a CHECK on the listed values; `int` becomes INTEGER; the new `decimal` type becomes REAL; `date` and `text` become TEXT.\n- A column is NOT NULL unless its values mention `blank` or `unmapped`. A blank cell loads as NULL, and so does the literal `unmapped` in a column whose values mention it (only `ia_maps_to_erm.erm_node_id`).\n\n`reconciled_dictionary.md` uses these forms for the reconciled files: `score` is `decimal`; `logit` is `decimal`, blank for unmerged items in the maps-to files; the maps-to item IDs and the review queue's `item_a` and `item_b` are two-file values, and `erm_node_id` is ``taxonomy_node_erm.csv`, or `unmapped` (stored as NULL)``. `ia_maps_to_erm.ia_node_id` is marked `primary key` (one row per IA node), and so is each canonical table's ID. The tables are created and loaded in foreign-key dependency order, with `PRAGMA foreign_keys = ON` throughout.",
       "test": "stores.test_sqlite.SqliteTests.test_ac2_type_and_key_rules (a hand-written two-table dictionary fixture with an enum, a blank-allowed date, a foreign key and a relationship table)",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-3",
       "when": "the load runs on the seed-42 full build",
       "then": "`<out>/akg.sqlite` holds exactly the CSV rows: per table, the row count equals the CSV's, and the sorted list of row tuples equals the CSV's (a multiset comparison, so dropped duplicates fail), with every CSV value cast by its dictionary type (INTEGER, REAL, TEXT; blanks and `unmapped` as NULL) before comparing. `PRAGMA foreign_key_check` reports no violation.\n\nEvery two-file reference exists in the table it names:\n- maps-to rows by `source` (ERM or IA);\n- review-queue rows by `kind`: `risk` is `risk_erm` then `risk_ia`; `duplicate` is `risk_erm` twice; `control` is `control_erm` then `control_ia`.\n\nThe load takes under 5 s (prototype: 7,530 published rows in 0.7 s, with foreign keys off; the build re-measures with them on and with the reconciled tables)",
       "test": "stores.test_sqlite.SqliteTests.test_ac3_every_row_lands_once_and_keys_hold",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-4",
       "when": "`python -m akg build` or `python -m akg load --out <dir>` runs",
       "then": "build runs generate, reconcile, then load, writing `<out>/akg.sqlite`. `--no-load` stops after reconcile, and `--no-reconcile` stops after generate. Neo4j comes in child b, and rounds in c and d.\n\n**No stale database:** `build --no-load`, `build --no-reconcile` and `akg reconcile` each remove an existing `<out>/akg.sqlite`, so a database never outlives the files it was loaded from.\n\n`akg load --out <dir>` (re)builds `<out>/akg.sqlite` for an existing build. If `reconciled/` is missing, it fails with a nonzero exit naming it. It writes to a temporary file and renames it at the end, so a failed load leaves no partial database. Loading twice gives identical rows. No table or row comes from `answer_key/`: a copy of the build without `answer_key/` loads identically.\n\n**Existing callers** (L-014):\n- `train.build_training_bank` passes `--no-load`, so the training bank's files are unchanged. But `train.py`'s source is fingerprinted, so the fingerprint moves, and with it `weights.json`'s `fingerprint` and `scores.json`'s `provenance.weights_fingerprint`. Both files are regenerated (`train`, then `score`). The evidence that nothing else moved: `git diff` of each shows exactly one changed line, the fingerprint, and the reconciled golden is unchanged. 012's currency test and 014's `test_ac3_committed_scores_are_current` must pass afterwards.\n- `tests/generator/golden.checksums()` counts only `*.csv` files outside `reconciled/`, so the generator goldens ignore `akg.sqlite` (and later `rounds.json`) and stay unchanged.\n- `tests/reconciliation/helpers.full_build` passes `--no-load`.\n- The about 10 other plain-build callers (test_determinism, test_issues, test_canonical, test_ai_text, test_batch, test_offline, score.py's regeneration) each gain one load, about 0.7 s each, roughly 7-10 s on the suite. That is stated, not hidden",
       "test": "stores.test_sqlite.SqliteTests.test_ac4_build_and_load_commands_idempotent_and_answer_key_free",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-5",
       "when": "docs/data-model.md and `src/features/stores/README.md` are read",
       "then": "they describe the SQLite store: `<out>/akg.sqlite`; the generated schema and how to regenerate it; the type and key rules; the cross-source columns without FOREIGN KEY and how they are checked; that the store is derived and not golden; and that the answer key is never loaded. The data model's INV-8 row notes that the Neo4j side arrives in child b",
       "test": "stores.test_sqlite.SqliteTests.test_ac5_docs_describe_the_sqlite_store",
-      "status": "pending"
+      "status": "pass"
     }
   ],
   "epic": "003-e3-dual-stores-and-head-to-head-rounds",
