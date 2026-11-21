@@ -16,29 +16,29 @@
   "criteria": [
     {
       "id": "AC-1",
-      "when": "`pair_features(build_dir)` runs on a full build",
-      "then": "it returns three feature tables, one per pair kind, each with sorted pair IDs and named columns, computed from published files only:\n- *Cross-source risks* (every ERM x IA pair; 27,000 at seed 42), 7 columns: `word`, `char`, `rank`, `shared_entity`, `shared_unit_only`, `taxonomy`, `same_rating`.\n- *Within-ERM risk duplicates* (every unordered ERM pair; 16,110), 5 columns: `word`, `char`, `rank`, `same_node`, `same_rating`.\n- *Cross-source controls* (every ERM x IA pair; 118,105), 9 columns: `word`, `char`, `rank`, `risk_link`, `same_type`, `same_nature`, `same_frequency`, `shared_system`, `citation`.\n\nThe column definitions:\n- `word` and `char` are cosine similarities (the 1-2 gram and `char_wb` 3-5 gram TF-IDF of similarity.py), each converted to its percentile within its own table: average rank of ties, scaled 0-1. This makes the features scale-free across text styles, with no labels used.\n- `rank` is 1/position of the pair among the row item's candidates, by `word + char` raw cosine, stable order.\n- `taxonomy` is 1 when the IA risk's nearest mapped ancestor (child a's `map_taxonomy`) is the ERM risk's node or one of its ancestors.\n- `risk_link` is the highest cross-source risk score (from the committed risk model) over the pairs of risks the two controls mitigate, 0 if none.\n- `citation` is 1 when the ERM control's title subject (the text before ':') appears in the IA control's description.",
-      "test": "reconciliation.test_matching.MatchingTests.test_ac1_feature_tables_shapes_columns_and_definitions (shapes and columns on seed 42; a hand-built fixture for percentile ties, rank, taxonomy and citation)",
+      "when": "`pair_features(build_dir)` in `src/features/reconciliation/features.py` runs on a full build",
+      "then": "it returns three feature tables, one per pair kind, each with sorted pair IDs and named columns, computed from published files only. Texts are `title + '. ' + description` for risks and controls alike. TF-IDF is similarity.py's two vectorizers, both fitted on the ERM and IA texts of that item type together.\n\n- *Cross-source risks* (every ERM x IA pair; 27,000 at seed 42), 7 columns:\n  - `word`, `char`: cosines, each turned into a tail score.\n  - `rank`: 1/position of the ERM risk among the IA risk's ERM candidates, by raw `word + char` cosine, in a stable order.\n  - `shared_entity`: the two risks share an exposed entity.\n  - `shared_unit_only`: they share a business unit of their exposed entities but no exposed entity.\n  - `taxonomy`: the IA risk's nearest ancestor-or-self that child a maps (not `unmapped`) maps to the ERM risk's node or one of its ancestors.\n  - `same_rating`.\n- *Within-ERM risk duplicates* (every unordered ERM pair; 16,110), 5 columns:\n  - `word`, `char`: tail scores over these 16,110 pairs.\n  - `rank`: the larger of the two directions' 1/position, ignoring self-pairs.\n  - `same_node`, `same_rating`.\n\n  Shared entity and taxonomy are left out: ERM exposure is business-unit wide, so nearly every same-unit pair shares an entity, and both risks sit in one tree.\n- *Cross-source controls* (every ERM x IA pair; 118,105), 9 columns:\n  - `word`, `char` and `rank`, as for risks, with the IA control as the row.\n  - `risk_link`: the highest cross-source risk score from the risk model over the pairs of risks the two controls mitigate, 0 if none.\n  - `same_type`, `same_nature`, `same_frequency`.\n  - `shared_system`.\n  - `citation`: 1 when the ERM title's text before its first ':' (trimmed and lower-cased) occurs in the lower-cased IA description; 0 for a title with no ':'.\n\nA *tail score* is computed with numpy only (no scipy) from the value's percentile `p` within its own table (average rank of ties, scaled 0-1) as `-log10(1 - p + 1/n)`. That makes it scale-free across text styles without labels, and spreads out the top candidates.",
+      "test": "reconciliation.test_matching.MatchingTests.test_ac1_feature_tables_shapes_columns_and_definitions (shapes and columns on seed 42; a hand-built fixture for the tail score with ties, rank, shared_unit_only, taxonomy and citation)",
       "status": "pending"
     },
     {
       "id": "AC-2",
       "when": "`python -m src.features.reconciliation.train` runs",
-      "then": "it builds the training bank (seed 7, full size, `--text templated`) in a temporary directory and reads that bank's answer key, the only place in this feature that reads one. It fits three logistic models in order: risks, then duplicates, then controls, whose `risk_link` uses the just-fitted risk model. Each model is `LogisticRegression(max_iter=5000, class_weight='balanced')`, deterministic with lbfgs. Each model's two thresholds are set on its training scores:\n- *auto-accept:* the lowest score at which the pairs scoring at or above it have at least 95% precision (scanning scores from the top);\n- *review floor:* the highest score at which the pairs at or above it hold at least 99% of the true pairs.\n\nIt writes `src/features/reconciliation/weights.json` with, for each model, the feature names, coefficients, intercept and both thresholds, plus the training pair each threshold falls on. The file also holds a fingerprint: a SHA-256 over the training bank's file checksums and the source of `similarity.py`, `taxonomy_map.py`, `features.py` and `train.py`. It runs in under a minute (measured: 2 s of training plus about 3 s of features)",
-      "test": "reconciliation.test_matching.MatchingTests.test_ac2_committed_weights_are_current (fast: the fingerprint matches; full: a retrain gives coefficients within 1e-6 and selects the same training pair for each threshold)",
+      "then": "it builds the training bank (seed 7, full size, `--text templated`) in a temporary directory and reads that bank's answer key, the only place in this feature that reads one. It fits three logistic models in order: risks, then duplicates, then controls, whose `risk_link` uses the just-fitted risk model's in-sample scores. Each model is `LogisticRegression(class_weight='balanced', tol=1e-10, max_iter=100000)`, lbfgs, run until it converges (measured: 29-71 iterations). Thresholds are set on the training scores, at tie-group boundaries:\n- *auto-accept:* the lowest score whose at-or-above set has at least 95% precision (none if no score reaches it);\n- *review floor:* the highest score whose at-or-above set holds at least 99% of the true pairs, capped at the auto-accept threshold.\n\nDuplicates are *review-only*: they have a floor but no auto-accept, because 13 true pairs per bank cannot support a 95% precision estimate (seed 1's single auto-accepted pair was wrong). It writes `src/features/reconciliation/weights.json`. For each model the file holds the feature names, coefficients, intercept, thresholds, and the training pair each threshold falls on. It also holds a fingerprint: a SHA-256 over the training bank's file checksums and the source of `similarity.py`, `taxonomy_map.py`, `features.py`, `train.py` and `match.py`. Training runs in seconds",
+      "test": "reconciliation.test_matching.MatchingTests.test_ac2_committed_weights_are_current (fast: the fingerprint matches; full: a retrain gives coefficients within 1e-6, selects the same training pair for each threshold, and puts every seed-42 pair in the same band)",
       "status": "pending"
     },
     {
       "id": "AC-3",
-      "when": "`pair_scores(build_dir)` applies the committed weights, unchanged, to the published bank (seed 42, AI text)",
-      "then": "it returns, for each pair kind, every pair's probability and its band (`accept`, `review` or `below`).\n\n| Kind | Auto-accepted precision | Recall at the review floor |\n|---|---|---|\n| Cross-source risks | at least 0.90 (measured 1.00, 38 pairs) | at least 0.95 (measured 101/103) |\n| Cross-source controls | at least 0.90 (measured 1.00, 48 pairs) | at least 0.95 (measured 242/245) |\n| ERM duplicates | (only 4 auto-accepted, no bar) | at least 0.75 (measured 12/13) |\n\nThe test prints every count: auto-accepted, queued, and true pairs missed below the floor",
+      "when": "`pair_scores(build_dir)` in `src/features/reconciliation/match.py` applies the committed weights, unchanged, to the published bank (seed 42, AI text)",
+      "then": "it returns, for each pair kind, every pair's probability and band (`accept`, `review` or `below`; duplicates are never `accept`).\n\n| Kind | Auto-accepted precision | Recall at the review floor |\n|---|---|---|\n| Cross-source risks | at least 0.90 (measured 0.95, 38 accepted, 122 queued) | at least 0.95 (measured 101/103) |\n| Cross-source controls | at least 0.90 (measured 1.00, 68 accepted, 341 queued) | at least 0.95 (measured 240/245) |\n| ERM duplicates | none: review-only (14 queued) | at least 0.75 (measured 12/13) |\n\nThe test prints every count",
       "test": "reconciliation.test_matching.MatchingTests.test_ac3_transfer_to_the_published_bank",
       "status": "pending"
     },
     {
       "id": "AC-4",
       "when": "the same weights are applied to seed 1 (templated)",
-      "then": "the same bars hold: risks and controls auto-accepted precision at least 0.90 (measured 0.98 and 0.97), and recall at the floor at least 0.95 for both (measured 103/103 and 248/248). Duplicates' recall at the floor is at least 0.75 (measured 13/13). This shows the weights are not fitted to one bank",
+      "then": "the same bars hold. Auto-accepted precision is at least 0.90 for risks (measured 0.93, 42 accepted) and controls (measured 0.98, 95 accepted). Recall at the floor is at least 0.95 for risks (measured 103/103) and controls (measured 246/248), and at least 0.75 for duplicates (measured 13/13, 15 queued). This shows the weights are not fitted to one bank",
       "test": "reconciliation.test_matching.MatchingTests.test_ac4_transfer_to_another_bank",
       "status": "pending"
     },
@@ -52,7 +52,7 @@
     {
       "id": "AC-6",
       "when": "docs/data-model.md and the feature README are read after this change",
-      "then": "they describe the three pair kinds and their features, the training bank, the threshold rule, `weights.json`, and the measured figures on seeds 42 and 1, taken from the built module (L-012). They also say why the features are percentiles: with raw cosines, the templated-trained duplicate model missed 10 of 13 AI-text duplicates; with percentiles, it misses 1",
+      "then": "they describe the three pair kinds and their features, the training bank, the threshold rule, review-only duplicates, `weights.json`, and the figures the built module measures on seeds 42 and 1 (L-012). They also record why the method looks as it does:\n- *Raw cosines:* the templated-trained duplicate model missed 10 of 13 AI-text duplicates.\n- *Plain percentiles under class weighting:* duplicate scores bunched within 1e-5, too fragile for thresholds.\n- *Unweighted models:* about doubled the control queue.",
       "test": "reconciliation.test_matching.MatchingTests.test_ac6_docs_describe_matching",
       "status": "pending"
     }
@@ -74,24 +74,28 @@ E2 child b (O3). Child c needs a score and a band for every candidate pair befor
 ## Test plan
 Tests go in `tests/reconciliation/test_matching.py`, using the cached builder from 011 for seeds 42 and 1. The full-retrain half of AC-2 builds seed 7 itself (under a second). The whole suite stays the done-check.
 
-**Evidence behind the bars.** A pre-plan measurement on 2026-11-21 imported the merged `similarity.py` and `taxonomy_map.py` and used exactly the settings pinned in AC-1 and AC-2. It trained on seed 7 and applied the result unchanged:
+**Evidence behind the bars.** A second pre-plan measurement on 2026-11-21, after a critique, imported the merged `similarity.py` and `taxonomy_map.py` and used exactly the settings pinned in AC-1 and AC-2 (tail scores, balanced weighting, `tol=1e-10`, tie-boundary thresholds). It trained on seed 7 and applied the models unchanged:
 
 | Kind | Seed 42 (AI text) | Seed 1 (templated) |
 |---|---|---|
-| Risks | 38 auto-accepted (precision 1.00), queue 150, 2 of 103 missed | 42 (0.98), queue 170, 0 missed |
-| Controls | 48 (1.00), queue 391, 3 of 245 missed | 65 (0.97), queue 390, 0 missed |
-| ERM duplicates | 4 (1.00), queue 10, 1 of 13 missed | 2 (0.50), queue 12, 0 missed |
+| Risks | 38 auto-accepted (precision 0.95), queue 122, 2 of 103 missed | 42 (0.93), queue 131, 0 missed |
+| Controls | 68 (1.00), queue 341, 5 of 245 missed | 95 (0.98), queue 318, 2 missed |
+| ERM duplicates (review-only) | queue 14, 1 of 13 missed | queue 15, 0 missed |
 
-With raw cosine features instead of percentiles, risks and controls were slightly better on seed 42. The trained duplicate model, however, missed 10 of 13 AI-text duplicates: templated duplicates are near-copies, and AI ones are paraphrases. Percentiles fix that without labels.
+The gap between the duplicate model's floor and its notional auto-accept threshold is 8e-3, far above float drift. Variants rejected:
+- *Raw cosines:* 10 of 13 AI duplicates missed.
+- *Plain percentiles:* the duplicate gap was 7e-6, and the first fit stopped before converging at the default tolerance, moving coefficients by up to 0.38.
+- *Unweighted:* the control queue was 747.
 
 The bars sit below these figures. Per L-012, the built module's figures are what get recorded; if a bar fails, stop and report rather than move it (L-007).
 
 **Not tested here:** canonical assignment, the review-queue file and the build step (child c), and scoring against the published answer key for the page (child d). The tests here read the answer key only to check the bars.
 
 ## Risks
-- **Transfer across text styles:** the training bank is templated and the published bank is AI text, so the transfer is not guaranteed. Signal: AC-3; this is exactly what broke the raw-cosine duplicate model.
-- **Large review queue** (about 150 risk pairs and 390 control pairs): honest, but child c and the page must present it well. Signal: the counts AC-3 prints.
-- **Float drift across platforms** in the retrain check: weights are compared within 1e-6, and thresholds by the training pair they select, not their value.
+- **Transfer across text styles:** the training bank is templated and the published bank is AI text, so the transfer is not guaranteed. Signal: AC-3; raw cosines broke on exactly this.
+- **Large review queue** (about 120 risk pairs, 340 control pairs and 14 duplicate pairs): honest, but child c and the page must present it well. Signal: the counts AC-3 prints.
+- **Float drift across platforms:** the fit converges at `tol=1e-10`; the retrain check compares weights within 1e-6, compares thresholds by the training pair they select, and checks that every seed-42 pair keeps its band.
+- **Review-only duplicates** are a choice child c must honour: the epic's rule for an IA risk reaching two ERM risks then never sees an auto-accepted duplicate pair. This is stated for c.
 - **Circular `risk_link`:** controls use risk scores, so training uses in-sample risk scores on seed 7 and scoring uses the committed risk model on the scored bank. This is stated in the README.
 
 ## Out of scope
@@ -109,5 +113,5 @@ The bars sit below these figures. Per L-012, the built module's figures are what
 ## Slices
 1. `features.py`: the three tables, with the AC-1 fixture test.
 2. `train.py` and `weights.json`, with the AC-2 tests.
-3. `pair_scores`, with the AC-3, AC-4 and AC-5 tests.
+3. `match.py` (`pair_scores`), with the AC-3, AC-4 and AC-5 tests.
 4. Docs (AC-6).
