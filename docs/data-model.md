@@ -106,6 +106,33 @@ Notes:
   - IA placement: 130/150 (matched 33/33, mapped 89/103, nearest 8/14).
 
   `tests/golden/checksums_reconciled.sha256` freezes this output (INV-7). Regenerate it with `.venv\Scripts\python -m tests.reconciliation.golden`.
+- **Reconciliation results** (E2 child d, 014; `src/features/reconciliation/scores.json`, written by `score.py`, the only code that reads the published bank's answer key). Published bank: seed 42, full size, AI text.
+
+  | | Risks | Controls |
+  |---|---|---|
+  | True cross-source pairs | 103 | 245 |
+  | Auto-merged: precision | 33/33 | 68/68 |
+  | Auto-merged: recall | 33/103 | 68/245 |
+  | Review queue rows (true among them) | 127 (68) | 341 (172) |
+  | Missed (neither merged nor queued) | 2 | 5 |
+  | Recall if a reviewer resolves the queue correctly | 101/103 | 240/245 |
+
+  More figures:
+  - *ERM duplicates* (review-only): 14 queued, 12 of them true; 1 of 13 missed.
+  - *Review queue:* 482 rows in all.
+  - *Taxonomy, precision / recall per level:* L1 6/9 / 6/8, L2 14/20 / 14/20, L3 24/31 / 24/41. The recall denominators include IA nodes that hold no risks, which are left `unmapped` by design.
+  - *Placement:* IA risks correct 130/150 (matched 33/33, mapped 89/103, nearest 8/14), and 14/21 among misfiled IA risks.
+  - *Citation cue* (the control model with and without the feature, both trained on the training bank):
+    - with it: 68 accepted at 68/68, a review band of 341, and 5 true pairs below the floor;
+    - without it: 82 accepted at 73/82, a review band of 505, and 1 below the floor.
+
+    The cue buys precision and a smaller queue rather than recall. This is a comparison of two models, not a causal share.
+
+  Caveats, published with the figures:
+  1. The 31 orphan controls enter the candidate pairs as easy negatives (none merged; 2 queue rows touch one). That helps the figures and is structure, not matcher skill.
+  2. The training bank comes from the same generator, so the weights know its habits in a way a real bank's history would not.
+  3. These are one bank's figures with small samples. Raw auto-accept precision for risks was 36/38 here and 39/42 on seed 1.
+  4. The thresholds are deliberately conservative, so merged F1 (0.49 risks, 0.43 controls) is not comparable with research R1's best-threshold F1 (about 0.81 and 0.74).
 - **Answer key.** The generator records which source items are true duplicates and the true taxonomy mapping, in a separate folder. It is used only for scoring.
 - **Published layout** (005). ERM and IA are separate systems, so taxonomy nodes, risks and controls are published one file per source (`risk_erm.csv`, `risk_ia.csv`, ...), as is every relationship touching them. Audits test IA controls only. The column-level data dictionary is `src/features/generator/README.md`.
 - **Documents (M2).** Workpapers, RCMs and reports, linked to audits, controls and issues. Not in M1.
@@ -147,5 +174,5 @@ Rules that must always hold. Each has an ID and a test that enforces it (tests n
 - **Everything is synthetic, public and regenerable**, so there are no retention or deletion concerns. The answer key is published too, for transparency.
 
 ## Open data questions
-- Matching method for reconciliation (research R1).
+- Matching method: closed by research R1 (GO, 2026-11-21) and E2; results above.
 - Templated vs AI-written descriptions (research R2).

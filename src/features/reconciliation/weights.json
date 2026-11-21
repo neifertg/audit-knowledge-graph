@@ -37,6 +37,42 @@
   "review_only": false,
   "training_true_pairs": 237
  },
+ "control_without_citation": {
+  "auto_accept": 0.9999864939559819,
+  "auto_accept_pair": [
+   "ERM-C2690",
+   "IAC-5953"
+  ],
+  "coefficients": [
+   2.888920317292552,
+   0.2868305268898012,
+   4.7941614834038315,
+   7.378549092237845,
+   8.810940752843551,
+   9.042833737036188,
+   1.916129917333624,
+   0.329694415064468
+  ],
+  "columns": [
+   "word",
+   "char",
+   "rank",
+   "risk_link",
+   "same_type",
+   "same_nature",
+   "same_frequency",
+   "shared_system"
+  ],
+  "intercept": -28.259510131651965,
+  "iterations": 53,
+  "review_floor": 0.8616768400663661,
+  "review_floor_pair": [
+   "ERM-C1623",
+   "IAC-9142"
+  ],
+  "review_only": false,
+  "training_true_pairs": 237
+ },
  "duplicate": {
   "auto_accept": null,
   "auto_accept_pair": null,
@@ -64,7 +100,7 @@
   "review_only": true,
   "training_true_pairs": 13
  },
- "fingerprint": "72e561078419a72f7c438226d5ceb59d2eb0612f3825d0632a70d4a407a8459f",
+ "fingerprint": "57be9a5e0120eda40c57a32a09db94b715824fe83afe076a80bcff03fd44ca0f",
  "risk": {
   "auto_accept": 0.9999363657878788,
   "auto_accept_pair": [
