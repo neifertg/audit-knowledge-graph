@@ -4,7 +4,7 @@
 {
   "id": "009-three-years-of-audits-and-issues-with-pl",
   "tier": "standard",
-  "status": "draft",
+  "status": "approved",
   "created": "2026-11-20",
   "objective": "O3",
   "areas": [
@@ -74,7 +74,9 @@
     }
   ],
   "epic": "001-e1-synthetic-bank-generator",
-  "child": "e"
+  "child": "e",
+  "approved": "2026-11-20",
+  "approved_hash": "f98d6787bc50a6a2"
 }
 ```
 
