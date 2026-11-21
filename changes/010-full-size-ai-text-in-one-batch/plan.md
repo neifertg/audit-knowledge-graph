@@ -4,7 +4,7 @@
 {
   "id": "010-full-size-ai-text-in-one-batch",
   "tier": "standard",
-  "status": "approved",
+  "status": "in-progress",
   "created": "2026-11-20",
   "objective": "O3",
   "areas": [
@@ -63,7 +63,8 @@
   "child": "f",
   "revised": "2026-11-21",
   "approved": "2026-11-21",
-  "approved_hash": "6ec3a846da493c0f"
+  "approved_hash": "6ec3a846da493c0f",
+  "in_progress": "2026-11-21"
 }
 ```
 
