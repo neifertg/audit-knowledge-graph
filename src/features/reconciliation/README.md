@@ -1,7 +1,7 @@
 # reconciliation
 
 Purpose: reconciles ERM's and IA's separate taxonomies, risks and controls into one canonical framework (ERM's taxonomy), with a review queue for uncertain matches (epic E2).
-Entry point: `taxonomy_map.py` (`map_taxonomy()`, child a). Children b-d add matching, the canonical layer and scoring.
+Entry point: `match.py` (`pair_scores()`, child b), which builds on `features.py` and `taxonomy_map.py` (`map_taxonomy()`, child a). Children c-d add the canonical layer and scoring.
 Owns: the canonical layer in `docs/data-model.md` (`ia_maps_to_erm` so far; canonical risks and controls from child c).
 Depends on: the generator's published files only (read from a build directory); scikit-learn.
 
@@ -14,3 +14,13 @@ Notes for people and agents working here:
   - A node whose subtree holds no IA risk is `unmapped` with basis `no_risks`.
   - Node names are **not** used as evidence. A names-only mapping is only the baseline the vote must beat: 0.33 accuracy on seed 42, against the vote's 0.71 on nodes holding risks.
 - **Known limit:** IA nodes that are truly unmapped but hold risks are not detected, because their risks truly sit in one ERM node.
+- **`features.py`** builds the three pair tables (cross-source risks, ERM duplicates, cross-source controls). Their columns are pinned by the 012 plan. Word and character cosines become tail scores, `-log10(1 - p + 1/n)` of their within-bank percentile.
+- **`train.py`** is the only module that reads an answer key, and only the training bank's: seed 7, templated, built in a temporary directory. It writes `weights.json` (coefficients, thresholds, the training pair each threshold falls on, and a fingerprint). Re-run it after changing any feature code:
+
+  ```
+  .venv\Scripts\python -m src.features.reconciliation.train
+  ```
+
+  It takes about 7 seconds, and a test fails if the fingerprint no longer matches.
+- **`match.py`** applies `weights.json` and gives every pair a probability and a band: `accept`, `review` or `below`. ERM duplicates are review-only, never `accept`.
+- **Circular by design:** the control feature `risk_link` uses risk scores. Training uses the risk model's in-sample scores on seed 7; scoring uses the committed risk model on the scored bank.

@@ -51,6 +51,33 @@ Notes:
   | 1 (templated) | 0.65 | | 9 |
 
   Node names alone score 0.33. Known limit: IA nodes that are truly unmapped but hold risks are not detected, because their risks truly sit in one ERM node; only the truly unmapped `no_risks` nodes come out `unmapped`.
+- **Pair matching** (E2 child b, 012; `src/features/reconciliation/features.py`, `train.py`, `match.py`). Every candidate pair of three kinds is scored:
+  - cross-source risks (ERM x IA, 27,000 at seed 42);
+  - within-ERM risk duplicates (16,110);
+  - cross-source controls (118,105).
+
+  *Features* are text and structure. Word and character TF-IDF cosines are each turned into a **tail score**, `-log10(1 - p + 1/n)` of their percentile within the bank, so they are scale-free across text styles. The other features are candidate rank, shared exposed entity or business unit, child a's taxonomy mapping, equal rating, and for controls: links to scored risk pairs, equal type, nature and frequency, a shared system, and the citation cue.
+
+  *Weights* come from one logistic model per kind (class-weighted, converged at `tol=1e-10`), learned once by `train.py` on a separate **training bank** (seed 7, templated text, built in a temporary directory). They are committed as `src/features/reconciliation/weights.json` with a fingerprint of the training bank and the feature's source. The build never trains, and only `train.py` reads an answer key: the training bank's.
+
+  *Thresholds* are set on the training scores, at tie-group boundaries:
+  - auto-accept: the lowest score whose at-or-above set has at least 95% precision;
+  - review floor: the highest score holding at least 99% of the true pairs.
+
+  ERM duplicates are **review-only** (owner decision, 012): 13 true pairs per bank cannot support a 95% precision estimate, so they have a floor but no auto-accept.
+
+  Measured by the built module, with the weights applied unchanged:
+
+  | Kind | Seed 42 (AI text, published) | Seed 1 (templated) |
+  |---|---|---|
+  | Risks | 38 auto-accepted (precision 0.95), 122 queued, 2 of 103 missed | 42 (0.93), 131 queued, 0 missed |
+  | Controls | 68 (1.00), 341 queued, 5 of 245 missed | 95 (0.98), 318 queued, 2 missed |
+  | ERM duplicates | 14 queued, 1 of 13 missed | 15 queued, 0 missed |
+
+  *Why tail scores:*
+  - With raw cosines, the templated-trained duplicate model missed 10 of 13 AI-text duplicates: templated duplicates are near-copies, AI ones paraphrases.
+  - Plain percentiles under class weighting bunched the duplicate scores within 1e-5.
+  - Unweighted models about doubled the control queue.
 - **Answer key.** The generator records which source items are true duplicates and the true taxonomy mapping, in a separate folder. It is used only for scoring.
 - **Published layout** (005). ERM and IA are separate systems, so taxonomy nodes, risks and controls are published one file per source (`risk_erm.csv`, `risk_ia.csv`, ...), as is every relationship touching them. Audits test IA controls only. The column-level data dictionary is `src/features/generator/README.md`.
 - **Documents (M2).** Workpapers, RCMs and reports, linked to audits, controls and issues. Not in M1.
