@@ -150,11 +150,13 @@ class SqliteTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             run_akg("build", "--size", "sample", "--out", tmp)
             self.assertTrue((Path(tmp) / L.DATABASE).exists(), "build loads by default")
-            run_akg("build", "--size", "sample", "--out", tmp, "--no-load")
+            result = run_akg("build", "--size", "sample", "--out", tmp, "--no-load")
             self.assertFalse((Path(tmp) / L.DATABASE).exists())
+            self.assertNotIn("round 1:", result.stdout, "--no-load skips the rounds (017)")
             run_akg("build", "--size", "sample", "--out", tmp)
-            run_akg("build", "--size", "sample", "--out", tmp, "--no-reconcile")
+            result = run_akg("build", "--size", "sample", "--out", tmp, "--no-reconcile")
             self.assertFalse((Path(tmp) / L.DATABASE).exists())
+            self.assertNotIn("round 1:", result.stdout, "--no-reconcile skips the rounds (017)")
 
     def test_ac5_docs_describe_the_sqlite_store(self):
         doc = (ROOT / "docs" / "data-model.md").read_text(encoding="utf-8")
