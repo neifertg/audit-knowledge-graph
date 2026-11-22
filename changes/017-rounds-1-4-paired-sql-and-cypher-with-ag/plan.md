@@ -4,7 +4,7 @@
 {
   "id": "017-rounds-1-4-paired-sql-and-cypher-with-ag",
   "tier": "standard",
-  "status": "in-progress",
+  "status": "done",
   "created": "2026-11-21",
   "objective": "O2",
   "areas": [
@@ -62,7 +62,8 @@
   "child": "c",
   "approved": "2026-11-21",
   "approved_hash": "d0eeeb1a86e1ac0d",
-  "in_progress": "2026-11-21"
+  "in_progress": "2026-11-21",
+  "done": "2026-11-21"
 }
 ```
 
