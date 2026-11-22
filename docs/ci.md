@@ -15,7 +15,7 @@
 The first run, on the change branch at commit `e434bb7` (2026-11-22), was green on its first attempt: https://github.com/neifertg/audit-knowledge-graph/actions/runs/44981150868
 - **Tests:** `Ran 103 tests`, `OK`, none skipped (the same count as the local rehearsal on that commit).
 - **Neo4j readiness:** ready after 0 retries; the container's health check had already passed.
-- **Wall time:** about 4 minutes for the job (03:33:04 to 03:37:06 UTC), of which the suite took 170 s. The same suite takes 227 s plain and 500-970 s under Neo4j on the owner's 7.6 GB laptop (L-017).
+- **Job wall time:** about 4 minutes for the job (03:33:04 to 03:37:06 UTC), of which the suite took 170 s. The same suite takes 227 s plain and 500-970 s under Neo4j on the owner's 7.6 GB laptop (L-017).
 - No Linux-only failure and no golden drift: the generated outputs pin LF line endings, and the numpy and scikit-learn figures matched the committed goldens byte for byte.
 
 ## Reproduce CI locally
