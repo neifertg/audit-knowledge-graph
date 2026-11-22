@@ -97,3 +97,7 @@ Source: 021-cae-layer-site-data-export-and-page-skel
 ### L-023 (2026-11-22) [tests] Critique minors folded into the build need a named test before building, not a commit message
 022: four round-3 critique minors were folded into the build by a commit message; one (round 5's split must add up to the published scores) was never written, and only the code review caught it, so it was parked instead of done. 018 and 021 folded minors the same way and got lucky. Next time: when a READY critique's minors are folded into the build, list each as a checklist line in the plan's test plan or as a test name before writing code, and tick each against a real assertion before asking for review.
 Source: 022-rounds-operating-model-and-technical-app
+
+### L-024 (2026-11-22) [docs] Gate a workflow_run deploy on the tested commit still being main's head, in its own job
+023: a Pages workflow triggered by workflow_run on the tests workflow can be fooled by re-running an older green run (it fires again with success and push), deploying an older page over the current one. Fix: a guard job with no environment compares workflow_run.head_sha with main's head (git ls-remote) and the deploy job runs only on its current=true output, so a refused deploy records no deployment. Next time a workflow deploys from workflow_run, put the guard in from the start, and make the guard step fail red, not green, when its own lookup fails.
+Source: 023-publish-on-github-pages-portfolio-card-a

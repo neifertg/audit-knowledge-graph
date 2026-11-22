@@ -75,7 +75,7 @@ def one_round(base: str, r: dict, sources: dict) -> str:
     if r["supporting"]:
         heading = (f'<h3>Owner concentration <span class="tag" data-label="derived">supporting query; derived, not planted'
                    f'</span></h3><p class="question">{m("question")}</p>')
-        scenario = "derived (supporting query)"
+        scenario = m("checks.scenario", "scenario_supporting")
     else:
         heading = f'<h3>Round {m("number")}</h3><p class="question">{m("question")}</p>'
         scenario = m("checks.scenario", "scenario")

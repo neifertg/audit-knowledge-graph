@@ -3,3 +3,4 @@ capitan/cache.json
 __pycache__/
 .venv/
 data/
+!src/features/site/data/

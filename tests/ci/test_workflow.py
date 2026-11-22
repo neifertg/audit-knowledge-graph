@@ -58,6 +58,60 @@ class WorkflowTests(unittest.TestCase):
         ignored = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
         self.assertIn("data/", [line.strip() for line in ignored])
 
+    # ---------------- 023: the Pages workflow, the reader test, the docs ----------------
+
+    def test_ac2_023_pages_workflow_deploys_only_current_tested_head(self):
+        pages = ROOT / ".github" / "workflows" / "pages.yml"
+        proposed = ROOT / "changes" / "023-publish-on-github-pages-portfolio-card-a" / "proposed" / "pages.yml"
+        self.assertTrue(pages.exists(), "the owner commits .github/workflows/pages.yml in block B1")
+        self.assertEqual(pages.read_bytes(), proposed.read_bytes(), "the committed workflow is the reviewed draft")
+        lines = [line.rstrip() for line in pages.read_text(encoding="utf-8").splitlines()
+                 if line.strip() and not line.strip().startswith("#")]
+        code = "\n".join(lines)
+        for line in ("  workflow_run:", "    workflows: [tests]", "    types: [completed]", "    branches: [main]",
+                     "    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'",
+                     "    needs: guard", "    if: needs.guard.outputs.current == 'true'",
+                     "          ref: ${{ github.event.workflow_run.head_sha }}",
+                     "        run: python -m src.features.site.build --out _site",
+                     "      - uses: actions/configure-pages@v6", "      - uses: actions/upload-pages-artifact@v5",
+                     "        uses: actions/deploy-pages@v5", "      pages: write", "      id-token: write",
+                     "      name: github-pages", "  group: pages", "  cancel-in-progress: false"):
+            self.assertIn(line, lines, line)
+        # the guard compares the tested commit with main's current head, and only the deploy job has an environment
+        self.assertRegex(code, r'head=\$\(git ls-remote "https://github\.com/\$\{\{ github\.repository \}\}" refs/heads/main')
+        self.assertIn('if [ "$head" = "${{ github.event.workflow_run.head_sha }}" ]; then', code)
+        self.assertEqual(code.count("environment:"), 1)
+        guard = code.split("  guard:")[1].split("  deploy:")[0]
+        self.assertNotIn("environment:", guard)
+        self.assertNotIn("pip install", code)
+        self.assertNotIn("secrets.", code)
+
+    def test_ac3_023_reader_test_prepared(self):
+        folder = ROOT / "research" / "o1-reader-test"
+        script = (folder / "script.md").read_text(encoding="utf-8")
+        results = (folder / "results.md").read_text(encoding="utf-8")
+        self.assertTrue((folder / "decision.md").exists(), "started with capitan research")
+        for phrase in ("https://neifertg.github.io/audit-knowledge-graph/", "The rounds",
+                       "In one sentence, what does this show, and why would an audit leader care?",
+                       "three readers", "(a)", "(b)", "stricter reading", "independently",
+                       "Passes:", "Fails:"):
+            self.assertIn(phrase, script, phrase)
+        self.assertEqual(script.count("Passes:"), 2)
+        self.assertEqual(script.count("Fails:"), 2)
+        for field in ("Reader A", "Reader B", "Reader C", "Role", "Date", "Sentence", "Owner's judgment",
+                      "Agent's judgment", "Result", "Reason"):
+            self.assertIn(field, results, field)
+
+    def test_ac4_023_pages_docs(self):
+        pages = (ROOT / "docs" / "pages.md").read_text(encoding="utf-8")
+        for phrase in ("python -m src.features.site.build", "workflow_run", "main's head", "build_type=workflow",
+                       "## Live check", "byte for byte", "proposed/pages.yml", "refused"):
+            self.assertIn(phrase, pages, phrase)
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("https://neifertg.github.io/audit-knowledge-graph/", readme)
+        self.assertIn("docs/pages.md", readme)
+        self.assertIn("pages.yml", (ROOT / "src" / "features" / "site" / "README.md").read_text(encoding="utf-8"))
+
     def test_ac5_ci_environment_reaches_no_test_subprocess(self):
         ci_env = {"NEO4J_URI": "bolt://localhost:7687", "NEO4J_USER": "neo4j", "NEO4J_PASSWORD": "x",
                   "AKG_REQUIRE_NEO4J": "1"}

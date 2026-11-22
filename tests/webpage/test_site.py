@@ -469,6 +469,37 @@ class SiteTests(unittest.TestCase):
                 closed.append((meta["id"], count))
         self.assertEqual([(e["epic"], e["changes"]) for e in site["project"]], closed)
 
+    # ---------------- 023: 022's parked findings, each a named test (L-023) ----------------
+
+    def test_ac1_023_round5_split_adds_up(self):
+        split = json.loads(X.SITE_JSON.read_text(encoding="utf-8"))["round5_split"]
+        five = next(x for x in rounds()["rounds"] if x["number"] == 5)
+        for side in ("sql", "cypher"):
+            self.assertEqual(split["query"][side] + split["setup"][side], five["scores"][side], side)
+
+    def test_ac1_023_owner_scenario_through_formatter(self):
+        _, text, page = built()
+        body = text.split('id="round-owners"')[1].split("</article>")[0]
+        self.assertIn('data-source="rounds.json:supporting[0].checks.scenario" data-format="scenario_supporting"', body)
+        marked = {s: t for s, f, t in page.marked if s == "rounds.json:supporting[0].checks.scenario"}
+        self.assertEqual(marked, {"rounds.json:supporting[0].checks.scenario": "derived (supporting query)"})
+        self.assertEqual(FORMATTERS["scenario_supporting"](None), "derived (supporting query)")
+
+    def test_ac1_023_project_titles(self):
+        for epic in json.loads(X.SITE_JSON.read_text(encoding="utf-8"))["project"]:
+            epic_md = ROOT / "changes" / epic["epic"] / "epic.md"
+            heading = epic_md.read_text(encoding="utf-8").splitlines()[0]
+            self.assertTrue(heading.startswith("# "), epic["epic"])
+            self.assertEqual(epic["title"], heading[2:].strip())
+
+    def test_ac1_023_each_close_rule_nonempty(self):
+        r = rounds()
+        mp = lambda x, side: x["metrics"][side]["moving_parts"]
+        st = lambda x, side: x["metrics"][side]["steps"]
+        close = [x for x in r["rounds"] if x["measured_verdict"] == "close"]
+        self.assertTrue([x for x in close if st(x, "sql") <= st(x, "cypher")], "SQL steps no more than Cypher's")
+        self.assertTrue([x for x in close if mp(x, "cypher") > mp(x, "sql")], "Cypher needs more moving parts")
+
     def test_ac7_docs(self):
         readme = (B.HERE / "README.md").read_text(encoding="utf-8")
         self.assertNotIn("TODO", readme)
