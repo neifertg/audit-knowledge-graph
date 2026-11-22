@@ -4,7 +4,7 @@
 {
   "id": "024-live-check-portfolio-card-and-the-o1-rea",
   "tier": "standard",
-  "status": "approved",
+  "status": "draft",
   "created": "2026-11-22",
   "objective": "O1",
   "areas": [
@@ -16,9 +16,9 @@
   "criteria": [
     {
       "id": "AC-1",
-      "when": "the Pages guard is fixed (023's parked review finding)",
-      "then": "the guard fails **red**, not green, when its own `git ls-remote` lookup returns nothing: the draft `changes/024-.../proposed/pages.yml` differs from 023's only by an empty-head check (`if [ -z \"$head\" ]` with an `::error::` and `exit 1`) and its header line. The owner commits it to `.github/workflows/pages.yml` on the change branch under `allow-governance` (block B1). 023's byte-for-byte test is re-pointed to 024's draft; a test asserts the two drafts differ only in those lines; and **a behaviour test** extracts the guard step's script from the committed workflow and runs it with `bash` and a fake `git` on the `PATH` that prints nothing, requiring a nonzero exit and the `::error::` line (bash is on CI's runner and in Git for Windows; the test fails, never skips, if it is missing). `docs/pages.md` says to re-run **all** jobs of a pages run, never only a failed deploy, so the guard checks main's head again, and names 024's draft as the one the byte-for-byte test checks; a docs test checks both. The fix's first live run happens after this change's merge and is noted then, not made a criterion (L-020).",
-      "test": "ci.test_workflow.WorkflowTests.test_ac2_023_pages_workflow_deploys_only_current_tested_head (re-pointed), test_ac1_024_guard_fix_is_the_only_difference, test_ac1_024_guard_fails_red_on_empty_lookup (behaviour), test_ac1_024_pages_docs",
+      "when": "the Pages guard is fixed (023's parked review finding) and the deploy is retried (revision 2026-11-22)",
+      "then": "the guard fails **red**, not green, when its own `git ls-remote` lookup returns nothing: the draft `changes/024-.../proposed/pages.yml` differs from 023's only by an empty-head check (`if [ -z \"$head\" ]` with an `::error::` and `exit 1`) and its header line. **It also retries the deploy** (owner decision, 2026-11-22): both deploys so far failed on the first attempt (`deploy-pages@v5` could not yet see the artifact `upload-pages-artifact@v5` had uploaded seconds before; runs 45067874062 and 45069382246) and succeeded on a re-run, so the deploy step gets `continue-on-error: true`, a `sleep 30` step and a second `deploy-pages@v5` step (`id: retry`) run only `if: steps.deployment.outcome == 'failure'`, and the environment's URL takes the retry's output first; the job still fails if the retry fails. The diff test lists every added line (the guard check, the header, the retry) and asserts nothing else changed; a test checks the retry's lines (whole lines, comments stripped). The owner commits it to `.github/workflows/pages.yml` on the change branch under `allow-governance` (block B1). 023's byte-for-byte test is re-pointed to 024's draft; a test asserts the two drafts differ only in those lines; and **a behaviour test** extracts the guard step's script from the committed workflow and runs it with `bash` and a fake `git` on the `PATH` that prints nothing, requiring a nonzero exit and the `::error::` line (bash is on CI's runner and in Git for Windows; the test fails, never skips, if it is missing). `docs/pages.md` says to re-run **all** jobs of a pages run, never only a failed deploy, so the guard checks main's head again, and names 024's draft as the one the byte-for-byte test checks; a docs test checks both. The fix's first live run happens after this change's merge and is noted then, not made a criterion (L-020).",
+      "test": "ci.test_workflow.WorkflowTests.test_ac2_023_pages_workflow_deploys_only_current_tested_head (re-pointed), test_ac1_024_guard_fix_is_the_only_difference, test_ac1_024_guard_fails_red_on_empty_lookup (behaviour), test_ac1_024_deploy_retry, test_ac1_024_pages_docs",
       "status": "pending"
     },
     {
@@ -45,8 +45,7 @@
   ],
   "epic": "004-e4-page-v1-and-publish",
   "child": "d",
-  "approved": "2026-11-22",
-  "approved_hash": "63d01581ae6a99bb"
+  "revised": "2026-11-22"
 }
 ```
 
@@ -67,6 +66,9 @@ E4 child d (O1, and M1's last open condition). The page is live (023, run 450678
 - **P** (portfolio, another repository): clone or open `risk-analytics-portfolio`, insert the card's text as the first card under `## Projects` in `index.md`, commit with `-m`, push. The agent gives the exact block, with the card text, when it is time.
 - **On a miss only:** approve the epic revision (`capitan approve 004`, committed on main), then merge main into the change branch: `git switch change/024-...`, `git merge --no-edit main`.
 - **Merge:** `git switch main`, `git merge --no-ff --no-edit change/024-...`, prune, `git push origin main`.
+
+## Revision 2026-11-22: retry the deploy
+After approval, the Pages run for `890d53b` failed the same way as the first deploy (the guard passed, the upload succeeded, then `deploy-pages@v5` found no artifact). Two first attempts out of two is a pattern, so every push would have needed a manual re-run. The owner chose a retry in the workflow over pinning older action versions or a separate change: if the deploy step fails, the job waits 30 seconds and deploys once more. The page stayed live on the tested `d415a6c` build throughout (the later commits change no page file).
 
 ## Data impact
 None.
