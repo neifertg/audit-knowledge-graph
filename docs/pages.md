@@ -26,7 +26,7 @@ Take the deployed commit from a pages run whose guard reported current (never fr
 A test (`ci.test_workflow.WorkflowTests.test_ac2_023_pages_workflow_deploys_only_current_tested_head`) requires the committed workflow to equal the latest reviewed draft, now change 024's `changes/024-live-check-portfolio-card-and-the-o1-rea/proposed/pages.yml` (change 023's draft before the guard fix), byte for byte. A later change to the workflow drafts its own copy in its own change folder and re-points that test's `proposed` path there, in the same change, so the reviewed draft and the committed file stay tied.
 
 ## Owner's confirmation
-Recorded by change 024 before the portfolio card and the reader test go out.
+2026-11-22, 22:03 UTC: the owner, asked to check the live page in light and dark and on a phone, replied "Looks great". The page then served the build of `7d9c32e` (Pages run 45070137425, deployed on the first attempt; its guard reported current), whose page files equal the first deploy's `d415a6c` (only planning files changed between them). This is the build the O1 readers see unless a later record below says otherwise.
 
 ## Portfolio
 Recorded by change 024 after the card is published.

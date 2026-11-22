@@ -2,6 +2,8 @@
 
 Filled in after the page is live (change 024). Rule and examples: `script.md`. No names: role only.
 
+**The build the readers saw:** `7d9c32e` (Pages run 45070137425), recorded 2026-11-22 22:03 UTC when the owner confirmed the live page and before the script went out. Judging: the agent's judgment for each answer is committed before the owner's (the commit order is the evidence).
+
 | | Reader A | Reader B | Reader C |
 |---|---|---|---|
 | Role | | | |
