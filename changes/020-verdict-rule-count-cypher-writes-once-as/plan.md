@@ -4,7 +4,7 @@
 {
   "id": "020-verdict-rule-count-cypher-writes-once-as",
   "tier": "standard",
-  "status": "draft",
+  "status": "approved",
   "created": "2026-11-21",
   "objective": "O2",
   "areas": [
@@ -35,7 +35,9 @@
       "test": "rounds.test_rounds_5_7.Rounds57Tests.test_ac7_docs_describe_rounds_5_7_and_the_export, rounds.test_rounds.RoundTests.test_ac6_docs_describe_the_rounds, a new rounds.test_rounds_5_7.Rounds57Tests.test_ac3_020_published_rule_text, and a new rounds.test_rounds_5_7.Rounds57Tests.test_ac4_020_symmetry_table (pure: every row's snippets and measured triples)",
       "status": "pending"
     }
-  ]
+  ],
+  "approved": "2026-11-21",
+  "approved_hash": "295e7d845df97ffe"
 }
 ```
 
