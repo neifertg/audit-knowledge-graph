@@ -4,7 +4,7 @@
 {
   "id": "004-e4-page-v1-and-publish",
   "tier": "epic",
-  "status": "approved",
+  "status": "draft",
   "created": "2026-11-19",
   "revised": "2026-11-22",
   "objective": "O1",
@@ -27,10 +27,15 @@
       "depends_on": [
         "b"
       ]
+    },
+    {
+      "key": "d",
+      "title": "Live check, portfolio card and the O1 reader test results",
+      "depends_on": [
+        "c"
+      ]
     }
-  ],
-  "approved": "2026-11-22",
-  "approved_hash": "ca4d33bb5467fd7b"
+  ]
 }
 ```
 
@@ -72,6 +77,17 @@ This epic was drafted before E3. E3's results change what the page says:
 - **Pages, by a GitHub Actions workflow** (the branch-and-folder setting serves only the root or `/docs`, which does not fit this layout). The workflow, drafted by the agent and committed by the owner through `allow-governance` as in E3 child e, runs only after the `tests` workflow succeeds on main (`workflow_run` on `tests.yml` with a success condition, so a red suite never deploys), runs the site builder on the committed exports and deploys its output directory, which holds the page and every data file it links to. Nothing generated is committed. The owner reviews the built page on a local preview and confirms before turning Pages on. Done when the live URL serves the page and its linked data files; the live check is recorded after the deploy, not asserted by a test in the run that deploys it (L-020).
 - **Portfolio card:** a card on the owner's `risk-analytics-portfolio` linking to the page. That is another repository: the owner makes the change, or explicitly asks the agent to, in c.
 - **The O1 reader test** (GOALS): 2-3 audit people the owner knows read only the top section and restate the value in one sentence; M1 passes at 2 of 3. The owner runs it; the agent prepares a one-page script and a results template; results are recorded without names in `research/o1-reader-test/`. **If fewer than 2 of 3 pass,** the agent proposes a revision of the top section from what the readers said, it goes through a small change, and the test is re-run with readers who have not seen the page; M1 is not done until it passes, and after a second miss the owner decides how to proceed.
+
+*(Revision 2026-11-22: child c was split, see below. As built, change 023 did the pre-merge part of c; its post-deploy part is child d.)*
+
+**d. Live check, portfolio card and the O1 reader test results (half a day plus the readers' time).** Depends on c. It is planned as change **024** (the number 023's plan and `docs/pages.md` use). Areas: `docs/**`, `research/**`, `tests/**`, plus governance files the owner commits. The card lives in the separate `risk-analytics-portfolio` repository, which capitan's areas and gate cannot see; it is checked by d's portfolio check below, and committed by the owner or by the agent at the owner's explicit request.
+- **The live check** (moved from c): a **point-in-time record**, made as late as possible before d finishes. The deployed commit, taken from a Pages run whose guard reported current, equals main's head at that moment; a build of that commit in a fresh worktree equals the live page byte for byte in all six files (`index.html`, `site.css`, `site.js`, `site.json`, `rounds.json`, `scores.json`), with one retry for the Pages cache; recorded with the run, the commit and the time in `docs/pages.md`'s 'Live check' section, not asserted by a test in the run that deploys (L-020). Later deploys (d's own merge, or knowledge commits to main) do not reopen it when the page's build output is unchanged; a change that alters the build output repeats it. **The owner's confirmation** of the live page in light and dark and on a phone is recorded in the same section, before the card or the reader test go out.
+- **The guard fix** parked from 023's review: the Pages guard fails red, not green, when its own `git ls-remote` lookup fails (governance: drafted by the agent, committed by the owner), with 023's byte-for-byte workflow test re-pointed to d's draft. It is judged by that test and by reading; its first live run happens only after d's merge, so it is noted afterwards, not made a criterion (L-020). `docs/pages.md` also says to re-run **all** jobs of a pages run, not only a failed deploy, so the guard checks main's head again (the first deploy's re-run reused an earlier guard result; main had not moved, so it published the right commit).
+- **The portfolio card** (moved from c): a test checks the draft in `changes/023-.../proposed/portfolio-card.md` (the existing cards' sections, no figures, the two links: the live page and the source); it is committed to `risk-analytics-portfolio`'s `index.md`, first under 'Projects'; the portfolio check: the published portfolio shows the card and its link opens the live page.
+- **The O1 reader test results** (moved from c): the owner sends `research/o1-reader-test/script.md` to three readers; the owner and the agent judge each answer independently against the rule written before any answer, the stricter reading standing. **d's criterion is that the answers are recorded, judged and written into `results.md` and `decision.md`, whatever the outcome**, so d can always finish. **M1's O1 condition passes at 2 of 3.** On a miss, the revision of the top section is a new change, the re-test uses readers who have not seen the page, and after a second miss the owner decides; **this epic and M1 are closed only after a recorded pass** (or the owner's recorded decision after a second miss), whatever d's status. d stays in progress while the readers answer; its timebox counts working time.
+
+## Revision 2026-11-22: child c split into c and d
+Change 023's critique found that c's post-deploy steps (the live check, the card, the reader results) cannot be criteria of the change that is merged to make the deploy happen: `workflow_run` fires only from main, and capitan finishes only a change whose criteria all pass, which the merge relay needs first. So 023 did the pre-merge part of c (022's four parked findings fixed as named tests; the Pages workflow with a guard that deploys only a tested commit while it is still main's head, split into a guard job and a deploy job so a refused deploy records no deployment; the reader-test script with its pass rule fixed before any answer; `docs/pages.md`), and the owner's go-live block turned Pages on and pushed main. The first deploy (run 45067874062) published `d415a6c` after one re-run of its deploy job: GitHub's deploy step queried for the uploaded artifact before it was visible and said to re-run. The rest of c's done condition moves to the new child d, so the epic cannot close while the live check, the card or the reader results are open.
 
 ## Out of scope
 - Live GraphRAG chat and the AWS production-architecture diagram: parked.
