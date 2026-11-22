@@ -38,7 +38,9 @@ COPY = [
     "Repeat findings should escalate, not reset.",
     "Concentrated ownership", "derived from the data, not planted", "each own", "key controls whose risks reach",
     "Key-person risk is visible before it becomes an issue.",
-    "Does a graph beat SQL?", "planning questions in both, with the same facts and answers proved equal: SQL wins",
+    "Graph or SQL?", "Both answer the same", "planning questions over the same facts, and their answers are proved equal. What differs is how much query each needs, scored by a published rule: SQL wins",
+    # 025: the In short paragraph
+    "In short:", "linking risks, controls, systems and issues, in the ERM register and Internal Audit's records alike, shows an audit leader risks that no table shows on its own: a shared system that many business units depend on, the same control failing in different years under different titles, and key controls concentrated in a few hands. That is what audit planning can target.",
     "the graph", "are close.", "The difference is how much query each needs, not speed: no speed claims are made at demo scale.",
     "The graph informs auditor judgment; it does not score risk or set the audit plan.",
 ]
@@ -499,6 +501,14 @@ class SiteTests(unittest.TestCase):
         close = [x for x in r["rounds"] if x["measured_verdict"] == "close"]
         self.assertTrue([x for x in close if st(x, "sql") <= st(x, "cypher")], "SQL steps no more than Cypher's")
         self.assertTrue([x for x in close if mp(x, "cypher") > mp(x, "sql")], "Cypher needs more moving parts")
+
+    def test_ac1_025_in_short_first(self):
+        _, text, _ = built()
+        after_h1 = text.split("</h1>", 1)[1].lstrip()
+        self.assertTrue(after_h1.startswith('<p class="in-short" data-statement="in-short">'),
+                        "the In short paragraph is the first element after the headline")
+        self.assertLess(text.index('data-statement="in-short"'), text.index('id="story-blast-radius"'))
+        self.assertNotIn("Does a graph beat SQL?", text)
 
     def test_ac7_docs(self):
         readme = (B.HERE / "README.md").read_text(encoding="utf-8")
