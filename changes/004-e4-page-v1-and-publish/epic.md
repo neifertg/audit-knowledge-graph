@@ -4,7 +4,7 @@
 {
   "id": "004-e4-page-v1-and-publish",
   "tier": "epic",
-  "status": "draft",
+  "status": "approved",
   "created": "2026-11-19",
   "revised": "2026-11-22",
   "objective": "O1",
@@ -17,14 +17,20 @@
     {
       "key": "b",
       "title": "Rounds, operating model and technical appendix",
-      "depends_on": ["a"]
+      "depends_on": [
+        "a"
+      ]
     },
     {
       "key": "c",
       "title": "Publish on GitHub Pages, portfolio card and the O1 reader test",
-      "depends_on": ["b"]
+      "depends_on": [
+        "b"
+      ]
     }
-  ]
+  ],
+  "approved": "2026-11-22",
+  "approved_hash": "ca4d33bb5467fd7b"
 }
 ```
 
