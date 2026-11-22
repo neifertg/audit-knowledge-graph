@@ -4,7 +4,7 @@
 {
   "id": "022-rounds-operating-model-and-technical-app",
   "tier": "standard",
-  "status": "in-progress",
+  "status": "done",
   "created": "2026-11-22",
   "objective": "O1",
   "areas": [
@@ -68,7 +68,8 @@
   "child": "b",
   "approved": "2026-11-22",
   "approved_hash": "c625bdd4a0e41a4a",
-  "in_progress": "2026-11-22"
+  "in_progress": "2026-11-22",
+  "done": "2026-11-22"
 }
 ```
 
