@@ -2,3 +2,4 @@ capitan/gate-log.jsonl
 capitan/cache.json
 __pycache__/
 .venv/
+data/
