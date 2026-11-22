@@ -574,11 +574,11 @@
         "cypher": 12,
         "sql": 17
       },
-      "margin": 9.75,
+      "margin": 4.75,
       "measured_verdict": "SQL",
       "metrics": {
         "cypher": {
-          "clauses": 10,
+          "clauses": 5,
           "moving_parts": 6,
           "steps": 6
         },
@@ -663,7 +663,7 @@
         ]
       ],
       "scores": {
-        "cypher": 46,
+        "cypher": 41,
         "sql": 29
       },
       "sql": "-- Round 5 setup: the fourth-party register arrives as a new table\nCREATE TEMP TABLE vendor_relies_on (vendor TEXT NOT NULL, relies_on TEXT NOT NULL);\nINSERT INTO vendor_relies_on (vendor, relies_on)\nVALUES (:vendor, :relies_on);\n\n-- Round 5: entities exposed to a vendor, directly or through fourth parties\nWITH RECURSIVE upstream(vendor) AS (\n  SELECT :vendor\n  UNION\n  SELECT r.vendor\n  FROM vendor_relies_on AS r\n  JOIN upstream AS u ON r.relies_on = u.vendor)\nSELECT p.auditable_entity_id,\n  CASE WHEN MAX(s.vendor = :vendor) = 1 THEN 'direct' ELSE 'fourth_party_only' END AS exposure\nFROM auditable_entity_performs_process AS p\nJOIN process_runs_on_system AS ro ON ro.process_id = p.process_id\nJOIN system AS s ON s.system_id = ro.system_id\nJOIN upstream AS u ON u.vendor = s.vendor\nGROUP BY p.auditable_entity_id\nORDER BY p.auditable_entity_id;\n",
@@ -1089,9 +1089,10 @@
   ],
   "verdict_rule": {
     "counting": [
-      "clauses: clause keywords; JOIN is not a clause (a join counts once, as a step); OPTIONAL MATCH is a clause",
-      "steps: SQL FROM/JOIN targets minus one; Cypher relationship patterns, *n and *m..n counting n hops",
-      "moving_parts: extra SELECTs (CTE, subquery, union branch) or Cypher WITH stages, subqueries and UNION; recursion once per side (RECURSIVE, or an unbounded *); writes and DDL",
+      "clauses: clause keywords as each language writes them; JOIN and Cypher writes are not clauses (a join counts once, as a step; a write once, as a moving part); OPTIONAL MATCH is a clause",
+      "steps: SQL FROM/JOIN targets minus one (every table named, including a CTE or a union branch's table); Cypher relationship patterns, *n and *m..n counting n hops",
+      "moving_parts follow one rule on both sides: extra SELECTs (CTE, subquery, union branch) or Cypher WITH stages, subqueries and UNION; recursion once per side (RECURSIVE, or an unbounded *); writes count once on both sides, as a moving part",
+      "disclosed exceptions: filtering after an aggregate (SQL HAVING is a clause; Cypher needs a WITH stage, one moving part more, in rounds 2 and 6); upserts (no round uses one)",
       "a round with setup is scored as setup plus query"
     ],
     "margin": 1.25,

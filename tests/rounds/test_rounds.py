@@ -139,7 +139,8 @@ class RoundTests(unittest.TestCase):
                   "  MATCH (a)<-[:S]-(c:C)\n  WHERE c.x STARTS WITH 'WITH' }\nRETURN a.id, n")
         self.assertEqual(m(exists, "cypher"), {"clauses": 6, "steps": 2, "moving_parts": 2})
         call = "UNWIND $rows AS row\nCALL {\n  WITH row\n  MERGE (v:V {id: row.id})\n  SET v.x = row.x }\nRETURN count(*) AS n"
-        self.assertEqual(m(call, "cypher"), {"clauses": 6, "steps": 0, "moving_parts": 4})
+        # 020: MERGE and SET count once, as moving parts, not also as clauses
+        self.assertEqual(m(call, "cypher"), {"clauses": 4, "steps": 0, "moving_parts": 4})
         cy_union = "MATCH (a:A)\nRETURN a.id AS id\nUNION\nMATCH (b:B)\nRETURN b.id AS id"
         self.assertEqual(m(cy_union, "cypher"), {"clauses": 5, "steps": 0, "moving_parts": 1})
         self.assertEqual(m("MATCH (a)\nWHERE any(x IN a.l WHERE x > 1)\nRETURN a", "cypher")["clauses"], 3)

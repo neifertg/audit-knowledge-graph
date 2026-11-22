@@ -4,7 +4,7 @@
 {
   "id": "020-verdict-rule-count-cypher-writes-once-as",
   "tier": "standard",
-  "status": "approved",
+  "status": "in-progress",
   "created": "2026-11-21",
   "objective": "O2",
   "areas": [
@@ -37,7 +37,8 @@
     }
   ],
   "approved": "2026-11-21",
-  "approved_hash": "295e7d845df97ffe"
+  "approved_hash": "295e7d845df97ffe",
+  "in_progress": "2026-11-21"
 }
 ```
 

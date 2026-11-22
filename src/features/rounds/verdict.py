@@ -1,12 +1,15 @@
 """The measured verdict for a pair of queries (E3 children c and d; changes 017 and 018).
 
 Pure and round-agnostic. Each side scores `clauses + steps + 5 * moving_parts`; the side whose
-score times 1.25 is at most the other's wins, else the verdict is `close`. The rule is symmetric
-(owner decision 2026-11-21, change 018): a join or a hop is counted once, on either side.
-Counted outside comments and string literals:
-- clauses: whole-word clause keywords (multi-word tokens as one). JOIN is a layout keyword but not
-  a scored clause: a join counts once, as a step. In Cypher, keywords inside (...) or [...] are
-  expressions, not clauses; OPTIONAL MATCH is a clause like every MATCH.
+score times 1.25 is at most the other's wins, else the verdict is `close`. Moving parts follow one
+rule on both sides (owner decisions 2026-11-21, changes 018 and 020), with two disclosed exceptions:
+filtering after an aggregate (SQL's HAVING is a clause, Cypher's WITH stage a moving part) and
+upserts. Clauses and steps measure what each language writes. Counted outside comments and string
+literals:
+- clauses: whole-word clause keywords (multi-word tokens as one). JOIN and the Cypher writes are
+  layout keywords but not scored clauses: a join counts once, as a step, and a write once, as a
+  moving part. In Cypher, keywords inside (...) or [...] are expressions, not clauses; OPTIONAL MATCH
+  is a clause like every MATCH.
 - steps: SQL, every FROM/JOIN target (table, view, CTE name or parenthesised subquery) minus one,
   not counting a FROM inside a function call or a DELETE FROM. Cypher, every relationship pattern;
   a fixed `*n` or bounded `*m..n` / `*..n` counts n hops, an unbounded one (`*`, `*m..`) one hop.
@@ -24,10 +27,12 @@ MARGIN = 1.25
 # Scored clauses. SQL_LAYOUT adds JOIN for the one-clause-per-line style check (017 AC-1).
 SQL_CLAUSES = r"WITH\s+RECURSIVE|WITH|SELECT|FROM|WHERE|GROUP\s+BY|HAVING|ORDER\s+BY|LIMIT|UNION(?:\s+ALL)?"
 SQL_LAYOUT = SQL_CLAUSES + r"|(?:LEFT\s+|INNER\s+|CROSS\s+)?JOIN"
-CYPHER_CLAUSES = (r"OPTIONAL\s+MATCH|MATCH|WHERE|WITH|RETURN|ORDER\s+BY|LIMIT|UNION(?:\s+ALL)?|CALL|UNWIND"
-                  r"|CREATE|MERGE|SET|DELETE|REMOVE")
+CYPHER_CLAUSES = r"OPTIONAL\s+MATCH|MATCH|WHERE|WITH|RETURN|ORDER\s+BY|LIMIT|UNION(?:\s+ALL)?|CALL|UNWIND"
 SQL_WRITES = r"CREATE|ALTER|DROP|INSERT|UPDATE|DELETE"
 CYPHER_WRITES = r"CREATE|MERGE|SET|DELETE|REMOVE"
+# A write counts once, as a moving part, on both sides (020): it is not a scored clause. It stays a
+# line-start keyword for the layout check, as JOIN does in SQL_LAYOUT.
+CYPHER_LAYOUT = CYPHER_CLAUSES + "|" + CYPHER_WRITES
 COMMENT = {"sql": "--", "cypher": "//"}
 # Words that may precede "(" without being a function call.
 SQL_NOT_FUNCTIONS = {"IN", "EXISTS", "AS", "FROM", "JOIN", "ON", "VALUES", "AND", "OR", "NOT", "WHERE",
@@ -137,7 +142,7 @@ def clauses_per_line(text: str, engine: str) -> list[int]:
     code = _clean(text, engine)
     if engine == "cypher":
         code = top_level(code)
-    pattern = SQL_LAYOUT if engine == "sql" else CYPHER_CLAUSES
+    pattern = SQL_LAYOUT if engine == "sql" else CYPHER_LAYOUT
     return [_count(pattern, line) for line in code.splitlines()]
 
 
