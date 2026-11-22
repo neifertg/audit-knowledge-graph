@@ -16,7 +16,7 @@
 
 ## Reproduce CI locally
 
-With a local Neo4j running (R3), export CI's environment and run the suite the way CI does:
+To reproduce CI on your machine, start a local Neo4j (R3), export CI's environment and run the suite the way CI does:
 
 ```
 $env:AKG_REQUIRE_NEO4J = "1"
