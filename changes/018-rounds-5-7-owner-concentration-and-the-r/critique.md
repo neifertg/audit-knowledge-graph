@@ -1,0 +1,11 @@
+VERDICT: READY
+1. [minor] AC-5 says "The export and docs publish each round's **margin**: how far the losing side's score is from the 1.25 line". AC-4 is the criterion that lists the export's fields, and its per-round list ("the metrics and scores on each side, the expected and measured verdicts, ...") does not include `margin`. The only thing that would check the field is AC-4a's currency test, and that test compares the export to the committed file, so a missing margin would still pass. The definition also leaves two things open. It gives no sign: round 1 is 0.25 past the line (`graph`) and round 3 is 0.75 short of it (`close`). And for a tie (rounds 2 and 4, 21 vs 21 and 7 vs 7) it does not say which side is "losing". -> Add `margin` to AC-4's per-round field list. Pin it as `max(s, c) - 1.25 * min(s, c)`: negative means `close`, zero or positive means the lower side wins, matching verdict.py's inclusive `<=`. Then round 1 is +0.25, round 3 is -0.75, round 7 is 0 and owner concentration is -1.25. Have AC-7's test check the three named rounds' margins against the runner.
+
+Round 3 items:
+1. Answered. AC-5 now says: "a round with setup is scored as one text per engine: its setup file followed by its query, joined and passed to `verdict.metrics` once (round 5). The export publishes that joined text." The pure cases include "a setup-plus-query text". This matches how the 29 vs 46 figure was computed in round 3.
+2. Answered. AC-5, AC-7 and Risks name rounds 1 (9 vs 7, line 8.75), 3 (8 vs 7) and 7 (10 vs 8, exactly on the line), and margins are published. I checked the arithmetic: no other round is within one point. Round 4 is 1.75 away, round 6 is 2, owner concentration is 1.25, round 5 is 9.75 and round 2 is 5.25. "Exactly on it" counting as `graph` matches verdict.py (`s * MARGIN <= c`, inclusive).
+3. Answered. "a fixed `*n` or bounded `*m..n` or `*..n` counts n steps", and `[:R*..3]` is in the pure cases.
+
+The edits introduced no new problem beyond item 1. The settled design choices (symmetric rule, `OPTIONAL MATCH` as a clause, recursion as one moving part per side) are not re-raised.
+
+Not checked: I did not run the tests or touch Neo4j, as instructed. The figures rest on round 3's re-measurement and on the plan's prototype, and this revision does not change the queries. Timebox not measured.
