@@ -4,7 +4,7 @@
 {
   "id": "003-e3-dual-stores-and-head-to-head-rounds",
   "tier": "epic",
-  "status": "draft",
+  "status": "done",
   "created": "2026-11-19",
   "objective": "O2",
   "children": [
@@ -42,7 +42,11 @@
       ]
     }
   ],
-  "revised": "2026-11-21"
+  "revised": "2026-11-21",
+  "approved": "2026-11-21",
+  "approved_hash": "77df77121179f1d6",
+  "in_progress": "2026-11-21",
+  "done": "2026-11-21"
 }
 ```
 
