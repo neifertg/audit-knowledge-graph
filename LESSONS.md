@@ -85,3 +85,7 @@ Source: 018-rounds-5-7-owner-concentration-and-the-r
 ### L-020 (2026-11-21) [tests] A test that runs in CI must not require evidence of its own CI run
 019: the AC-4 doc test first required the URL of the first green CI run in docs/ci.md, but that test runs inside the very CI run whose URL it needs, so the first run could never go green; the local CI-environment rehearsal caught it before the push. Later, a doc edit broke a case-sensitive phrase check and a chained command committed it anyway. Next time: record post-run evidence (URLs, timings) as a reviewed doc step, not a test; make doc phrase checks case-insensitive; and gate commits on the test result (commit only if the run printed OK).
 Source: 019-github-repo-and-ci-with-a-neo4j-service
+
+### L-021 (2026-11-22) [src/features/rounds] Generate a published comparison table from the code and pin it with a test; never hand-count it
+020: the hand-written symmetry table was wrong in three critique rounds running (steps for CTEs, unions and recursion; upsert figures; a missed exception, filtering after an aggregate), each costing a plan revision. What fixed it: one minimal SQL and Cypher snippet per construct, the triples computed by verdict.metrics and asserted by a pure test, and a claim narrowed to what the numbers show (moving parts follow one rule; clauses and steps measure what each language writes). Next time: write the measuring snippets first, generate the table from them, and let the critique check the test, not the arithmetic.
+Source: 020-verdict-rule-count-cypher-writes-once-as
