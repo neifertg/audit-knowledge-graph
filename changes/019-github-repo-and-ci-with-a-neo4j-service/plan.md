@@ -4,7 +4,7 @@
 {
   "id": "019-github-repo-and-ci-with-a-neo4j-service",
   "tier": "standard",
-  "status": "approved",
+  "status": "in-progress",
   "created": "2026-11-21",
   "objective": "O2",
   "areas": [
@@ -55,7 +55,8 @@
   "epic": "003-e3-dual-stores-and-head-to-head-rounds",
   "child": "e",
   "approved": "2026-11-21",
-  "approved_hash": "42c18bfe4b989e4a"
+  "approved_hash": "42c18bfe4b989e4a",
+  "in_progress": "2026-11-21"
 }
 ```
 

@@ -14,8 +14,11 @@ _TMP = tempfile.TemporaryDirectory(prefix="akg-test-")
 
 def akg_env(neo4j: bool = False) -> dict:
     """Environment for every test subprocess: NEO4J_* stripped unless a test opts in (016), so
-    test builds never touch the shared Neo4j fixture."""
-    return {k: v for k, v in os.environ.items() if neo4j or not k.startswith("NEO4J_")}
+    test builds never touch the shared Neo4j fixture. AKG_REQUIRE_NEO4J goes with them (019): a
+    subprocess that cannot reach Neo4j cannot be required to, and CI sets it for the whole job."""
+    def kept(name: str) -> bool:
+        return neo4j or not (name.startswith("NEO4J_") or name == "AKG_REQUIRE_NEO4J")
+    return {k: v for k, v in os.environ.items() if kept(k)}
 
 
 def run_akg(*args: str, check: bool = True, neo4j: bool = False) -> subprocess.CompletedProcess:
