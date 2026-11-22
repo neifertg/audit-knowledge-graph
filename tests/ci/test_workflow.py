@@ -123,12 +123,45 @@ class WorkflowTests(unittest.TestCase):
         diff = list(difflib.ndiff(old.splitlines(), new.splitlines()))
         added = [l[2:] for l in diff if l.startswith("+ ")]
         removed = [l[2:] for l in diff if l.startswith("- ")]
-        self.assertEqual(removed, ["# Publish the page on GitHub Pages (E4 child c, change 023)."])
+        # every changed line, in order: the header, the guard fix, and the deploy retry (024 revision)
+        self.assertEqual(removed, ["# Publish the page on GitHub Pages (E4 child c, change 023).",
+                                   "      url: ${{ steps.deployment.outputs.page_url }}"])
         self.assertEqual(added, ["# Publish the page on GitHub Pages (E4 child c, change 023; guard fix in E4 child d, change 024).",
                                  '          if [ -z "$head" ]; then',
                                  "            echo \"::error::could not read main's head; refusing to deploy\"",
                                  "            exit 1",
-                                 "          fi"])
+                                 "          fi",
+                                 "      url: ${{ steps.retry.outputs.page_url || steps.deployment.outputs.page_url }}",
+                                 "      # deploy-pages has twice failed to see the artifact uploaded seconds before, then succeeded on a re-run;",
+                                 "      # wait and deploy once more in the same job before failing the run (change 024)",
+                                 "        continue-on-error: true",
+                                 "",
+                                 "      - name: Wait before retrying the deploy",
+                                 "        if: steps.deployment.outcome == 'failure'",
+                                 "        run: sleep 30",
+                                 "",
+                                 "      - id: retry",
+                                 "        if: steps.deployment.outcome == 'failure'",
+                                 "        uses: actions/deploy-pages@v5"])
+
+    def test_ac1_024_deploy_retry(self):
+        text = (ROOT / ".github" / "workflows" / "pages.yml").read_text(encoding="utf-8")
+        lines = [l.rstrip() for l in text.splitlines() if l.strip() and not l.strip().startswith("#")]
+        deploy = "\n".join(lines).split("  deploy:", 1)[1]
+        steps = deploy.split("      - ")
+        first = next(s for s in steps if s.startswith("id: deployment"))
+        wait = next(s for s in steps if s.startswith("name: Wait before retrying the deploy"))
+        retry = next(s for s in steps if s.startswith("id: retry"))
+        self.assertIn("uses: actions/deploy-pages@v5", first)
+        self.assertIn("continue-on-error: true", first)
+        for step in (wait, retry):
+            self.assertIn("if: steps.deployment.outcome == 'failure'", step)
+            self.assertNotIn("continue-on-error", step)          # a failed retry fails the job
+        self.assertIn("run: sleep 30", wait)
+        self.assertIn("uses: actions/deploy-pages@v5", retry)
+        self.assertLess(deploy.index("id: deployment"), deploy.index("Wait before retrying"))
+        self.assertLess(deploy.index("Wait before retrying"), deploy.index("id: retry"))
+        self.assertIn("      url: ${{ steps.retry.outputs.page_url || steps.deployment.outputs.page_url }}", lines)
 
     @staticmethod
     def _bash() -> str:
@@ -166,6 +199,7 @@ class WorkflowTests(unittest.TestCase):
     def test_ac1_024_pages_docs(self):
         pages = (ROOT / "docs" / "pages.md").read_text(encoding="utf-8")
         self.assertIn("re-run **all** jobs", pages)
+        self.assertIn("retries the deploy once after 30 seconds", pages)
         self.assertIn("changes/024-live-check-portfolio-card-and-the-o1-rea/proposed/pages.yml", pages)
 
     def test_ac2_024_portfolio_card_draft(self):
