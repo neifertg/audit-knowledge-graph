@@ -4,7 +4,7 @@
 {
   "id": "023-publish-on-github-pages-portfolio-card-a",
   "tier": "standard",
-  "status": "in-progress",
+  "status": "done",
   "created": "2026-11-22",
   "objective": "O1",
   "areas": [
@@ -49,7 +49,8 @@
   "child": "c",
   "approved": "2026-11-22",
   "approved_hash": "07c3e51eeea38b77",
-  "in_progress": "2026-11-22"
+  "in_progress": "2026-11-22",
+  "done": "2026-11-22"
 }
 ```
 
