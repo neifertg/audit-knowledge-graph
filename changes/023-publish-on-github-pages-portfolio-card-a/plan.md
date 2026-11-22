@@ -21,28 +21,28 @@
       "when": "022's parked review findings are fixed, each as a named test written before its fix (L-023)",
       "then": "the four are closed before anything goes public:\n- `test_ac1_023_round5_split_adds_up`: for each side, round 5's query score plus its setup score from `site.json`'s `round5_split` equals that side's score in `rounds.json` (read from the file, not typed);\n- `test_ac1_023_owner_scenario_through_formatter`: owner concentration's scenario cell is a marked element rendered by a formatter (a new `scenario_supporting` formatter, unit-tested, giving 'derived (supporting query)'), so the builder types no prose into a figure cell;\n- `test_ac1_023_project_titles`: the `project` block's titles equal the first heading line of each closed epic's `epic.md`;\n- `test_ac1_023_each_close_rule_nonempty`: each close-round rule (SQL steps no more than Cypher's; Cypher needing more moving parts) picks out at least one round.\n\nThis list is the checklist the review ticks.",
       "test": "webpage.test_site.SiteTests.test_ac1_023_round5_split_adds_up, test_ac1_023_owner_scenario_through_formatter, test_ac1_023_project_titles, test_ac1_023_each_close_rule_nonempty",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-2",
       "when": "the Pages workflow `.github/workflows/pages.yml` is read (drafted as `changes/023-.../proposed/pages.yml`; the owner commits it in block B1)",
       "then": "it deploys only a tested commit that is still main's head: triggered by `workflow_run` on `tests`, `types: [completed]`, `branches: [main]`; the job runs only if the run's `conclusion` is `success` and its `event` is `push`; it checks out `workflow_run.head_sha`; a guard step compares that SHA with main's current head (`git ls-remote origin refs/heads/main`) and every later step runs only when they match, so re-running an older green run cannot put an older page over the current one; it builds with `python -m src.features.site.build --out _site` (standard library only, no `pip install`) and deploys with `actions/configure-pages@v6`, `actions/upload-pages-artifact@v5` (path `_site`) and `actions/deploy-pages@v5`; permissions `contents: read`, `pages: write`, `id-token: write`; the `github-pages` environment; `concurrency: pages`, not cancelled; no `secrets.` reference. **The test** strips comment lines before matching, matches whole lines (not phrases a comment could carry), checks each guarded step carries the guard condition, and asserts the committed file equals `proposed/pages.yml` byte for byte.",
       "test": "ci.test_workflow.WorkflowTests.test_ac2_023_pages_workflow_deploys_only_current_tested_head",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-3",
       "when": "the reader test is prepared",
       "then": "`capitan research \"O1 reader test\"` starts `research/o1-reader-test/` (so `capitan tidy` tracks it to a `decision.md`), holding `script.md` and `results.md`. **The script** gives what to send (the live URL, to read only the top section, stopping at the heading 'The rounds', for about a minute), the one question ('In one sentence, what does this show, and why would an audit leader care?'), **three readers** (GOALS' signal is 2 of 3), and **the pass rule, fixed before any answer**: a sentence passes when it says both (a) that records from two teams or systems (ERM and Internal Audit, or risk and control records, or tables) are connected or reconciled, or that risk is found across them, and (b) a planning benefit (finding shared-system exposure, repeat findings, concentrated ownership, or better audit coverage). The script gives two worked passing and two worked failing sentences. **Judging:** the owner and the agent each judge every answer against the rule, independently; where they differ, the stricter reading stands, and both judgments are recorded. **The template** (`results.md`): Reader A, B, C by role only, the date, the sentence verbatim, both judgments and the reason.",
       "test": "ci.test_workflow.WorkflowTests.test_ac3_023_reader_test_prepared (script holds the question, the stop point, three readers, the rule's two parts, two passing and two failing examples, the judging rule; the template holds the fields)",
-      "status": "pending"
+      "status": "pass"
     },
     {
       "id": "AC-4",
       "when": "the docs are read",
       "then": "`docs/pages.md` gives how the page is built and deployed, the gate (tests first, then the exact commit, only while it is main's head), how to turn Pages on, and how to check the live page against a local build of the deployed commit; its 'Live check' section is filled by change 024, and no test here requires it (L-020). `README.md` names the live address (`https://neifertg.github.io/audit-knowledge-graph/`) and `docs/pages.md`; the site README names the Pages workflow. The portfolio card is drafted in `changes/023-.../proposed/portfolio-card.md`, in the existing cards' shape, figure-free, placed first under 'Projects' (newest first; the owner may move it), without a demo GIF (deliberate for now: the live page is the demo).",
       "test": "ci.test_workflow.WorkflowTests.test_ac4_023_pages_docs",
-      "status": "pending"
+      "status": "pass"
     }
   ],
   "epic": "004-e4-page-v1-and-publish",
