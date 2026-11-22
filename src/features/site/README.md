@@ -1,0 +1,15 @@
+# site
+
+Purpose: the public page (E4), a static site rendered in Python from committed exports, so every figure on it is traceable to its source and checked by a test.
+Entry point: `build.py` (`python -m src.features.site.build --out <dir>`); `export.py` for the site data.
+Owns: `data/site.json` (the blast-radius subgraph, the story counts, the measured symmetry table) and the page's template, CSS and JS.
+Depends on: `src/features/rounds/rounds.json`, `src/features/reconciliation/scores.json`, `src/features/rounds/symmetry.py`; the export also reads a loaded build's `akg.sqlite` (read-only).
+
+Notes for people and agents working here:
+- **Build and preview.** `python -m src.features.site.build --out <dir>` writes `index.html` and copies the CSS, JS and the three JSON files beside it. It reads only committed files, never a build or database, and uses the standard library only, so it runs in CI and in the Pages workflow. Preview with `python -m http.server` inside `<dir>`, then open the printed address.
+- **Regenerate the site data** after a change to the rounds, the reconciliation or the generator: `python -m src.features.site.export --out <loaded seed-42 build>`. A test fails while `data/site.json` is stale. It never reads the answer key.
+- **Every figure is rendered in Python, marked with its source.** In `template.html`, `{{<source>|<format>}}` becomes `<span data-source="<source>" data-format="<format>">text</span>`. A source is `site.json:<path>`, `rounds.json:<path>`, `scores.json:<path>` or `derived:<name>.<path>`; a path uses dots, `[i]` and `[*]`; several sources may be joined by commas for a formatter that takes a list. Formatters live in `formatters.py` (`plain`, `count_word`, `times_word`, `signed`, `fraction`, `rows_shown`, `names_and`), each unit-tested; derived figures (verdict counts and the like) in `derived.py`, which the test recomputes independently.
+- **No figure is typed.** A test takes the rendered page's visible text minus every marked element and allows only a short list of literal tokens (`60`, `1.25`, `M1`, `M2`, `L1`); any other digit, or a number word (`one` to `twenty`, `once`, `twice`, case-insensitive), fails it. To add a figure, add a placeholder, never the number.
+- **site.js holds no digit at all**, and does not fetch or write text into the page: colours and sizes come from CSS custom properties in `site.css`, and the graph's data from the embedded `<script type="application/json" id="site-data">`, which a test compares with `site.json`. The canvas shows only names.
+- **Copy rules.** The top section's copy was approved in change 021; a test holds its fixed text, so an edit to the copy is an edit to that test. The page must say the data is synthetic and the text AI-written, label owner concentration as derived, say the graph informs judgment and does not score risk, and keep speed words inside the element marked `data-disclosure="no-speed-claims"`. Names come only from the data (INV-9; the generator's denied-name list is checked on the page).
+- **The one external resource** is Cytoscape.js 3.34.4 from cdnjs, loaded with its SRI hash; nothing else is fetched.

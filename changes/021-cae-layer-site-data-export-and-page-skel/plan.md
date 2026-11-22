@@ -4,7 +4,7 @@
 {
   "id": "021-cae-layer-site-data-export-and-page-skel",
   "tier": "standard",
-  "status": "approved",
+  "status": "in-progress",
   "created": "2026-11-22",
   "objective": "O1",
   "areas": [
@@ -69,7 +69,8 @@
   "epic": "004-e4-page-v1-and-publish",
   "child": "a",
   "approved": "2026-11-22",
-  "approved_hash": "ace176992e2cd3be"
+  "approved_hash": "ace176992e2cd3be",
+  "in_progress": "2026-11-22"
 }
 ```
 
