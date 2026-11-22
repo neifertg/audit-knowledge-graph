@@ -43,6 +43,48 @@ COPY = [
     "The graph informs auditor judgment; it does not score risk or set the audit plan.",
 ]
 
+# 022's approved copy: the fixed text of the rounds intro, the verdict rule, the operating model and the appendix.
+COPY_022 = [
+    "Each planning question was asked in SQL and in Cypher over the same facts. Each answer is checked: the SQL and "
+    "Cypher answers must agree, an independent Python computation must agree, and where a scenario was planted, the "
+    "answer must find it.", "The verdict compares how much query each language needs; it is not a measure of speed.",
+    "sit within a point of the line, so a single extra clause would change their verdict.",
+    "Each side scores clauses plus steps plus", "times its moving parts; the side whose score times",
+    "is at most the other's wins, and otherwise the round is close. Moving parts follow a single rule on both sides, with",
+    "disclosed exceptions; clauses and steps measure what each language writes.",
+    "SQL gets the ERM and IA tables merged in a single place, in", "lines with", "unions, as the graph database gets them "
+    "merged by its labels; the views are published as setup and never scored.",
+    "Cypher needed less query in rounds", ": with the same number of stages on both sides, SQL needed more joins than "
+    "Cypher needed hops, to fetch a name or to join a grouped result back. The languages came out close in rounds",
+    ", where SQL's joins were no more than Cypher's hops, and in round", ", where Cypher needed an extra stage. SQL needed "
+    "less query in round", ", the question of exposure through fourth parties, of unknown depth: asked on its own, the "
+    "question was shorter in Cypher,", "but bringing the new register in cost the graph", "against SQL's",
+    "because a new table had to become nodes and edges.",
+    "When auditors explore rather than report, as in clicking through a blast radius; when the same entities are linked "
+    "from many systems; when new relationship types keep arriving and the data is already in the graph; and at larger "
+    "scale, which is the M2 benchmark's question.",
+    "The measured rounds say: when the joins a question needs are no more than the hops, and when new data arrives as tables.",
+    "Most audit and data teams already read SQL, which matters as much as query length.",
+    "Reconcile first: a graph of unreconciled data only draws the confusion more vividly. Keep the graph an analysis layer "
+    "over the system of record, not a replacement. Prove both stores hold the same facts on every load. Keep a human "
+    "review queue for uncertain matches. Publish every answer with its checks.",
+    "Re-run the mapping, clear the review queue, regenerate.", "Map it into both stores and extend the parity test.",
+    "Retrain on the training bank and rescore.", "Write it in both languages with an oracle and an agreement test.",
+    "This project's change log, closed epics:", "Each change was planned, critiqued, tested and reviewed.",
+    "For a team with clean ERM and IA exports, expect the reconciliation to be most of the work and the graph the smaller part.",
+    "entity files and", "relationship files are published; each entity with its rows at seed",
+    "The bank is synthetic and seeded: seed", "rebuilds every file byte for byte. Its descriptions were written by an AI "
+    "model ahead of time and committed, so the build never calls an API.",
+    "Risks: merged precision", ", merged recall", "if a reviewer resolves the queue correctly. Controls:",
+    "The review queue holds", "pairs; IA risks placed in the right ERM category:",
+    "Every round's answer must agree between the engines, match an independent Python computation, and find its planted "
+    "scenario where a scenario was planted. The full suite runs against a real graph database on every push:",
+    "The data is synthetic, from a single generator and a single bank, with small samples. The matcher's thresholds are "
+    "deliberately conservative, so most true matches wait in the review queue. The training bank comes from the same "
+    "generator, so its weights know the generator's habits.", "No speed or scale claim is made.",
+    "The graph informs auditor judgment; it does not score risk or set the plan.",
+]
+
 
 class Page(HTMLParser):
     """Visible text, marked figures and the disclosure, from a rendered page."""
@@ -58,6 +100,8 @@ class Page(HTMLParser):
         self.scripts = []             # (attrs, text) for <script>
         self.resources = []           # external src/href of resource tags
         self.ids = set()
+        self.labels = []              # data-label values of the open elements (022)
+        self.labelled = defaultdict(list)   # label -> visible text inside elements carrying it
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
@@ -68,20 +112,25 @@ class Page(HTMLParser):
         if tag in ("script", "style"):
             self.skip += 1
             self.scripts.append([a, ""]) if tag == "script" else None
-        flags = (tag in ("script", "style"), "data-source" in a, a.get("data-disclosure") == "no-speed-claims")
+        flags = (tag in ("script", "style"), "data-source" in a, a.get("data-disclosure") == "no-speed-claims",
+                 a.get("data-label"))
         if "data-source" in a:
             self.marked_depth += 1
             self.marked.append([a["data-source"], a.get("data-format", "plain"), ""])
         if flags[2]:
             self.disclosure_depth += 1
+        if flags[3]:
+            self.labels.append(flags[3])
         self.stack.append((tag, flags))
 
     def handle_endtag(self, tag):
         while self.stack:
-            open_tag, (is_skip, is_marked, is_disclosure) = self.stack.pop()
+            open_tag, (is_skip, is_marked, is_disclosure, label) = self.stack.pop()
             self.skip -= is_skip
             self.marked_depth -= is_marked
             self.disclosure_depth -= is_disclosure
+            if label:
+                self.labels.pop()
             if open_tag == tag:
                 break
 
@@ -91,6 +140,8 @@ class Page(HTMLParser):
                 self.scripts[-1][1] += data
             return
         self.visible.append(data)
+        for label in set(self.labels):
+            self.labelled[label].append(data)
         if self.marked_depth:
             self.marked[-1][2] += data
         else:
@@ -167,13 +218,24 @@ class SiteTests(unittest.TestCase):
             with self.subTest(source=source):
                 self.assertIn(fmt, FORMATTERS)
                 self.assertEqual(text, FORMATTERS[fmt](B.resolve(source, sources)))
-        # derived figures, recomputed here without calling derived.py
+        # derived figures, recomputed here without calling derived.py (extended in 022)
         r = rounds()
         counts = {"SQL": 0, "graph": 0, "close": 0}
         for x in r["rounds"]:
             counts[x["measured_verdict"]] += 1
+        mp = lambda x, side: x["metrics"][side]["moving_parts"]
+        st = lambda x, side: x["metrics"][side]["steps"]
+        site = json.loads(X.SITE_JSON.read_text(encoding="utf-8"))
         independent = {"derived:rounds_count": len(r["rounds"]),
-                       **{f"derived:verdict_counts.{k}": v for k, v in counts.items()}}
+                       **{f"derived:verdict_counts.{k}": v for k, v in counts.items()},
+                       "derived:near_the_line": [x["number"] for x in r["rounds"] if abs(x["margin"]) <= 1],
+                       "derived:disclosed_count": sum(1 for row in site["symmetry"] if row["disclosed"]),
+                       "derived:graph_rule": [x["number"] for x in r["rounds"] if mp(x, "sql") == mp(x, "cypher") and st(x, "sql") > st(x, "cypher")],
+                       "derived:close_steps": [x["number"] for x in r["rounds"] if x["measured_verdict"] == "close" and st(x, "sql") <= st(x, "cypher")],
+                       "derived:close_moving": [x["number"] for x in r["rounds"] if x["measured_verdict"] == "close" and mp(x, "cypher") > mp(x, "sql")],
+                       "derived:rounds_by_verdict.SQL": [x["number"] for x in r["rounds"] if x["measured_verdict"] == "SQL"],
+                       **{f"derived:shown_rows.{x['number']}": [min(5, len(x["rows"])), x["row_count"]]
+                          for x in r["rounds"] + r["supporting"]}}
         derived = {s: t for s, _, t in page.marked if s.startswith("derived:")}
         self.assertEqual(set(derived), set(independent))
         fmt_of = {s: f for s, f, _ in page.marked}
@@ -190,6 +252,14 @@ class SiteTests(unittest.TestCase):
         self.assertEqual(fraction([33, 33]), "33/33")
         self.assertEqual([rows_shown([20, 61]), rows_shown([14, 14])], ["20 of 61 rows", "14 rows"])
         self.assertEqual([names_and(["A"]), names_and(["A", "B"]), names_and(["A", "B", "C"])], ["A", "A and B", "A, B and C"])
+        self.assertEqual(names_and([1, 6, 7]), "1, 6 and 7")
+        # 022's formatters
+        self.assertEqual([FORMATTERS["verdict"](v) for v in ("graph", None)], ["graph", "none (supporting query)"])
+        self.assertEqual([FORMATTERS["check"](v) for v in (True, False, "not run")], ["passed", "failed", "not run"])
+        self.assertEqual(FORMATTERS["scenario"](None), "none planted")
+        self.assertEqual(FORMATTERS["scenario"]({"planted": "shared_system", "rule": "equal", "verified_by": "t"}),
+                         "shared_system (equal)")
+        self.assertEqual(FORMATTERS["triple"]([5, 1, 1]), "5 / 1 / 1")
 
     def test_ac4_no_typed_figures_and_js_carries_none(self):
         out, text, page = built()
@@ -234,14 +304,184 @@ class SiteTests(unittest.TestCase):
         rows = [s for s, _, _ in page.marked if s.startswith("site.json:blast_radius.by_unit[")]
         self.assertEqual(len(rows), 2 * json.loads(X.SITE_JSON.read_text(encoding="utf-8"))["blast_radius"]["units"])
 
+    # ---------------- 022: rounds, operating model and appendix ----------------
+
+    def test_ac1_022_rounds_section(self):
+        _, text, page = built()
+        r = rounds()
+        sources = {s for s, _, _ in page.marked}
+        articles = dict(re.findall(r'<article class="round" id="round-([^"]+)">(.*?)</article>', text, re.S))
+        entries = [(f"rounds.json:rounds[{i}]", x) for i, x in enumerate(r["rounds"])]
+        entries += [(f"rounds.json:supporting[{i}]", x) for i, x in enumerate(r["supporting"])]
+        self.assertEqual(set(articles), {str(x["number"]) for _, x in entries})
+        for base, x in entries:
+            with self.subTest(round=x["number"]):
+                body = articles[str(x["number"])]
+                for field in ("question", "sql", "cypher", "scores.sql", "scores.cypher", "margin", "measured_verdict",
+                              "expected_verdict", "checks.agreement", "checks.oracle"):
+                    self.assertIn(f"{base}.{field}", sources, field)
+                for j, _ in enumerate(x["columns"]):
+                    self.assertIn(f"{base}.columns[{j}]", sources)          # headers are marked (l1_node_id holds a digit)
+                for i in range(min(5, len(x["rows"]))):
+                    self.assertIn(f"{base}.rows[{i}][0]", sources)
+                self.assertNotIn(f"{base}.rows[5][0]", sources)
+                differs = x["expected_verdict"] is not None and x["expected_verdict"] != x["measured_verdict"]
+                self.assertEqual("differs from expected" in body, differs)
+                self.assertEqual('href="rounds.json"' in body, len(x["rows"]) < x["row_count"])
+                if x["supporting"]:
+                    self.assertIn("derived (supporting query)", body)
+                    self.assertIn("none (supporting query)", body)
+                else:
+                    self.assertIn(f"{base}.checks.scenario", sources)
+                    if x["checks"]["scenario"] is None:
+                        self.assertIn("none planted", body)
+                if x.get("top_riser"):
+                    self.assertIn(f"{base}.top_riser.l1_name", sources)
+        self.assertEqual({str(x["number"]) for _, x in entries if len(x["rows"]) < x["row_count"]}, {"1", "2", "4", "7"})
+
+    def test_ac2_022_verdict_rule_and_symmetry(self):
+        _, text, page = built()
+        sources = {s for s, _, _ in page.marked}
+        r, site = rounds(), json.loads(X.SITE_JSON.read_text(encoding="utf-8"))
+        for i, _ in enumerate(r["verdict_rule"]["counting"]):
+            self.assertIn(f"rounds.json:verdict_rule.counting[{i}]", sources)
+        for i, row in enumerate(site["symmetry"]):
+            for field in ("construct", "sql", "cypher", "sql_metrics", "cypher_metrics"):
+                self.assertIn(f"site.json:symmetry[{i}].{field}", sources)
+        disclosed_tags = re.findall(r'<th scope="row">.*?</th>', text.split('class="data symmetry"')[1].split("</table>")[0], re.S)
+        self.assertEqual(sum('class="tag">disclosed<' in t for t in disclosed_tags), sum(row["disclosed"] for row in site["symmetry"]))
+        for field in ("rounds.json:views.sql", "rounds.json:views.lines", "rounds.json:views.unions",
+                      "rounds.json:verdict_rule.weight", "rounds.json:verdict_rule.margin", "derived:disclosed_count"):
+            self.assertIn(field, sources)
+
+    def test_ac3_022_operating_model(self):
+        _, _, page = built()
+        r = rounds()
+        mp = lambda x, side: x["metrics"][side]["moving_parts"]
+        st = lambda x, side: x["metrics"][side]["steps"]
+        by = defaultdict(set)
+        for x in r["rounds"]:
+            by[x["measured_verdict"]].add(x["number"])
+        # the measured explanations cover exactly the measured sets
+        self.assertEqual({x["number"] for x in r["rounds"] if mp(x, "sql") == mp(x, "cypher") and st(x, "sql") > st(x, "cypher")},
+                         by["graph"], "the graph-win rule picks out exactly the graph rounds")
+        close_steps = {x["number"] for x in r["rounds"] if x["number"] in by["close"] and st(x, "sql") <= st(x, "cypher")}
+        close_moving = {x["number"] for x in r["rounds"] if x["number"] in by["close"] and mp(x, "cypher") > mp(x, "sql")}
+        self.assertEqual(close_steps | close_moving, by["close"], "every close round is explained")
+        # round 5's split: parts add up to the published metrics, and the split reverses the verdict
+        from src.features.rounds import verdict as V
+        from src.features.rounds.registry import ALL
+        five = next(x for x in ALL if x.number == 5)
+        sc = lambda t, e: V.score(V.metrics(t, e))
+        split = json.loads(X.SITE_JSON.read_text(encoding="utf-8"))["round5_split"]
+        self.assertEqual(split, {"query": {"sql": sc(five.sql, "sql"), "cypher": sc(five.cypher, "cypher")},
+                                 "setup": {"sql": sc(five.sql_setup, "sql"), "cypher": sc(five.cypher_setup, "cypher")}})
+        five_r = next(x for x in r["rounds"] if x["number"] == 5)
+        self.assertEqual(V.score(V.metrics(five.scored("sql"), "sql")), five_r["scores"]["sql"])
+        self.assertEqual(V.score(V.metrics(five.scored("cypher"), "cypher")), five_r["scores"]["cypher"])
+        self.assertLess(split["query"]["cypher"], split["query"]["sql"], "asked on its own, round 5 is shorter in Cypher")
+        self.assertGreater(five_r["scores"]["cypher"], five_r["scores"]["sql"], "with its setup, SQL wins round 5")
+        # every unmeasured claim sits in an expected element; the practice paragraphs are labelled
+        expected = norm(" ".join(page.labelled["expected-not-measured"]))
+        for claim in ("explore rather than report", "linked from many systems", "new relationship types keep arriving",
+                      "larger scale", "already read SQL", "most of the work"):
+            self.assertIn(claim, expected, claim)
+        self.assertEqual(expected.count("expected, not measured in M1"), 3)
+        practice = norm(" ".join(page.labelled["practice"]))
+        for claim in ("Reconcile first", "Re-run the mapping", "extend the parity test", "Retrain on the training bank"):
+            self.assertIn(claim, practice, claim)
+        measured = norm(" ".join(page.labelled["measured"]))
+        self.assertNotIn("expected", measured)
+        for phrase in COPY_022:
+            self.assertIn(norm(phrase), norm(" ".join(page.visible)), phrase)
+        # 'each change was planned, critiqued, tested and reviewed': every counted change has both files
+        for epic in json.loads(X.SITE_JSON.read_text(encoding="utf-8"))["project"]:
+            children = [p.parent for p in (ROOT / "changes").glob("*/plan.md") if X.plan_json(p).get("epic") == epic["epic"]]
+            self.assertEqual(len(children), epic["changes"])
+            for child in children:
+                self.assertTrue((child / "critique.md").exists() and (child / "review.md").exists(), child.name)
+
+    def test_ac4_022_appendix(self):
+        _, text, page = built()
+        sources = {s for s, _, _ in page.marked}
+        site = json.loads(X.SITE_JSON.read_text(encoding="utf-8"))
+        for i, _ in enumerate(site["inventory"]["entities"]):
+            self.assertIn(f"site.json:inventory.entities[{i}].rows", sources)
+        for field in ("risk.precision.count", "risk.recall.count", "risk.recall_if_resolved.count", "control.precision.count",
+                      "control.recall.count", "control.recall_if_resolved.count", "review_queue.total", "placement.all.count"):
+            self.assertIn(f"scores.json:{field}", sources, field)
+        caveats = json.loads(B.SCORES.read_text(encoding="utf-8"))["caveats"]
+        self.assertEqual({s for s in sources if s.startswith("scores.json:caveats.")}, {f"scores.json:caveats.{k}" for k in caveats})
+        self.assertIn('href="https://github.com/neifertg/audit-knowledge-graph/actions"', text)
+        self.assertIn("rounds.json:seed", sources)
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        reproduce = text.split("<h3>Reproduce</h3>")[1].split("</code>")[0].split("<code>")[1]
+        for command in reproduce.splitlines():
+            self.assertIn(command.strip(), readme, command)
+
+    def test_ac5_022_story_inventory_and_project_oracle(self):
+        out, _ = loaded()
+        site = json.loads(X.SITE_JSON.read_text(encoding="utf-8"))
+        # repeat finding: IA controls whose issues were opened in two or more calendar years
+        issue = {i["issue_id"]: i for i in read(out, "issue")}
+        years, issues = defaultdict(set), defaultdict(set)
+        for row in read(out, "issue_against_control_ia"):
+            years[row["control_id"]].add(issue[row["issue_id"]]["opened_date"][:4])
+            issues[row["control_id"]].add(row["issue_id"])
+        repeat = [c for c, ys in years.items() if len(ys) >= 2]
+        self.assertEqual(site["repeat_finding"], {"controls": len(repeat), "issues": sum(len(issues[c]) for c in repeat)})
+        # owner concentration: the top tie group's key controls and the units they reach
+        both = lambda stem: read(out, stem + "_erm") + read(out, stem + "_ia")
+        key = {c["control_id"] for c in both("control") if c["key_control"] == "Y"}
+        owned = defaultdict(set)
+        for row in both("control_owned_by_person"):
+            if row["control_id"] in key:
+                owned[row["person_id"]].add(row["control_id"])
+        mit, exp = defaultdict(set), defaultdict(set)
+        for row in both("control_mitigates_risk"):
+            mit[row["control_id"]].add(row["risk_id"])
+        for row in both("auditable_entity_exposed_to_risk"):
+            exp[row["risk_id"]].add(row["auditable_entity_id"])
+        unit_of = {row["auditable_entity_id"]: row["business_unit_id"] for row in read(out, "business_unit_owns_auditable_entity")}
+        for person in site["owners"]["top"]:
+            cs = owned[person["person_id"]]
+            units = {unit_of[e] for c in cs for rk in mit[c] for e in exp[rk]}
+            self.assertEqual((len(cs), len(units)), (site["owners"]["key_controls"], site["owners"]["units"]))
+        # inventory: the 15 named entity files, each counted from its CSV; relationship files from the dictionary
+        from tests.generator.dictionary import parse
+        names = ["audit", "auditable_entity", "business_unit", "control_erm", "control_ia", "issue", "person", "process",
+                 "regulation", "risk_erm", "risk_ia", "segment", "system", "taxonomy_node_erm", "taxonomy_node_ia"]
+        inv = site["inventory"]
+        self.assertEqual([e["file"] for e in inv["entities"]], names)
+        for e in inv["entities"]:
+            self.assertEqual(e["rows"], len(read(out, e["file"])), e["file"])
+        published = [f for f in parse() if not f.startswith("answer_key")]
+        self.assertEqual((inv["entity_files"], inv["relationship_files"]), (len(names), len(published) - len(names)))
+        # project: closed epics from changes/*/epic.md, children counted by their plan's epic field
+        closed = []
+        for epic_md in sorted((ROOT / "changes").glob("*/epic.md")):
+            meta = json.loads(epic_md.read_text(encoding="utf-8").split("```json plan", 1)[1].split("```", 1)[0])
+            if meta["status"] == "done":
+                count = 0
+                for plan in (ROOT / "changes").glob("*/plan.md"):
+                    pm = json.loads(plan.read_text(encoding="utf-8").split("```json plan", 1)[1].split("```", 1)[0])
+                    count += pm.get("epic") == meta["id"]
+                closed.append((meta["id"], count))
+        self.assertEqual([(e["epic"], e["changes"]) for e in site["project"]], closed)
+
     def test_ac7_docs(self):
         readme = (B.HERE / "README.md").read_text(encoding="utf-8")
         self.assertNotIn("TODO", readme)
         for phrase in ("python -m src.features.site.build", "python -m src.features.site.export", "data-source",
                        "data-format", "http.server", "no digit", "allow"):
             self.assertIn(phrase, readme, phrase)
+        for phrase in ("#rounds", "#operating-model", "#appendix", "expected-not-measured", "practice",
+                       "measured results"):   # 022
+            self.assertIn(phrase, readme, phrase)
         doc = (ROOT / "docs" / "data-model.md").read_text(encoding="utf-8")
         self.assertIn("site.json", doc)
+        for phrase in ("inventory", "project", "round5_split"):   # 022
+            self.assertIn(phrase, doc, phrase)
         self.assertIn("src/features/rounds/symmetry.py", doc)
         self.assertNotIn("is in `changes/020-verdict-rule-count-cypher-writes-once-as/plan.md`", doc)
 

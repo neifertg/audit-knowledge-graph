@@ -44,9 +44,34 @@ def rows_shown(value) -> str:
 
 
 def names_and(value) -> str:
-    """['A', 'B', 'C'] -> 'A, B and C'."""
-    names = list(value)
+    """['A', 'B', 'C'] -> 'A, B and C'; numbers are written as they are ([1, 6, 7] -> '1, 6 and 7')."""
+    names = [str(v) for v in value]
     return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
 
 
-FORMATTERS = {f.__name__: f for f in (plain, count_word, times_word, signed, fraction, rows_shown, names_and)}
+def verdict(value) -> str:
+    """A measured or expected verdict; a supporting query has no expected verdict."""
+    return "none (supporting query)" if value is None else str(value)
+
+
+def check(value) -> str:
+    """An agreement or oracle check: True passed, False failed, 'not run' as is."""
+    if value is True:
+        return "passed"
+    if value is False:
+        return "failed"
+    return str(value)
+
+
+def scenario(value) -> str:
+    """A round's planted scenario and its rule, or 'none planted'."""
+    return "none planted" if value is None else f"{value['planted']} ({value['rule']})"
+
+
+def triple(value) -> str:
+    """[clauses, steps, moving parts] -> '5 / 1 / 1'."""
+    return " / ".join(str(v) for v in value)
+
+
+FORMATTERS = {f.__name__: f for f in (plain, count_word, times_word, signed, fraction, rows_shown, names_and,
+                                      verdict, check, scenario, triple)}
