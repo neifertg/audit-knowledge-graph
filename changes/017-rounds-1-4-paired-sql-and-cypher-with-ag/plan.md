@@ -4,7 +4,7 @@
 {
   "id": "017-rounds-1-4-paired-sql-and-cypher-with-ag",
   "tier": "standard",
-  "status": "draft",
+  "status": "approved",
   "created": "2026-11-21",
   "objective": "O2",
   "areas": [
@@ -59,7 +59,9 @@
     }
   ],
   "epic": "003-e3-dual-stores-and-head-to-head-rounds",
-  "child": "c"
+  "child": "c",
+  "approved": "2026-11-21",
+  "approved_hash": "d0eeeb1a86e1ac0d"
 }
 ```
 
