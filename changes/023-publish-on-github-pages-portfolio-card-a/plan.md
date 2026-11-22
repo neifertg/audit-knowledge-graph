@@ -4,7 +4,7 @@
 {
   "id": "023-publish-on-github-pages-portfolio-card-a",
   "tier": "standard",
-  "status": "draft",
+  "status": "approved",
   "created": "2026-11-22",
   "objective": "O1",
   "areas": [
@@ -46,7 +46,9 @@
     }
   ],
   "epic": "004-e4-page-v1-and-publish",
-  "child": "c"
+  "child": "c",
+  "approved": "2026-11-22",
+  "approved_hash": "07c3e51eeea38b77"
 }
 ```
 
