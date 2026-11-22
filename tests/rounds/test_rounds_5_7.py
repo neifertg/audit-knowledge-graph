@@ -271,44 +271,36 @@ class Rounds57Tests(unittest.TestCase):
         self.assertIn("OPTIONAL MATCH is a clause", counting)
 
     def test_ac4_020_symmetry_table(self):
-        """020: the published symmetry table, measured from the code (clauses, steps, moving parts)."""
-        table = {
-            "read": ("SELECT a.x\nFROM a\nWHERE a.y = 1", "MATCH (a:A)\nWHERE a.y = 1\nRETURN a.x",
-                     (3, 0, 0), (3, 0, 0)),
-            "join or hop": ("SELECT a.x\nFROM a\nJOIN b ON b.id = a.id", "MATCH (a:A)-[:R]->(b:B)\nRETURN a.x",
-                            (2, 1, 0), (2, 1, 0)),
-            "fixed path *2": ("SELECT a.x\nFROM a\nJOIN b ON b.id = a.id\nJOIN c ON c.id = b.id",
-                              "MATCH (a:A)-[:R*2]->(c:C)\nRETURN a.x", (2, 2, 0), (2, 2, 0)),
-            "recursion (anchored on a literal)": (
-                "WITH RECURSIVE up(v) AS (\n  SELECT :v\n  UNION\n  SELECT r.v\n  FROM r\n  JOIN up ON r.w = up.v)\n"
-                "SELECT up.v\nFROM up", "MATCH (a:V)-[:R*0..]->(:V {name: $v})\nRETURN a.name", (7, 2, 1), (2, 1, 1)),
-            "stage": ("WITH x AS (\n  SELECT a.id\n  FROM a)\nSELECT x.id\nFROM x", "MATCH (a:A)\nWITH a\nRETURN a.id",
-                      (5, 1, 1), (3, 0, 1)),
-            "subquery": ("SELECT a.id\nFROM a\nWHERE a.id IN (\n  SELECT b.id\n  FROM b)",
-                         "MATCH (a:A)\nWHERE EXISTS {\n  MATCH (a)-[:R]->(:B) }\nRETURN a.id", (5, 1, 1), (4, 1, 1)),
-            "union": ("SELECT id\nFROM a\nUNION ALL\nSELECT id\nFROM b",
-                      "MATCH (a:A)\nRETURN a.id AS id\nUNION ALL\nMATCH (b:B)\nRETURN b.id AS id", (5, 1, 1), (5, 0, 1)),
-            "write": ("INSERT INTO t (v)\nVALUES (:v)", "MERGE (t:T {v: $v})", (0, 0, 1), (0, 0, 1)),
-            "setup": ("CREATE TEMP TABLE t (v TEXT);\nINSERT INTO t (v)\nVALUES (:v)",
-                      "UNWIND $rows AS row\nMERGE (t:T {v: row.v})\nCREATE (t)-[:R]->(t)", (0, 0, 2), (1, 1, 2)),
-            "optional": ("SELECT a.x\nFROM a\nLEFT JOIN b ON b.id = a.id",
-                         "MATCH (a:A)\nOPTIONAL MATCH (a)-[:R]->(b:B)\nRETURN a.x", (2, 1, 0), (3, 1, 0)),
-            "filter after an aggregate (disclosed)": (
-                "SELECT a.k, COUNT(*) AS n\nFROM a\nGROUP BY a.k\nHAVING COUNT(*) > 1",
-                "MATCH (a:A)\nWITH a.k AS k, count(*) AS n\nWHERE n > 1\nRETURN k, n", (4, 0, 0), (4, 0, 1)),
-            "upsert (disclosed)": ("INSERT INTO t (v)\nVALUES (:v)\nON CONFLICT (v) DO UPDATE SET n = n + 1",
-                                   "MERGE (t:T {v: $v})\nON CREATE SET t.n = 1\nON MATCH SET t.n = t.n + 1",
-                                   (0, 0, 2), (1, 0, 4)),
-            "select inside a write": ("INSERT INTO t (v)\nSELECT a.v\nFROM a", "MATCH (a:A)\nCREATE (:T {v: a.v})",
-                                      (2, 0, 1), (1, 0, 1)),
+        """020 and 021: the published symmetry table. The expected figures are literals here (L-021);
+        the snippets live in src/features/rounds/symmetry.py, and both the module's live table and the
+        committed site.json must equal these literals."""
+        from src.features.rounds import symmetry
+        from src.features.site import export as site_export
+        expected = {  # construct: (SQL clauses, steps, moving parts), (Cypher ...), disclosed
+            "read": ((3, 0, 0), (3, 0, 0), False),
+            "join or hop": ((2, 1, 0), (2, 1, 0), False),
+            "fixed path *2": ((2, 2, 0), (2, 2, 0), False),
+            "recursion (anchored on a literal)": ((7, 2, 1), (2, 1, 1), False),
+            "recursion (anchored on a table)": ((8, 3, 1), (2, 1, 1), False),
+            "stage": ((5, 1, 1), (3, 0, 1), False),
+            "subquery": ((5, 1, 1), (4, 1, 1), False),
+            "union": ((5, 1, 1), (5, 0, 1), False),
+            "write": ((0, 0, 1), (0, 0, 1), False),
+            "setup": ((0, 0, 2), (1, 1, 2), False),
+            "optional": ((2, 1, 0), (3, 1, 0), False),
+            "filter after an aggregate": ((4, 0, 0), (4, 0, 1), True),
+            "upsert": ((0, 0, 2), (1, 0, 4), True),
+            "select inside a write": ((2, 0, 1), (1, 0, 1), False),
         }
-        triple = lambda text, engine: tuple(V.metrics(text, engine)[k] for k in ("clauses", "steps", "moving_parts"))
-        for name, (sql, cypher, want_sql, want_cypher) in table.items():
-            with self.subTest(construct=name):
-                self.assertEqual(triple(sql, "sql"), want_sql)
-                self.assertEqual(triple(cypher, "cypher"), want_cypher)
-                if "disclosed" not in name:
-                    self.assertEqual(want_sql[2], want_cypher[2], f"{name}: moving parts follow one rule")
+        self.assertEqual(set(symmetry.SNIPPETS), set(expected), "construct names match in both directions")
+        as_literals = lambda rows: {r["construct"]: (tuple(r["sql_metrics"]), tuple(r["cypher_metrics"]), r["disclosed"])
+                                    for r in rows}
+        self.assertEqual(as_literals(symmetry.table()), expected, "symmetry.py's live table")
+        committed = json.loads(site_export.SITE_JSON.read_text(encoding="utf-8"))["symmetry"]
+        self.assertEqual(as_literals(committed), expected, "the committed site.json table")
+        for name, (sql, cypher, disclosed) in expected.items():
+            if not disclosed:
+                self.assertEqual(sql[2], cypher[2], f"{name}: moving parts follow one rule")
 
     def test_ac6a_comment_and_from_counting(self):
         m = V.metrics

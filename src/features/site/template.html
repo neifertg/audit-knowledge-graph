@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audit knowledge graph</title>
+<meta name="description" content="A synthetic bank's ERM and Internal Audit data, reconciled and connected as a graph, compared with SQL.">
+<link rel="stylesheet" href="site.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.34.4/cytoscape.min.js" integrity="sha512-9oWrVcc9R1+KL87uqCWwsamtDPJknyeNh/xCFh5SHEsgvV7Icb5Vgungsyljhdeyt+LNKGC9bhwKKQ0C6TiPOw==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+<script src="site.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <span class="brand">Audit knowledge graph</span>
+  <button type="button" id="theme-toggle" class="toggle" aria-label="Switch between light and dark theme">Theme</button>
+</header>
+
+<main>
+<section id="top" class="top">
+  <h1>Audit risk hides between the tables. This is what it looks like when you connect them.</h1>
+  <p class="lede">A synthetic US regional bank keeps its risks in the ERM register and in Internal Audit's risk and control matrices. They describe the same business in different words. Reconciled into a single framework and connected as a graph, they show exposure no table holds on its own.</p>
+  <p class="note" data-disclosure="synthetic">Synthetic data throughout; descriptions AI-written ahead of time and committed; no real institution, person or vendor.</p>
+
+  <article class="story" id="story-blast-radius">
+    <h2>A shared system, a wide blast radius</h2>
+    <p>If {{site.json:blast_radius.system_name}} fails, {{site.json:blast_radius.controls}} controls that depend on it are affected; between them they protect risks in {{site.json:blast_radius.entities}} auditable entities across {{site.json:blast_radius.units}} business units. <em>Plan coverage by dependency, not by org chart.</em></p>
+    <div class="graph-wrap">
+      <div id="graph" class="graph" role="img" aria-label="Graph of the shared system, its business units and, when a unit is opened, the controls, risks and auditable entities that connect them. The table beside it lists the same units."></div>
+      <p class="hint">Click a business unit to open its controls, risks and auditable entities; click it again to close it.</p>
+    </div>
+    <table class="units">
+      <caption>Auditable entities reached, by business unit</caption>
+      <thead><tr><th scope="col">Business unit</th><th scope="col">Auditable entities</th></tr></thead>
+      <tbody>
+{{@unit-table}}
+      </tbody>
+    </table>
+  </article>
+
+  <article class="story" id="story-repeat-finding">
+    <h2>A repeat finding in disguise</h2>
+    <p>{{site.json:repeat_finding.controls}} controls failed in different years under different titles: {{site.json:repeat_finding.issues}} issues a text search would treat as unrelated, linked through the control and the dates. <em>Repeat findings should escalate, not reset.</em></p>
+  </article>
+
+  <article class="story" id="story-owner-concentration">
+    <h2>Concentrated ownership <span class="tag" data-label="derived">derived from the data, not planted</span></h2>
+    <p>{{site.json:owners.top[*].name|names_and}} each own {{site.json:owners.key_controls}} key controls whose risks reach {{site.json:owners.units}} business units. <em>Key-person risk is visible before it becomes an issue.</em></p>
+  </article>
+
+  <article class="story" id="story-comparison">
+    <h2>Does a graph beat SQL?</h2>
+    <p>Asked {{derived:rounds_count|count_word}} planning questions in both, with the same facts and answers proved equal: SQL wins {{derived:verdict_counts.SQL|times_word}}, the graph {{derived:verdict_counts.graph|times_word}}, and {{derived:verdict_counts.close|count_word}} are close. <span data-disclosure="no-speed-claims">The difference is how much query each needs, not speed: no speed claims are made at demo scale.</span> <a href="#rounds">Details below.</a></p>
+  </article>
+
+  <p class="judgment" data-statement="judgment">The graph informs auditor judgment; it does not score risk or set the audit plan.</p>
+</section>
+
+<section id="rounds" class="later">
+  <h2>The rounds</h2>
+  <p class="pending">Each planning question in SQL and Cypher, side by side, follows here.</p>
+</section>
+
+<section id="operating-model" class="later">
+  <h2>When a graph earns its place</h2>
+  <p class="pending">The operating model follows here.</p>
+</section>
+
+<section id="appendix" class="later">
+  <h2>Technical appendix</h2>
+  <p class="pending">The data model, the generator, reconciliation accuracy and the test results follow here.</p>
+</section>
+</main>
+
+<footer class="foot">
+  <a href="https://github.com/neifertg/audit-knowledge-graph">Source, tests and how to reproduce every figure</a>
+</footer>
+{{@graph-data}}
+</body>
+</html>
