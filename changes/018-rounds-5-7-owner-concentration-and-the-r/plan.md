@@ -4,7 +4,7 @@
 {
   "id": "018-rounds-5-7-owner-concentration-and-the-r",
   "tier": "standard",
-  "status": "draft",
+  "status": "approved",
   "created": "2026-11-21",
   "objective": "O2",
   "areas": [
@@ -66,7 +66,9 @@
     }
   ],
   "epic": "003-e3-dual-stores-and-head-to-head-rounds",
-  "child": "d"
+  "child": "d",
+  "approved": "2026-11-21",
+  "approved_hash": "e4fc65443222dd6c"
 }
 ```
 
