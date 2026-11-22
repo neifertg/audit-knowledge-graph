@@ -75,12 +75,63 @@ def stories(con, rounds: dict) -> dict:
     }
 
 
+REPO = HERE.parents[2]
+# The published entity files: those whose data dictionary marks a single column `primary key` (022 AC-4).
+ENTITY_FILES = ("audit", "auditable_entity", "business_unit", "control_erm", "control_ia", "issue", "person", "process",
+                "regulation", "risk_erm", "risk_ia", "segment", "system", "taxonomy_node_erm", "taxonomy_node_ia")
+
+
+def inventory(con) -> dict:
+    """Rows per published entity file, and how many relationship files are published."""
+    from src.features.stores.schema import load_tables
+
+    published = [t for t in load_tables() if not t.path.startswith("reconciled")]
+    entities = [t.name for t in published if sum(c.primary for c in t.columns) == 1]
+    if tuple(sorted(entities)) != tuple(sorted(ENTITY_FILES)):
+        raise ValueError(f"the published entity files changed: {sorted(entities)}")
+    rows = [{"file": name, "rows": con.execute(f"SELECT COUNT(*) FROM {name}").fetchone()[0]} for name in ENTITY_FILES]
+    return {"entities": rows, "entity_files": len(entities), "relationship_files": len(published) - len(entities)}
+
+
+def plan_json(path: Path) -> dict:
+    text = path.read_text(encoding="utf-8")
+    return json.loads(text.split("```json plan", 1)[1].split("```", 1)[0])
+
+
+def project() -> list[dict]:
+    """Each closed epic's title and number of child changes, from the change log (022 AC-3)."""
+    children = defaultdict(int)
+    for plan in (REPO / "changes").glob("*/plan.md"):
+        epic = plan_json(plan).get("epic")
+        if epic:
+            children[epic] += 1
+    closed = []
+    for epic_md in sorted((REPO / "changes").glob("*/epic.md")):
+        meta = plan_json(epic_md)
+        if meta["status"] == "done":
+            title = epic_md.read_text(encoding="utf-8").splitlines()[0].lstrip("# ").strip()
+            closed.append({"epic": meta["id"], "title": title, "changes": children[meta["id"]]})
+    return closed
+
+
+def round5_split(rounds: dict) -> dict:
+    """Round 5's score split into its query and its setup on each side (022 AC-3)."""
+    from src.features.rounds import verdict
+    from src.features.rounds.registry import ALL
+
+    five = next(r for r in ALL if r.number == 5)
+    score = lambda text, engine: verdict.score(verdict.metrics(text, engine))
+    return {"query": {"sql": score(five.sql, "sql"), "cypher": score(five.cypher, "cypher")},
+            "setup": {"sql": score(five.sql_setup, "sql"), "cypher": score(five.cypher_setup, "cypher")}}
+
+
 def document(build_dir: Path, rounds: dict | None = None) -> dict:
     rounds = rounds or json.loads(ROUNDS_JSON.read_text(encoding="utf-8"))
     con = sqlite_connection(build_dir)
     try:
         graph, blast = subgraph(con, top_system(rounds))
-        doc = {"subgraph": graph, "blast_radius": blast, "symmetry": symmetry.table(), **stories(con, rounds)}
+        doc = {"subgraph": graph, "blast_radius": blast, "symmetry": symmetry.table(), **stories(con, rounds),
+               "inventory": inventory(con), "project": project(), "round5_split": round5_split(rounds)}
     finally:
         con.close()
     return doc

@@ -110,6 +110,72 @@
   "system_name": "Ylvara Data Warehouse",
   "units": 20
  },
+ "inventory": {
+  "entities": [
+   {
+    "file": "audit",
+    "rows": 75
+   },
+   {
+    "file": "auditable_entity",
+    "rows": 81
+   },
+   {
+    "file": "business_unit",
+    "rows": 31
+   },
+   {
+    "file": "control_erm",
+    "rows": 299
+   },
+   {
+    "file": "control_ia",
+    "rows": 395
+   },
+   {
+    "file": "issue",
+    "rows": 250
+   },
+   {
+    "file": "person",
+    "rows": 120
+   },
+   {
+    "file": "process",
+    "rows": 110
+   },
+   {
+    "file": "regulation",
+    "rows": 15
+   },
+   {
+    "file": "risk_erm",
+    "rows": 180
+   },
+   {
+    "file": "risk_ia",
+    "rows": 150
+   },
+   {
+    "file": "segment",
+    "rows": 7
+   },
+   {
+    "file": "system",
+    "rows": 30
+   },
+   {
+    "file": "taxonomy_node_erm",
+    "rows": 80
+   },
+   {
+    "file": "taxonomy_node_ia",
+    "rows": 75
+   }
+  ],
+  "entity_files": 15,
+  "relationship_files": 26
+ },
  "owners": {
   "key_controls": 9,
   "top": [
@@ -124,9 +190,36 @@
   ],
   "units": 7
  },
+ "project": [
+  {
+   "changes": 6,
+   "epic": "001-e1-synthetic-bank-generator",
+   "title": "E1 Synthetic bank generator"
+  },
+  {
+   "changes": 4,
+   "epic": "002-e2-erm-ia-reconciliation",
+   "title": "E2 ERM-IA reconciliation"
+  },
+  {
+   "changes": 5,
+   "epic": "003-e3-dual-stores-and-head-to-head-rounds",
+   "title": "E3 Dual stores and head-to-head rounds"
+  }
+ ],
  "repeat_finding": {
   "controls": 6,
   "issues": 14
+ },
+ "round5_split": {
+  "query": {
+   "cypher": 12,
+   "sql": 19
+  },
+  "setup": {
+   "cypher": 29,
+   "sql": 10
+  }
  },
  "subgraph": {
   "edges": [

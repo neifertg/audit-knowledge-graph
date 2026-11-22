@@ -93,3 +93,7 @@ Source: 020-verdict-rule-count-cypher-writes-once-as
 ### L-022 (2026-11-22) [tests] Passing locally is not proof: run the done-check on a fresh checkout
 021: two failures hid behind a working copy. The test folder tests/site was shadowed by Python's standard-library site module under unittest discover (it passed when run by full module path), and the committed export site.json was matched by the data/ ignore rule, so it was never committed though every local test read it. Next time: for any change that adds a folder or a committed data file, run the tests in a detached git worktree of HEAD (or in CI) before review, check git ls-files for every file the code reads, and never name a test package after a stdlib module (site, test, types, code, email...).
 Source: 021-cae-layer-site-data-export-and-page-skel
+
+### L-023 (2026-11-22) [tests] Critique minors folded into the build need a named test before building, not a commit message
+022: four round-3 critique minors were folded into the build by a commit message; one (round 5's split must add up to the published scores) was never written, and only the code review caught it, so it was parked instead of done. 018 and 021 folded minors the same way and got lucky. Next time: when a READY critique's minors are folded into the build, list each as a checklist line in the plan's test plan or as a test name before writing code, and tick each against a real assertion before asking for review.
+Source: 022-rounds-operating-model-and-technical-app
