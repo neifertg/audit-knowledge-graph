@@ -238,14 +238,77 @@ class Rounds57Tests(unittest.TestCase):
         self.assertTrue(five.scored("sql").startswith(five.sql_setup))
         self.assertTrue(five.scored("cypher").startswith(five.cypher_setup))
         self.assertEqual(m(five.scored("sql"), "sql"), {"clauses": 9, "steps": 5, "moving_parts": 3})
-        self.assertEqual(m(five.scored("cypher"), "cypher"), {"clauses": 10, "steps": 6, "moving_parts": 6})
+        self.assertEqual(m(five.scored("cypher"), "cypher"), {"clauses": 5, "steps": 6, "moving_parts": 6})  # 020
         # every round under the symmetric rule (SQL vs Cypher, verdict, margin)
         expected = {1: (9, 7, "graph", 0.25), 2: (21, 21, "close", -5.25), 3: (8, 7, "close", -0.75),
-                    4: (7, 7, "close", -1.75), 5: (29, 46, "SQL", 9.75), 6: (17, 12, "graph", 2.0),
+                    4: (7, 7, "close", -1.75), 5: (29, 41, "SQL", 4.75), 6: (17, 12, "graph", 2.0),
                     7: (10, 8, "graph", 0.0), "owners": (10, 9, "close", -1.25)}
         for r in ALL:
             a, b = m(r.scored("sql"), "sql"), m(r.scored("cypher"), "cypher")
             self.assertEqual((V.score(a), V.score(b), V.measured(a, b), V.margin(a, b)), expected[r.number], r.number)
+
+    def test_ac3_020_published_rule_text(self):
+        """020 AC-1 and AC-3: writes count once on both sides, the layout check keeps them, and the
+        published rule text names the disclosed exceptions."""
+        m = V.metrics
+        sql = "CREATE TEMP TABLE t (v TEXT);\nINSERT INTO t (v)\nVALUES (:v)"
+        cypher = "UNWIND $rows AS row\nMERGE (t:T {v: row.v})\nCREATE (t)-[:R]->(t)"
+        self.assertEqual(m(sql, "sql"), {"clauses": 0, "steps": 0, "moving_parts": 2})
+        self.assertEqual(m(cypher, "cypher"), {"clauses": 1, "steps": 1, "moving_parts": 2})  # UNWIND is the clause
+        # each write adds exactly one moving part and no clause on its side
+        # (UPDATE, not DELETE FROM: SQL's FROM is a keyword it writes, so it would add a clause as written)
+        for engine, base, plus in (("sql", "INSERT INTO t (v)\nVALUES (:v)", "\nUPDATE t SET n = 1"),
+                                   ("cypher", "MERGE (t:T {v: $v})", "\nSET t.n = 1")):
+            a, b = m(base, engine), m(base + plus, engine)
+            self.assertEqual((b["clauses"] - a["clauses"], b["moving_parts"] - a["moving_parts"]), (0, 1), engine)
+        # the layout check still sees writes: MERGE and SET on one line are two clause keywords
+        self.assertEqual(V.clauses_per_line("MERGE (t:T {v: $v}) SET t.n = 1", "cypher"), [2])
+        counting = " ".join(E.RULE["counting"])
+        self.assertIn("writes count once on both sides", counting)
+        self.assertIn("filtering after an aggregate", counting)
+        self.assertIn("HAVING", counting)
+        self.assertIn("upserts", counting)
+        self.assertIn("OPTIONAL MATCH is a clause", counting)
+
+    def test_ac4_020_symmetry_table(self):
+        """020: the published symmetry table, measured from the code (clauses, steps, moving parts)."""
+        table = {
+            "read": ("SELECT a.x\nFROM a\nWHERE a.y = 1", "MATCH (a:A)\nWHERE a.y = 1\nRETURN a.x",
+                     (3, 0, 0), (3, 0, 0)),
+            "join or hop": ("SELECT a.x\nFROM a\nJOIN b ON b.id = a.id", "MATCH (a:A)-[:R]->(b:B)\nRETURN a.x",
+                            (2, 1, 0), (2, 1, 0)),
+            "fixed path *2": ("SELECT a.x\nFROM a\nJOIN b ON b.id = a.id\nJOIN c ON c.id = b.id",
+                              "MATCH (a:A)-[:R*2]->(c:C)\nRETURN a.x", (2, 2, 0), (2, 2, 0)),
+            "recursion (anchored on a literal)": (
+                "WITH RECURSIVE up(v) AS (\n  SELECT :v\n  UNION\n  SELECT r.v\n  FROM r\n  JOIN up ON r.w = up.v)\n"
+                "SELECT up.v\nFROM up", "MATCH (a:V)-[:R*0..]->(:V {name: $v})\nRETURN a.name", (7, 2, 1), (2, 1, 1)),
+            "stage": ("WITH x AS (\n  SELECT a.id\n  FROM a)\nSELECT x.id\nFROM x", "MATCH (a:A)\nWITH a\nRETURN a.id",
+                      (5, 1, 1), (3, 0, 1)),
+            "subquery": ("SELECT a.id\nFROM a\nWHERE a.id IN (\n  SELECT b.id\n  FROM b)",
+                         "MATCH (a:A)\nWHERE EXISTS {\n  MATCH (a)-[:R]->(:B) }\nRETURN a.id", (5, 1, 1), (4, 1, 1)),
+            "union": ("SELECT id\nFROM a\nUNION ALL\nSELECT id\nFROM b",
+                      "MATCH (a:A)\nRETURN a.id AS id\nUNION ALL\nMATCH (b:B)\nRETURN b.id AS id", (5, 1, 1), (5, 0, 1)),
+            "write": ("INSERT INTO t (v)\nVALUES (:v)", "MERGE (t:T {v: $v})", (0, 0, 1), (0, 0, 1)),
+            "setup": ("CREATE TEMP TABLE t (v TEXT);\nINSERT INTO t (v)\nVALUES (:v)",
+                      "UNWIND $rows AS row\nMERGE (t:T {v: row.v})\nCREATE (t)-[:R]->(t)", (0, 0, 2), (1, 1, 2)),
+            "optional": ("SELECT a.x\nFROM a\nLEFT JOIN b ON b.id = a.id",
+                         "MATCH (a:A)\nOPTIONAL MATCH (a)-[:R]->(b:B)\nRETURN a.x", (2, 1, 0), (3, 1, 0)),
+            "filter after an aggregate (disclosed)": (
+                "SELECT a.k, COUNT(*) AS n\nFROM a\nGROUP BY a.k\nHAVING COUNT(*) > 1",
+                "MATCH (a:A)\nWITH a.k AS k, count(*) AS n\nWHERE n > 1\nRETURN k, n", (4, 0, 0), (4, 0, 1)),
+            "upsert (disclosed)": ("INSERT INTO t (v)\nVALUES (:v)\nON CONFLICT (v) DO UPDATE SET n = n + 1",
+                                   "MERGE (t:T {v: $v})\nON CREATE SET t.n = 1\nON MATCH SET t.n = t.n + 1",
+                                   (0, 0, 2), (1, 0, 4)),
+            "select inside a write": ("INSERT INTO t (v)\nSELECT a.v\nFROM a", "MATCH (a:A)\nCREATE (:T {v: a.v})",
+                                      (2, 0, 1), (1, 0, 1)),
+        }
+        triple = lambda text, engine: tuple(V.metrics(text, engine)[k] for k in ("clauses", "steps", "moving_parts"))
+        for name, (sql, cypher, want_sql, want_cypher) in table.items():
+            with self.subTest(construct=name):
+                self.assertEqual(triple(sql, "sql"), want_sql)
+                self.assertEqual(triple(cypher, "cypher"), want_cypher)
+                if "disclosed" not in name:
+                    self.assertEqual(want_sql[2], want_cypher[2], f"{name}: moving parts follow one rule")
 
     def test_ac6a_comment_and_from_counting(self):
         m = V.metrics

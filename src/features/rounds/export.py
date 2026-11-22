@@ -32,10 +32,15 @@ RULE = {
     "verdict": "SQL when SQL's score times 1.25 is at most Cypher's; graph the other way round; close otherwise",
     "margin_definition": "max(score) - 1.25 * min(score); zero or more names a winner, negative is close",
     "counting": [
-        "clauses: clause keywords; JOIN is not a clause (a join counts once, as a step); OPTIONAL MATCH is a clause",
-        "steps: SQL FROM/JOIN targets minus one; Cypher relationship patterns, *n and *m..n counting n hops",
-        "moving_parts: extra SELECTs (CTE, subquery, union branch) or Cypher WITH stages, subqueries and "
-        "UNION; recursion once per side (RECURSIVE, or an unbounded *); writes and DDL",
+        "clauses: clause keywords as each language writes them; JOIN and Cypher writes are not clauses "
+        "(a join counts once, as a step; a write once, as a moving part); OPTIONAL MATCH is a clause",
+        "steps: SQL FROM/JOIN targets minus one (every table named, including a CTE or a union branch's table); "
+        "Cypher relationship patterns, *n and *m..n counting n hops",
+        "moving_parts follow one rule on both sides: extra SELECTs (CTE, subquery, union branch) or Cypher WITH "
+        "stages, subqueries and UNION; recursion once per side (RECURSIVE, or an unbounded *); writes count once "
+        "on both sides, as a moving part",
+        "disclosed exceptions: filtering after an aggregate (SQL HAVING is a clause; Cypher needs a WITH stage, "
+        "one moving part more, in rounds 2 and 6); upserts (no round uses one)",
         "a round with setup is scored as setup plus query",
     ],
 }
