@@ -1,5 +1,7 @@
 # Audit knowledge graph
 
+**The page:** https://neifertg.github.io/audit-knowledge-graph/ (how it is published: [docs/pages.md](docs/pages.md))
+
 [![tests](https://github.com/neifertg/audit-knowledge-graph/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/neifertg/audit-knowledge-graph/actions/workflows/tests.yml)
 
 A synthetic US regional bank's Enterprise Risk Management and Internal Audit data, generated with two separate risk taxonomies, reconciled into one framework, and loaded into SQLite and Neo4j side by side. Seven audit-planning questions are then asked in both SQL and Cypher, and every answer is proved three ways: the two engines agree, an independent Python computation agrees, and the planted scenario is found. Everything is synthetic and every number is reproducible from a fresh clone.

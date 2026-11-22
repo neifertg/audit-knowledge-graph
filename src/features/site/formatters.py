@@ -68,10 +68,15 @@ def scenario(value) -> str:
     return "none planted" if value is None else f"{value['planted']} ({value['rule']})"
 
 
+def scenario_supporting(value) -> str:
+    """A supporting query's scenario cell: it has no planted scenario by design (023)."""
+    return "derived (supporting query)"
+
+
 def triple(value) -> str:
     """[clauses, steps, moving parts] -> '5 / 1 / 1'."""
     return " / ".join(str(v) for v in value)
 
 
 FORMATTERS = {f.__name__: f for f in (plain, count_word, times_word, signed, fraction, rows_shown, names_and,
-                                      verdict, check, scenario, triple)}
+                                      verdict, check, scenario, scenario_supporting, triple)}

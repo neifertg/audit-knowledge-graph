@@ -1,6 +1,7 @@
 # Publish the page on GitHub Pages (E4 child c, change 023).
 # Deploys only a commit whose tests passed for a push to main, and only while that commit is still
 # main's head: a re-run of an older green run cannot put an older page over the current one.
+# The guard is its own job with no environment, so a refused deploy records no deployment.
 # The page is built from committed exports with the standard library only; nothing generated is committed.
 name: pages
 
@@ -12,18 +13,39 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  guard:
     if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      current: ${{ steps.head.outputs.current }}
+    steps:
+      - name: Is the tested commit still main's head?
+        id: head
+        run: |
+          head=$(git ls-remote "https://github.com/${{ github.repository }}" refs/heads/main | cut -f1)
+          if [ "$head" = "${{ github.event.workflow_run.head_sha }}" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::main has moved on from the tested commit; not deploying an older page"
+          fi
+
+  deploy:
+    needs: guard
+    if: needs.guard.outputs.current == 'true'
+    runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -32,34 +54,18 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
-      - name: Deploy only main's current head
-        id: guard
-        run: |
-          head=$(git ls-remote origin refs/heads/main | cut -f1)
-          if [ "$head" = "${{ github.event.workflow_run.head_sha }}" ]; then
-            echo "current=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "current=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::main has moved on from the tested commit; not deploying an older page"
-          fi
-
       - uses: actions/setup-python@v5
-        if: steps.guard.outputs.current == 'true'
         with:
           python-version: "3.12"
 
       - name: Build the page from the committed exports (standard library only)
-        if: steps.guard.outputs.current == 'true'
         run: python -m src.features.site.build --out _site
 
       - uses: actions/configure-pages@v6
-        if: steps.guard.outputs.current == 'true'
 
       - uses: actions/upload-pages-artifact@v5
-        if: steps.guard.outputs.current == 'true'
         with:
           path: _site
 
       - id: deployment
-        if: steps.guard.outputs.current == 'true'
         uses: actions/deploy-pages@v5
