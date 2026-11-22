@@ -29,7 +29,7 @@ A test (`ci.test_workflow.WorkflowTests.test_ac2_023_pages_workflow_deploys_only
 2026-11-22, 22:03 UTC: the owner, asked to check the live page in light and dark and on a phone, replied "Looks great". The page then served the build of `7d9c32e` (Pages run 45070137425, deployed on the first attempt; its guard reported current), whose page files equal the first deploy's `d415a6c` (only planning files changed between them). This is the build the O1 readers see unless a later record below says otherwise.
 
 ## Portfolio
-Recorded by change 024 after the card is published.
+2026-11-22, 22:36 UTC: the owner committed the card to `risk-analytics-portfolio` (commit `337f547`, 'Add the Audit Knowledge Graph card'). Checked: in the portfolio's default-branch `index.md`, the first card under `## Projects` is '### Audit Knowledge Graph' and equals the draft `changes/023-publish-on-github-pages-portfolio-card-a/proposed/portfolio-card.md` (whitespace-normalised); the published portfolio, https://neifertg.github.io/risk-analytics-portfolio/, serves a page containing the card's heading and the live-page link https://neifertg.github.io/audit-knowledge-graph/.
 
 ## Live check
 Filled in by change 024, as late as possible before it finishes.
