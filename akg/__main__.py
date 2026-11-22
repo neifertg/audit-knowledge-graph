@@ -3,6 +3,7 @@
     python -m akg build        generate the synthetic bank (E1), then reconcile it (E2)
     python -m akg reconcile    (re)write <out>/reconciled/ for an existing build
     python -m akg load         (re)build <out>/akg.sqlite, and Neo4j when NEO4J_URI is set (E3)
+    python -m akg rounds       run the head-to-head rounds on an existing loaded build (E3)
     python -m akg sample-pack  render the realism-review sample pack
     python -m akg check-text   check committed AI text for orphan keys
 
@@ -54,6 +55,9 @@ def _parser() -> argparse.ArgumentParser:
     load = commands.add_parser("load", help="(re)build <out>/akg.sqlite for an existing reconciled build")
     load.add_argument("--out", type=Path, default=DEFAULT_OUT)
 
+    rounds = commands.add_parser("rounds", help="run the SQL and Cypher rounds on an existing loaded build")
+    rounds.add_argument("--out", type=Path, default=DEFAULT_OUT)
+
     pack = commands.add_parser("sample-pack", help="render the realism-review sample pack")
     add_generation_options(pack)
     pack.add_argument("--out", type=Path, default=DEFAULT_PACK)
@@ -72,6 +76,8 @@ def main(argv: list[str] | None = None) -> int:
         return _reconcile(args.out)
     if args.command == "load":
         return _load(args.out)
+    if args.command == "rounds":
+        return _rounds(args.out)
     from src.features.generator import cli  # imported late so `--help` works without it
 
     code = cli.run(args)
@@ -89,7 +95,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.no_load:
         _remove_database(args.out)
         return 0
-    return _load(args.out)
+    code = _load(args.out)
+    if code != 0:
+        return code
+    return _rounds(args.out)
+
+
+def _rounds(out: Path) -> int:
+    """E3: run the head-to-head rounds on SQLite, and on Neo4j when NEO4J_URI is set."""
+    from src.features.rounds.runner import main as run_rounds
+
+    return run_rounds(out)
 
 
 def _remove_database(out: Path) -> None:
