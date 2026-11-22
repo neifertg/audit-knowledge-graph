@@ -62,6 +62,9 @@ def subgraph(con, system_id: str) -> dict:
 def stories(con, rounds: dict) -> dict:
     by_number = {r["number"]: r for r in rounds["rounds"] + rounds["supporting"]}
     round6 = by_number[6]
+    if len(round6["rows"]) != round6["row_count"]:  # rounds.json keeps up to 20 rows; never undercount silently
+        raise ValueError(f"round 6 has {round6['row_count']} rows but rounds.json keeps {len(round6['rows'])}; "
+                         "count the repeat-finding controls from the full result instead")
     owners = by_number["owners"]["rows"]
     top = [row for row in owners if (row[1], row[2]) == (owners[0][1], owners[0][2])]
     names = dict(con.execute("SELECT person_id, name FROM person").fetchall())

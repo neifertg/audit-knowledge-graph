@@ -1,0 +1,2183 @@
+{
+ "blast_radius": {
+  "by_unit": [
+   {
+    "entities": 5,
+    "unit_id": "BU-215",
+    "unit_name": "Compliance"
+   },
+   {
+    "entities": 4,
+    "unit_id": "BU-223",
+    "unit_name": "Commercial Lending"
+   },
+   {
+    "entities": 4,
+    "unit_id": "BU-586",
+    "unit_name": "Consumer Lending"
+   },
+   {
+    "entities": 3,
+    "unit_id": "BU-272",
+    "unit_name": "Card Services"
+   },
+   {
+    "entities": 3,
+    "unit_id": "BU-767",
+    "unit_name": "Corporate Treasury"
+   },
+   {
+    "entities": 3,
+    "unit_id": "BU-710",
+    "unit_name": "Human Resources"
+   },
+   {
+    "entities": 2,
+    "unit_id": "BU-979",
+    "unit_name": "Commercial Real Estate"
+   },
+   {
+    "entities": 2,
+    "unit_id": "BU-932",
+    "unit_name": "Data Management"
+   },
+   {
+    "entities": 2,
+    "unit_id": "BU-662",
+    "unit_name": "Retail Branch Network"
+   },
+   {
+    "entities": 2,
+    "unit_id": "BU-981",
+    "unit_name": "Small Business Banking"
+   },
+   {
+    "entities": 2,
+    "unit_id": "BU-549",
+    "unit_name": "Treasury Management Services"
+   },
+   {
+    "entities": 1,
+    "unit_id": "BU-392",
+    "unit_name": "Capital Markets"
+   },
+   {
+    "entities": 1,
+    "unit_id": "BU-468",
+    "unit_name": "Digital Banking"
+   },
+   {
+    "entities": 1,
+    "unit_id": "BU-701",
+    "unit_name": "Enterprise Risk Management"
+   },
+   {
+    "entities": 1,
+    "unit_id": "BU-990",
+    "unit_name": "Finance"
+   },
+   {
+    "entities": 1,
+    "unit_id": "BU-119",
+    "unit_name": "Investment Portfolio"
+   },
+   {
+    "entities": 1,
+    "unit_id": "BU-976",
+    "unit_name": "Legal"
+   },
+   {
+    "entities": 1,
+    "unit_id": "BU-429",
+    "unit_name": "Middle Market Banking"
+   },
+   {
+    "entities": 1,
+    "unit_id": "BU-968",
+    "unit_name": "Mortgage Banking"
+   },
+   {
+    "entities": 1,
+    "unit_id": "BU-266",
+    "unit_name": "Payment Operations"
+   }
+  ],
+  "controls": 44,
+  "controls_with_risks": 43,
+  "entities": 41,
+  "risks": 40,
+  "system_id": "SYS-526",
+  "system_name": "Ylvara Data Warehouse",
+  "units": 20
+ },
+ "owners": {
+  "key_controls": 9,
+  "top": [
+   {
+    "name": "Dorothea Sandoval",
+    "person_id": "P-1562"
+   },
+   {
+    "name": "Greer Kowalczyk",
+    "person_id": "P-9499"
+   }
+  ],
+  "units": 7
+ },
+ "repeat_finding": {
+  "controls": 6,
+  "issues": 14
+ },
+ "subgraph": {
+  "edges": [
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "ERM-C1440"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "ERM-C1792"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "ERM-C2038"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "ERM-C2140"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "ERM-C2627"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "ERM-C2642"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "ERM-C3205"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "ERM-C3284"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "ERM-C3709"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "ERM-C3966"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "ERM-C4266"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "ERM-C4377"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "ERM-C4436"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "ERM-C4689"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "ERM-C4711"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-5530"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-5580"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-5581"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-5600"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-5680"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-5685"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-5713"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-5995"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-6575"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-6797"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-6822"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-6873"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-6902"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-6920"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-6976"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-7102"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-7131"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-7312"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-7363"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-8433"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-8604"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-8615"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-8659"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-8895"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-9185"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-9333"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-9493"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-9718"
+   },
+   {
+    "kind": "depends_on",
+    "source": "SYS-526",
+    "target": "IAC-9974"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R1651",
+    "target": "AE-394"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R1651",
+    "target": "AE-902"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R1651",
+    "target": "AE-996"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R1827",
+    "target": "AE-165"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R1827",
+    "target": "AE-375"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R1827",
+    "target": "AE-431"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R1827",
+    "target": "AE-513"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R2172",
+    "target": "AE-394"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R2172",
+    "target": "AE-996"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R2756",
+    "target": "AE-236"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R2756",
+    "target": "AE-440"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R2756",
+    "target": "AE-590"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R2756",
+    "target": "AE-964"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R3549",
+    "target": "AE-559"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R3732",
+    "target": "AE-271"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R3732",
+    "target": "AE-335"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R3732",
+    "target": "AE-440"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R3732",
+    "target": "AE-499"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R3732",
+    "target": "AE-882"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R3732",
+    "target": "AE-929"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R3775",
+    "target": "AE-153"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R3775",
+    "target": "AE-187"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R3775",
+    "target": "AE-753"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R3775",
+    "target": "AE-856"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R3835",
+    "target": "AE-271"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R3835",
+    "target": "AE-335"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R3835",
+    "target": "AE-499"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R3835",
+    "target": "AE-739"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R3835",
+    "target": "AE-882"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R3835",
+    "target": "AE-929"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R3872",
+    "target": "AE-153"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R3872",
+    "target": "AE-187"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R3872",
+    "target": "AE-753"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R3872",
+    "target": "AE-856"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4158",
+    "target": "AE-165"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4158",
+    "target": "AE-375"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4158",
+    "target": "AE-431"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4158",
+    "target": "AE-513"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4174",
+    "target": "AE-384"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4174",
+    "target": "AE-463"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4174",
+    "target": "AE-977"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4296",
+    "target": "AE-165"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4296",
+    "target": "AE-375"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4296",
+    "target": "AE-431"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4296",
+    "target": "AE-513"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4376",
+    "target": "AE-400"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4376",
+    "target": "AE-551"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4376",
+    "target": "AE-559"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4376",
+    "target": "AE-976"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4506",
+    "target": "AE-384"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4506",
+    "target": "AE-463"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4506",
+    "target": "AE-693"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4506",
+    "target": "AE-977"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4545",
+    "target": "AE-394"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4545",
+    "target": "AE-996"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4694",
+    "target": "AE-384"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4694",
+    "target": "AE-463"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4694",
+    "target": "AE-535"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4694",
+    "target": "AE-977"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4914",
+    "target": "AE-384"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4914",
+    "target": "AE-463"
+   },
+   {
+    "kind": "exposes",
+    "source": "ERM-R4914",
+    "target": "AE-977"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-5138",
+    "target": "AE-142"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-5286",
+    "target": "AE-384"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-5775",
+    "target": "AE-674"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-5804",
+    "target": "AE-499"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-5869",
+    "target": "AE-695"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-6119",
+    "target": "AE-976"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-6383",
+    "target": "AE-977"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-6434",
+    "target": "AE-858"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-6510",
+    "target": "AE-229"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-6524",
+    "target": "AE-842"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-6711",
+    "target": "AE-153"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-6760",
+    "target": "AE-932"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-7094",
+    "target": "AE-540"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-7305",
+    "target": "AE-753"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-7407",
+    "target": "AE-929"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-7456",
+    "target": "AE-996"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-7520",
+    "target": "AE-375"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-7978",
+    "target": "AE-513"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-8299",
+    "target": "AE-301"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-8773",
+    "target": "AE-575"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-8835",
+    "target": "AE-352"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-9335",
+    "target": "AE-375"
+   },
+   {
+    "kind": "exposes",
+    "source": "IAR-9378",
+    "target": "AE-394"
+   },
+   {
+    "kind": "mitigates",
+    "source": "ERM-C1440",
+    "target": "ERM-R3549"
+   },
+   {
+    "kind": "mitigates",
+    "source": "ERM-C1792",
+    "target": "ERM-R3872"
+   },
+   {
+    "kind": "mitigates",
+    "source": "ERM-C2038",
+    "target": "ERM-R3775"
+   },
+   {
+    "kind": "mitigates",
+    "source": "ERM-C2140",
+    "target": "ERM-R4174"
+   },
+   {
+    "kind": "mitigates",
+    "source": "ERM-C2642",
+    "target": "ERM-R3775"
+   },
+   {
+    "kind": "mitigates",
+    "source": "ERM-C2642",
+    "target": "ERM-R3835"
+   },
+   {
+    "kind": "mitigates",
+    "source": "ERM-C2642",
+    "target": "ERM-R3872"
+   },
+   {
+    "kind": "mitigates",
+    "source": "ERM-C2642",
+    "target": "ERM-R4914"
+   },
+   {
+    "kind": "mitigates",
+    "source": "ERM-C3205",
+    "target": "ERM-R4158"
+   },
+   {
+    "kind": "mitigates",
+    "source": "ERM-C3284",
+    "target": "ERM-R4506"
+   },
+   {
+    "kind": "mitigates",
+    "source": "ERM-C3284",
+    "target": "ERM-R4694"
+   },
+   {
+    "kind": "mitigates",
+    "source": "ERM-C3709",
+    "target": "ERM-R3732"
+   },
+   {
+    "kind": "mitigates",
+    "source": "ERM-C3966",
+    "target": "ERM-R2172"
+   },
+   {
+    "kind": "mitigates",
+    "source": "ERM-C4266",
+    "target": "ERM-R4545"
+   },
+   {
+    "kind": "mitigates",
+    "source": "ERM-C4377",
+    "target": "ERM-R1827"
+   },
+   {
+    "kind": "mitigates",
+    "source": "ERM-C4377",
+    "target": "ERM-R4296"
+   },
+   {
+    "kind": "mitigates",
+    "source": "ERM-C4436",
+    "target": "ERM-R1651"
+   },
+   {
+    "kind": "mitigates",
+    "source": "ERM-C4689",
+    "target": "ERM-R2756"
+   },
+   {
+    "kind": "mitigates",
+    "source": "ERM-C4711",
+    "target": "ERM-R4376"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-5530",
+    "target": "IAR-7520"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-5580",
+    "target": "IAR-6510"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-5581",
+    "target": "IAR-7305"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-5600",
+    "target": "IAR-9378"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-5680",
+    "target": "IAR-7456"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-5685",
+    "target": "IAR-6524"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-5713",
+    "target": "IAR-7305"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-5995",
+    "target": "IAR-8299"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-6575",
+    "target": "IAR-5775"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-6797",
+    "target": "IAR-6383"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-6822",
+    "target": "IAR-7407"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-6873",
+    "target": "IAR-6383"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-6902",
+    "target": "IAR-6711"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-6920",
+    "target": "IAR-8299"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-6976",
+    "target": "IAR-5869"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-7102",
+    "target": "IAR-8835"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-7131",
+    "target": "IAR-9335"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-7312",
+    "target": "IAR-7094"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-7363",
+    "target": "IAR-6760"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-8433",
+    "target": "IAR-7978"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-8604",
+    "target": "IAR-6711"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-8615",
+    "target": "IAR-6434"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-8659",
+    "target": "IAR-6119"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-8895",
+    "target": "IAR-5138"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-9185",
+    "target": "IAR-5286"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-9333",
+    "target": "IAR-5804"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-9493",
+    "target": "IAR-9335"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-9718",
+    "target": "IAR-8773"
+   },
+   {
+    "kind": "mitigates",
+    "source": "IAC-9974",
+    "target": "IAR-8773"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-142",
+    "target": "BU-932"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-153",
+    "target": "BU-586"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-165",
+    "target": "BU-223"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-187",
+    "target": "BU-586"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-229",
+    "target": "BU-392"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-236",
+    "target": "BU-710"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-271",
+    "target": "BU-215"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-301",
+    "target": "BU-990"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-335",
+    "target": "BU-215"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-352",
+    "target": "BU-662"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-375",
+    "target": "BU-223"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-384",
+    "target": "BU-272"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-394",
+    "target": "BU-979"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-400",
+    "target": "BU-767"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-431",
+    "target": "BU-223"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-440",
+    "target": "BU-976"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-463",
+    "target": "BU-272"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-499",
+    "target": "BU-215"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-513",
+    "target": "BU-223"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-535",
+    "target": "BU-981"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-540",
+    "target": "BU-266"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-551",
+    "target": "BU-767"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-559",
+    "target": "BU-119"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-575",
+    "target": "BU-932"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-590",
+    "target": "BU-710"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-674",
+    "target": "BU-429"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-693",
+    "target": "BU-968"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-695",
+    "target": "BU-662"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-739",
+    "target": "BU-701"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-753",
+    "target": "BU-586"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-842",
+    "target": "BU-468"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-856",
+    "target": "BU-586"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-858",
+    "target": "BU-981"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-882",
+    "target": "BU-215"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-902",
+    "target": "BU-549"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-929",
+    "target": "BU-215"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-932",
+    "target": "BU-549"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-964",
+    "target": "BU-710"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-976",
+    "target": "BU-767"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-977",
+    "target": "BU-272"
+   },
+   {
+    "kind": "owned_by",
+    "source": "AE-996",
+    "target": "BU-979"
+   }
+  ],
+  "nodes": [
+   {
+    "id": "SYS-526",
+    "kind": "system",
+    "label": "Ylvara Data Warehouse"
+   },
+   {
+    "id": "ERM-C1440",
+    "kind": "control",
+    "label": "Monthly IRR limit monitoring (the bond holdings kept for liquidity)"
+   },
+   {
+    "id": "ERM-C1792",
+    "kind": "control",
+    "label": "Pricing exception review (second-lien credit lines on residences)"
+   },
+   {
+    "id": "ERM-C2038",
+    "kind": "control",
+    "label": "Pricing exception review (dealer-originated vehicle contracts)"
+   },
+   {
+    "id": "ERM-C2140",
+    "kind": "control",
+    "label": "Consent evidence monitoring (revolving retail lending decisions)"
+   },
+   {
+    "id": "ERM-C2627",
+    "kind": "control",
+    "label": "Consent evidence monitoring (client securities trading)"
+   },
+   {
+    "id": "ERM-C2642",
+    "kind": "control",
+    "label": "Equitable pricing: reconciliation"
+   },
+   {
+    "id": "ERM-C3205",
+    "kind": "control",
+    "label": "Independent risk rating review (independent credit quality checks)"
+   },
+   {
+    "id": "ERM-C3284",
+    "kind": "control",
+    "label": "Quarterly complaint trend review (cardholder chargebacks)"
+   },
+   {
+    "id": "ERM-C3709",
+    "kind": "control",
+    "label": "Quarterly complaint trend review (retail regulation testing)"
+   },
+   {
+    "id": "ERM-C3966",
+    "kind": "control",
+    "label": "CRE concentration reporting (loans funded in draws during building projects)"
+   },
+   {
+    "id": "ERM-C4266",
+    "kind": "control",
+    "label": "CRE concentration reporting (income-producing property loans)"
+   },
+   {
+    "id": "ERM-C4377",
+    "kind": "control",
+    "label": "Independent risk rating review (ongoing oversight of booked business credits)"
+   },
+   {
+    "id": "ERM-C4436",
+    "kind": "control",
+    "label": "Independent risk rating review (income-producing property loans)"
+   },
+   {
+    "id": "ERM-C4689",
+    "kind": "control",
+    "label": "Consent evidence monitoring (variable pay plans)"
+   },
+   {
+    "id": "ERM-C4711",
+    "kind": "control",
+    "label": "Monthly IRR limit monitoring (balance sheet rate exposure)"
+   },
+   {
+    "id": "IAC-5530",
+    "kind": "control",
+    "label": "Independent loan review sampling and re-grading"
+   },
+   {
+    "id": "IAC-5580",
+    "kind": "control",
+    "label": "Limit breach escalation to ALCO and the Board Risk Committee"
+   },
+   {
+    "id": "IAC-5581",
+    "kind": "control",
+    "label": "Balancing and reconciliation for pricing exception reviews (Home Equity Lending)"
+   },
+   {
+    "id": "IAC-5600",
+    "kind": "control",
+    "label": "Quarterly CRE concentration report including unfunded commitments"
+   },
+   {
+    "id": "IAC-5680",
+    "kind": "control",
+    "label": "Quarterly CRE concentration report including unfunded commitments"
+   },
+   {
+    "id": "IAC-5685",
+    "kind": "control",
+    "label": "Monthly unused-account monitoring with consent verification"
+   },
+   {
+    "id": "IAC-5713",
+    "kind": "control",
+    "label": "Quarterly pricing disparity analysis with exception documentation"
+   },
+   {
+    "id": "IAC-5995",
+    "kind": "control",
+    "label": "Balancing and reconciliation for data quality rules (Regulatory Reporting)"
+   },
+   {
+    "id": "IAC-6575",
+    "kind": "control",
+    "label": "Independent loan review sampling and re-grading"
+   },
+   {
+    "id": "IAC-6797",
+    "kind": "control",
+    "label": "Balancing and reconciliation for pricing exception reviews (Credit Card Underwriting)"
+   },
+   {
+    "id": "IAC-6822",
+    "kind": "control",
+    "label": "Above- and below-the-line testing of monitoring scenarios"
+   },
+   {
+    "id": "IAC-6873",
+    "kind": "control",
+    "label": "Quarterly pricing disparity analysis with exception documentation"
+   },
+   {
+    "id": "IAC-6902",
+    "kind": "control",
+    "label": "Balancing and reconciliation for pricing exception reviews (Consumer Mortgage Lending)"
+   },
+   {
+    "id": "IAC-6920",
+    "kind": "control",
+    "label": "Automated data quality rules with owner sign-off on exceptions"
+   },
+   {
+    "id": "IAC-6976",
+    "kind": "control",
+    "label": "Monthly unused-account monitoring with consent verification"
+   },
+   {
+    "id": "IAC-7102",
+    "kind": "control",
+    "label": "Quarterly root cause analysis of complaint themes"
+   },
+   {
+    "id": "IAC-7131",
+    "kind": "control",
+    "label": "Automated data quality rules with owner sign-off on exceptions"
+   },
+   {
+    "id": "IAC-7312",
+    "kind": "control",
+    "label": "Above- and below-the-line testing of monitoring scenarios"
+   },
+   {
+    "id": "IAC-7363",
+    "kind": "control",
+    "label": "Above- and below-the-line testing of monitoring scenarios"
+   },
+   {
+    "id": "IAC-8433",
+    "kind": "control",
+    "label": "Independent loan review sampling and re-grading"
+   },
+   {
+    "id": "IAC-8604",
+    "kind": "control",
+    "label": "Quarterly pricing disparity analysis with exception documentation"
+   },
+   {
+    "id": "IAC-8615",
+    "kind": "control",
+    "label": "Quarterly pricing disparity analysis with exception documentation"
+   },
+   {
+    "id": "IAC-8659",
+    "kind": "control",
+    "label": "Limit breach escalation to ALCO and the Board Risk Committee"
+   },
+   {
+    "id": "IAC-8895",
+    "kind": "control",
+    "label": "Automated data quality rules with owner sign-off on exceptions"
+   },
+   {
+    "id": "IAC-9185",
+    "kind": "control",
+    "label": "Quarterly root cause analysis of complaint themes"
+   },
+   {
+    "id": "IAC-9333",
+    "kind": "control",
+    "label": "Quarterly root cause analysis of complaint themes"
+   },
+   {
+    "id": "IAC-9493",
+    "kind": "control",
+    "label": "Balancing and reconciliation for data quality rules (Credit Administration)"
+   },
+   {
+    "id": "IAC-9718",
+    "kind": "control",
+    "label": "Automated data quality rules with owner sign-off on exceptions"
+   },
+   {
+    "id": "IAC-9974",
+    "kind": "control",
+    "label": "Balancing and reconciliation for data quality rules (Regulatory Reporting Data)"
+   },
+   {
+    "id": "ERM-R1651",
+    "kind": "risk",
+    "label": "Inaccurate loan risk ratings (income-producing property loans)"
+   },
+   {
+    "id": "ERM-R1827",
+    "kind": "risk",
+    "label": "Inaccurate loan risk ratings (ongoing oversight of booked business credits)"
+   },
+   {
+    "id": "ERM-R2172",
+    "kind": "risk",
+    "label": "Excess commercial real estate concentration (loans funded in draws during building projects)"
+   },
+   {
+    "id": "ERM-R2756",
+    "kind": "risk",
+    "label": "Accounts opened without customer consent (variable pay plans)"
+   },
+   {
+    "id": "ERM-R3549",
+    "kind": "risk",
+    "label": "Breach of interest rate risk limits (the bond holdings kept for liquidity)"
+   },
+   {
+    "id": "ERM-R3732",
+    "kind": "risk",
+    "label": "Complaint trends not analyzed (retail regulation testing)"
+   },
+   {
+    "id": "ERM-R3775",
+    "kind": "risk",
+    "label": "Fair lending pricing disparities (dealer-originated vehicle contracts)"
+   },
+   {
+    "id": "ERM-R3835",
+    "kind": "risk",
+    "label": "Fair lending pricing disparities (equitable credit pricing and access)"
+   },
+   {
+    "id": "ERM-R3872",
+    "kind": "risk",
+    "label": "Fair lending pricing disparities (second-lien credit lines on residences)"
+   },
+   {
+    "id": "ERM-R4158",
+    "kind": "risk",
+    "label": "Inaccurate loan risk ratings (independent credit quality checks)"
+   },
+   {
+    "id": "ERM-R4174",
+    "kind": "risk",
+    "label": "Accounts opened without customer consent (revolving retail lending decisions)"
+   },
+   {
+    "id": "ERM-R4296",
+    "kind": "risk",
+    "label": "Stale credit grades (ongoing oversight of booked business credits)"
+   },
+   {
+    "id": "ERM-R4376",
+    "kind": "risk",
+    "label": "Breach of interest rate risk limits (balance sheet rate exposure)"
+   },
+   {
+    "id": "ERM-R4506",
+    "kind": "risk",
+    "label": "Complaint trends not analyzed (cardholder chargebacks)"
+   },
+   {
+    "id": "ERM-R4545",
+    "kind": "risk",
+    "label": "Excess commercial real estate concentration (income-producing property loans)"
+   },
+   {
+    "id": "ERM-R4694",
+    "kind": "risk",
+    "label": "Weak complaint root cause analysis (cardholder chargebacks)"
+   },
+   {
+    "id": "ERM-R4914",
+    "kind": "risk",
+    "label": "Fair lending pricing disparities (revolving retail lending decisions)"
+   },
+   {
+    "id": "IAR-5138",
+    "kind": "risk",
+    "label": "Data governance"
+   },
+   {
+    "id": "IAR-5286",
+    "kind": "risk",
+    "label": "Complaint trend analysis"
+   },
+   {
+    "id": "IAR-5775",
+    "kind": "risk",
+    "label": "Risk rating accuracy"
+   },
+   {
+    "id": "IAR-5804",
+    "kind": "risk",
+    "label": "Complaint trend analysis"
+   },
+   {
+    "id": "IAR-5869",
+    "kind": "risk",
+    "label": "Sales practices"
+   },
+   {
+    "id": "IAR-6119",
+    "kind": "risk",
+    "label": "IRR limit monitoring and escalation"
+   },
+   {
+    "id": "IAR-6383",
+    "kind": "risk",
+    "label": "Fair lending"
+   },
+   {
+    "id": "IAR-6434",
+    "kind": "risk",
+    "label": "Fair lending"
+   },
+   {
+    "id": "IAR-6510",
+    "kind": "risk",
+    "label": "IRR limit monitoring and escalation"
+   },
+   {
+    "id": "IAR-6524",
+    "kind": "risk",
+    "label": "Sales practices"
+   },
+   {
+    "id": "IAR-6711",
+    "kind": "risk",
+    "label": "Fair lending"
+   },
+   {
+    "id": "IAR-6760",
+    "kind": "risk",
+    "label": "AML scenario tuning and coverage"
+   },
+   {
+    "id": "IAR-7094",
+    "kind": "risk",
+    "label": "AML scenario tuning and coverage"
+   },
+   {
+    "id": "IAR-7305",
+    "kind": "risk",
+    "label": "Fair lending"
+   },
+   {
+    "id": "IAR-7407",
+    "kind": "risk",
+    "label": "AML scenario tuning and coverage"
+   },
+   {
+    "id": "IAR-7456",
+    "kind": "risk",
+    "label": "CRE concentration management"
+   },
+   {
+    "id": "IAR-7520",
+    "kind": "risk",
+    "label": "Risk rating accuracy"
+   },
+   {
+    "id": "IAR-7978",
+    "kind": "risk",
+    "label": "Risk rating accuracy"
+   },
+   {
+    "id": "IAR-8299",
+    "kind": "risk",
+    "label": "Data governance"
+   },
+   {
+    "id": "IAR-8773",
+    "kind": "risk",
+    "label": "Data governance"
+   },
+   {
+    "id": "IAR-8835",
+    "kind": "risk",
+    "label": "Complaint trend analysis"
+   },
+   {
+    "id": "IAR-9335",
+    "kind": "risk",
+    "label": "Data governance"
+   },
+   {
+    "id": "IAR-9378",
+    "kind": "risk",
+    "label": "CRE concentration management"
+   },
+   {
+    "id": "AE-142",
+    "kind": "entity",
+    "label": "Data Governance"
+   },
+   {
+    "id": "AE-153",
+    "kind": "entity",
+    "label": "Consumer Mortgage Lending"
+   },
+   {
+    "id": "AE-165",
+    "kind": "entity",
+    "label": "Commercial Loan Origination"
+   },
+   {
+    "id": "AE-187",
+    "kind": "entity",
+    "label": "Indirect Auto Lending"
+   },
+   {
+    "id": "AE-229",
+    "kind": "entity",
+    "label": "Interest Rate Derivatives"
+   },
+   {
+    "id": "AE-236",
+    "kind": "entity",
+    "label": "Incentive Compensation"
+   },
+   {
+    "id": "AE-271",
+    "kind": "entity",
+    "label": "Fair Lending"
+   },
+   {
+    "id": "AE-301",
+    "kind": "entity",
+    "label": "Regulatory Reporting"
+   },
+   {
+    "id": "AE-335",
+    "kind": "entity",
+    "label": "Sanctions Compliance"
+   },
+   {
+    "id": "AE-352",
+    "kind": "entity",
+    "label": "Customer Complaints Management"
+   },
+   {
+    "id": "AE-375",
+    "kind": "entity",
+    "label": "Credit Administration"
+   },
+   {
+    "id": "AE-384",
+    "kind": "entity",
+    "label": "Card Disputes"
+   },
+   {
+    "id": "AE-394",
+    "kind": "entity",
+    "label": "CRE Lending"
+   },
+   {
+    "id": "AE-400",
+    "kind": "entity",
+    "label": "Liquidity Management"
+   },
+   {
+    "id": "AE-431",
+    "kind": "entity",
+    "label": "Syndicated Lending"
+   },
+   {
+    "id": "AE-440",
+    "kind": "entity",
+    "label": "Contract Management"
+   },
+   {
+    "id": "AE-463",
+    "kind": "entity",
+    "label": "Debit Card Program"
+   },
+   {
+    "id": "AE-499",
+    "kind": "entity",
+    "label": "Consumer Compliance Monitoring"
+   },
+   {
+    "id": "AE-513",
+    "kind": "entity",
+    "label": "Loan Review"
+   },
+   {
+    "id": "AE-535",
+    "kind": "entity",
+    "label": "SBA Lending"
+   },
+   {
+    "id": "AE-540",
+    "kind": "entity",
+    "label": "Real-Time Payments"
+   },
+   {
+    "id": "AE-551",
+    "kind": "entity",
+    "label": "Funds Transfer Pricing"
+   },
+   {
+    "id": "AE-559",
+    "kind": "entity",
+    "label": "Investment Securities Portfolio"
+   },
+   {
+    "id": "AE-575",
+    "kind": "entity",
+    "label": "Regulatory Reporting Data"
+   },
+   {
+    "id": "AE-590",
+    "kind": "entity",
+    "label": "Payroll"
+   },
+   {
+    "id": "AE-674",
+    "kind": "entity",
+    "label": "Middle Market Lending"
+   },
+   {
+    "id": "AE-693",
+    "kind": "entity",
+    "label": "Mortgage Servicing"
+   },
+   {
+    "id": "AE-695",
+    "kind": "entity",
+    "label": "Branch Operations"
+   },
+   {
+    "id": "AE-739",
+    "kind": "entity",
+    "label": "Business Continuity Management"
+   },
+   {
+    "id": "AE-753",
+    "kind": "entity",
+    "label": "Home Equity Lending"
+   },
+   {
+    "id": "AE-842",
+    "kind": "entity",
+    "label": "Online & Mobile Banking"
+   },
+   {
+    "id": "AE-856",
+    "kind": "entity",
+    "label": "Consumer Installment Lending"
+   },
+   {
+    "id": "AE-858",
+    "kind": "entity",
+    "label": "Small Business Lending"
+   },
+   {
+    "id": "AE-882",
+    "kind": "entity",
+    "label": "New Product Approval"
+   },
+   {
+    "id": "AE-902",
+    "kind": "entity",
+    "label": "Commercial Card"
+   },
+   {
+    "id": "AE-929",
+    "kind": "entity",
+    "label": "BSA/AML Program"
+   },
+   {
+    "id": "AE-932",
+    "kind": "entity",
+    "label": "Remote Deposit Capture"
+   },
+   {
+    "id": "AE-964",
+    "kind": "entity",
+    "label": "Talent Acquisition & Onboarding"
+   },
+   {
+    "id": "AE-976",
+    "kind": "entity",
+    "label": "Treasury ALM"
+   },
+   {
+    "id": "AE-977",
+    "kind": "entity",
+    "label": "Credit Card Underwriting"
+   },
+   {
+    "id": "AE-996",
+    "kind": "entity",
+    "label": "Construction Lending"
+   },
+   {
+    "id": "BU-119",
+    "kind": "unit",
+    "label": "Investment Portfolio"
+   },
+   {
+    "id": "BU-215",
+    "kind": "unit",
+    "label": "Compliance"
+   },
+   {
+    "id": "BU-223",
+    "kind": "unit",
+    "label": "Commercial Lending"
+   },
+   {
+    "id": "BU-266",
+    "kind": "unit",
+    "label": "Payment Operations"
+   },
+   {
+    "id": "BU-272",
+    "kind": "unit",
+    "label": "Card Services"
+   },
+   {
+    "id": "BU-392",
+    "kind": "unit",
+    "label": "Capital Markets"
+   },
+   {
+    "id": "BU-429",
+    "kind": "unit",
+    "label": "Middle Market Banking"
+   },
+   {
+    "id": "BU-468",
+    "kind": "unit",
+    "label": "Digital Banking"
+   },
+   {
+    "id": "BU-549",
+    "kind": "unit",
+    "label": "Treasury Management Services"
+   },
+   {
+    "id": "BU-586",
+    "kind": "unit",
+    "label": "Consumer Lending"
+   },
+   {
+    "id": "BU-662",
+    "kind": "unit",
+    "label": "Retail Branch Network"
+   },
+   {
+    "id": "BU-701",
+    "kind": "unit",
+    "label": "Enterprise Risk Management"
+   },
+   {
+    "id": "BU-710",
+    "kind": "unit",
+    "label": "Human Resources"
+   },
+   {
+    "id": "BU-767",
+    "kind": "unit",
+    "label": "Corporate Treasury"
+   },
+   {
+    "id": "BU-932",
+    "kind": "unit",
+    "label": "Data Management"
+   },
+   {
+    "id": "BU-968",
+    "kind": "unit",
+    "label": "Mortgage Banking"
+   },
+   {
+    "id": "BU-976",
+    "kind": "unit",
+    "label": "Legal"
+   },
+   {
+    "id": "BU-979",
+    "kind": "unit",
+    "label": "Commercial Real Estate"
+   },
+   {
+    "id": "BU-981",
+    "kind": "unit",
+    "label": "Small Business Banking"
+   },
+   {
+    "id": "BU-990",
+    "kind": "unit",
+    "label": "Finance"
+   }
+  ]
+ },
+ "symmetry": [
+  {
+   "construct": "read",
+   "cypher": "MATCH (a:A)\nWHERE a.y = 1\nRETURN a.x",
+   "cypher_metrics": [
+    3,
+    0,
+    0
+   ],
+   "disclosed": false,
+   "sql": "SELECT a.x\nFROM a\nWHERE a.y = 1",
+   "sql_metrics": [
+    3,
+    0,
+    0
+   ]
+  },
+  {
+   "construct": "join or hop",
+   "cypher": "MATCH (a:A)-[:R]->(b:B)\nRETURN a.x",
+   "cypher_metrics": [
+    2,
+    1,
+    0
+   ],
+   "disclosed": false,
+   "sql": "SELECT a.x\nFROM a\nJOIN b ON b.id = a.id",
+   "sql_metrics": [
+    2,
+    1,
+    0
+   ]
+  },
+  {
+   "construct": "fixed path *2",
+   "cypher": "MATCH (a:A)-[:R*2]->(c:C)\nRETURN a.x",
+   "cypher_metrics": [
+    2,
+    2,
+    0
+   ],
+   "disclosed": false,
+   "sql": "SELECT a.x\nFROM a\nJOIN b ON b.id = a.id\nJOIN c ON c.id = b.id",
+   "sql_metrics": [
+    2,
+    2,
+    0
+   ]
+  },
+  {
+   "construct": "recursion (anchored on a literal)",
+   "cypher": "MATCH (a:V)-[:R*0..]->(:V {name: $v})\nRETURN a.name",
+   "cypher_metrics": [
+    2,
+    1,
+    1
+   ],
+   "disclosed": false,
+   "sql": "WITH RECURSIVE up(v) AS (\n  SELECT :v\n  UNION\n  SELECT r.v\n  FROM r\n  JOIN up ON r.w = up.v)\nSELECT up.v\nFROM up",
+   "sql_metrics": [
+    7,
+    2,
+    1
+   ]
+  },
+  {
+   "construct": "recursion (anchored on a table)",
+   "cypher": "MATCH (a:V)-[:R*0..]->(:V {name: $v})\nRETURN a.name",
+   "cypher_metrics": [
+    2,
+    1,
+    1
+   ],
+   "disclosed": false,
+   "sql": "WITH RECURSIVE up(v) AS (\n  SELECT s.v\n  FROM s\n  UNION\n  SELECT r.v\n  FROM r\n  JOIN up ON r.w = up.v)\nSELECT up.v\nFROM up",
+   "sql_metrics": [
+    8,
+    3,
+    1
+   ]
+  },
+  {
+   "construct": "stage",
+   "cypher": "MATCH (a:A)\nWITH a\nRETURN a.id",
+   "cypher_metrics": [
+    3,
+    0,
+    1
+   ],
+   "disclosed": false,
+   "sql": "WITH x AS (\n  SELECT a.id\n  FROM a)\nSELECT x.id\nFROM x",
+   "sql_metrics": [
+    5,
+    1,
+    1
+   ]
+  },
+  {
+   "construct": "subquery",
+   "cypher": "MATCH (a:A)\nWHERE EXISTS {\n  MATCH (a)-[:R]->(:B) }\nRETURN a.id",
+   "cypher_metrics": [
+    4,
+    1,
+    1
+   ],
+   "disclosed": false,
+   "sql": "SELECT a.id\nFROM a\nWHERE a.id IN (\n  SELECT b.id\n  FROM b)",
+   "sql_metrics": [
+    5,
+    1,
+    1
+   ]
+  },
+  {
+   "construct": "union",
+   "cypher": "MATCH (a:A)\nRETURN a.id AS id\nUNION ALL\nMATCH (b:B)\nRETURN b.id AS id",
+   "cypher_metrics": [
+    5,
+    0,
+    1
+   ],
+   "disclosed": false,
+   "sql": "SELECT id\nFROM a\nUNION ALL\nSELECT id\nFROM b",
+   "sql_metrics": [
+    5,
+    1,
+    1
+   ]
+  },
+  {
+   "construct": "write",
+   "cypher": "MERGE (t:T {v: $v})",
+   "cypher_metrics": [
+    0,
+    0,
+    1
+   ],
+   "disclosed": false,
+   "sql": "INSERT INTO t (v)\nVALUES (:v)",
+   "sql_metrics": [
+    0,
+    0,
+    1
+   ]
+  },
+  {
+   "construct": "setup",
+   "cypher": "UNWIND $rows AS row\nMERGE (t:T {v: row.v})\nCREATE (t)-[:R]->(t)",
+   "cypher_metrics": [
+    1,
+    1,
+    2
+   ],
+   "disclosed": false,
+   "sql": "CREATE TEMP TABLE t (v TEXT);\nINSERT INTO t (v)\nVALUES (:v)",
+   "sql_metrics": [
+    0,
+    0,
+    2
+   ]
+  },
+  {
+   "construct": "optional",
+   "cypher": "MATCH (a:A)\nOPTIONAL MATCH (a)-[:R]->(b:B)\nRETURN a.x",
+   "cypher_metrics": [
+    3,
+    1,
+    0
+   ],
+   "disclosed": false,
+   "sql": "SELECT a.x\nFROM a\nLEFT JOIN b ON b.id = a.id",
+   "sql_metrics": [
+    2,
+    1,
+    0
+   ]
+  },
+  {
+   "construct": "filter after an aggregate",
+   "cypher": "MATCH (a:A)\nWITH a.k AS k, count(*) AS n\nWHERE n > 1\nRETURN k, n",
+   "cypher_metrics": [
+    4,
+    0,
+    1
+   ],
+   "disclosed": true,
+   "sql": "SELECT a.k, COUNT(*) AS n\nFROM a\nGROUP BY a.k\nHAVING COUNT(*) > 1",
+   "sql_metrics": [
+    4,
+    0,
+    0
+   ]
+  },
+  {
+   "construct": "upsert",
+   "cypher": "MERGE (t:T {v: $v})\nON CREATE SET t.n = 1\nON MATCH SET t.n = t.n + 1",
+   "cypher_metrics": [
+    1,
+    0,
+    4
+   ],
+   "disclosed": true,
+   "sql": "INSERT INTO t (v)\nVALUES (:v)\nON CONFLICT (v) DO UPDATE SET n = n + 1",
+   "sql_metrics": [
+    0,
+    0,
+    2
+   ]
+  },
+  {
+   "construct": "select inside a write",
+   "cypher": "MATCH (a:A)\nCREATE (:T {v: a.v})",
+   "cypher_metrics": [
+    1,
+    0,
+    1
+   ],
+   "disclosed": false,
+   "sql": "INSERT INTO t (v)\nSELECT a.v\nFROM a",
+   "sql_metrics": [
+    2,
+    0,
+    1
+   ]
+  }
+ ]
+}
