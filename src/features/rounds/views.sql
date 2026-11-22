@@ -35,3 +35,15 @@ FROM regulation_requires_control_erm
 UNION ALL
 SELECT regulation_id, control_id
 FROM regulation_requires_control_ia;
+CREATE TEMP VIEW control AS
+SELECT 'ERM' AS source, control_id, key_control
+FROM control_erm
+UNION ALL
+SELECT 'IA', control_id, key_control
+FROM control_ia;
+CREATE TEMP VIEW owned_by AS
+SELECT control_id, person_id
+FROM control_owned_by_person_erm
+UNION ALL
+SELECT control_id, person_id
+FROM control_owned_by_person_ia;

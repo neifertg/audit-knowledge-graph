@@ -3,7 +3,7 @@
     python -m akg build        generate the synthetic bank (E1), then reconcile it (E2)
     python -m akg reconcile    (re)write <out>/reconciled/ for an existing build
     python -m akg load         (re)build <out>/akg.sqlite, and Neo4j when NEO4J_URI is set (E3)
-    python -m akg rounds       run the head-to-head rounds on an existing loaded build (E3)
+    python -m akg rounds       run the head-to-head rounds on an existing loaded build, write rounds.json (E3)
     python -m akg sample-pack  render the realism-review sample pack
     python -m akg check-text   check committed AI text for orphan keys
 
@@ -98,14 +98,15 @@ def main(argv: list[str] | None = None) -> int:
     code = _load(args.out)
     if code != 0:
         return code
-    return _rounds(args.out)
+    return _rounds(args.out, args.seed)
 
 
-def _rounds(out: Path) -> int:
-    """E3: run the head-to-head rounds on SQLite, and on Neo4j when NEO4J_URI is set."""
+def _rounds(out: Path, seed: int | None = None) -> int:
+    """E3: run the head-to-head rounds on SQLite, and on Neo4j when NEO4J_URI is set, and write
+    <out>/rounds.json (the seed is recorded when known, as in a build)."""
     from src.features.rounds.runner import main as run_rounds
 
-    return run_rounds(out)
+    return run_rounds(out, seed)
 
 
 def _remove_database(out: Path) -> None:
