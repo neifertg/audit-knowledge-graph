@@ -4,7 +4,7 @@
 {
   "id": "004-e4-page-v1-and-publish",
   "tier": "epic",
-  "status": "draft",
+  "status": "approved",
   "created": "2026-11-19",
   "revised": "2026-11-22",
   "objective": "O1",
@@ -35,7 +35,9 @@
         "c"
       ]
     }
-  ]
+  ],
+  "approved": "2026-11-22",
+  "approved_hash": "2e8943dfab27e220"
 }
 ```
 
