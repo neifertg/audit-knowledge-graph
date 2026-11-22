@@ -10,11 +10,12 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from collections import Counter, defaultdict
+from collections import defaultdict
 from datetime import date, timedelta
 from pathlib import Path
 
-from src.features.rounds import ROUNDS
+from src.features.rounds import ROUNDS as ALL_ROUNDS
+from src.features.rounds import oracle as O
 from src.features.rounds import runner as R
 from src.features.rounds import verdict as V
 from src.features.rounds.registry import STALE_CUTOFF, VIEWS
@@ -25,63 +26,14 @@ from tests.generator.helpers import ROOT, akg_env, answer_key, read, run_akg
 from tests.stores.test_neo4j import graph
 from tests.stores.test_sqlite import loaded
 
+ROUNDS = ALL_ROUNDS[:4]  # 017's rounds; 5-7 are tested in test_rounds_5_7 (018)
 BY_NUMBER = {r.number: r for r in ROUNDS}
 
 
-# ---------- the oracle: an independent Python computation from the CSVs ----------
-
+# The oracle moved to src/features/rounds/oracle.py in 018 (unchanged for rounds 1-4), so the
+# export can report it; it reads only the published and reconciled CSVs.
 def oracle(out: Path, cutoff: str = STALE_CUTOFF) -> dict:
-    """Each round's answer computed from the published and reconciled CSVs, never from SQLite."""
-    both = lambda stem: read(out, stem + "_erm") + read(out, stem + "_ia")
-    exposed, mitigates, mitigated_by = defaultdict(set), defaultdict(set), defaultdict(set)
-    for r in both("auditable_entity_exposed_to_risk"):
-        exposed[r["risk_id"]].add(r["auditable_entity_id"])
-    for r in both("control_mitigates_risk"):
-        mitigates[r["control_id"]].add(r["risk_id"])
-        mitigated_by[r["risk_id"]].add(r["control_id"])
-    owner = {r["auditable_entity_id"]: r["business_unit_id"] for r in read(out, "business_unit_owns_auditable_entity")}
-    unit_name = {r["business_unit_id"]: r["name"] for r in read(out, "business_unit")}
-
-    # round 1
-    issue_risks = defaultdict(set)
-    for r in both("issue_against_risk"):
-        issue_risks[r["issue_id"]].add(r["risk_id"])
-    open_by = defaultdict(set)
-    for i in read(out, "issue"):
-        if i["closed_date"] == "":
-            for risk in issue_risks[i["issue_id"]]:
-                for e in exposed[risk]:
-                    open_by[(owner[e], i["rating"])].add(i["issue_id"])
-    r1 = [(bu, unit_name[bu], rating, len(ids)) for (bu, rating), ids in open_by.items()]
-
-    # round 2
-    rating = {r["risk_id"]: r["inherent_rating"] for r in both("risk")}
-    end = {a["audit_id"]: a["end_date"] for a in read(out, "audit")}
-    fresh = {t["control_id"] for t in read(out, "audit_tested_control_ia") if end[t["audit_id"]] >= cutoff}
-    members = defaultdict(list)
-    for m in read(out / "reconciled", "risk_maps_to_canonical"):
-        members[m["canonical_risk_id"]].append((m["source"], m["risk_id"]))
-    r2 = [(c, "Y" if any(s == "IA" for s, _ in mem) else "N") for c, mem in members.items()
-          if any(rating[r] == "High" for _, r in mem)
-          and not any(ctrl in fresh for _, r in mem for ctrl in mitigated_by[r])]
-
-    # round 3
-    system_name = {s["system_id"]: s["name"] for s in read(out, "system")}
-    reach = defaultdict(set)
-    for d in both("control_depends_on_system"):
-        for risk in mitigates[d["control_id"]]:
-            reach[d["system_id"]] |= exposed[risk]
-    ranked = sorted(((s, system_name[s], len(es)) for s, es in reach.items() if es), key=lambda t: (-t[2], t[1]))
-
-    # round 4
-    paths = Counter()
-    for q in both("regulation_requires_control"):
-        for risk in mitigates[q["control_id"]]:
-            for e in exposed[risk]:
-                paths[(q["regulation_id"], owner[e])] += 1
-    r4 = [(g, bu, n) for (g, bu), n in paths.items()]
-    return {1: r1, 2: r2, 3: ranked[:3], 4: r4, "ranked_systems": ranked, "members": members,
-            "mitigated_by": mitigated_by, "rating": rating}
+    return O.answers(out, cutoff)
 
 
 def latest_fresh_test(out: Path, orc: dict) -> tuple[str, str]:
@@ -132,7 +84,7 @@ class RoundTests(unittest.TestCase):
                 self.assertIn(column, r.sql, (r.number, column))
                 self.assertIn(column, r.cypher, (r.number, column))
             # no per-source table in a round's SQL, except the IA-only audit_tested_control_ia
-            self.assertEqual(set(re.findall(r"\b\w+_(?:erm|ia)\b", r.sql)) - {"audit_tested_control_ia"}, set(),
+            self.assertEqual(set(re.findall(r"\b\w+_(?:erm|ia)\b", r.sql)) - set(r.source_tables), set(),
                              r.number)
         # round 2's cutoff is a parameter in both engines, never a literal
         self.assertIn(":cutoff", BY_NUMBER[2].sql)
@@ -166,8 +118,9 @@ class RoundTests(unittest.TestCase):
                "SELECT x.id\nFROM x\nJOIN c ON c.id = x.id\nWHERE c.v = 'JOIN FROM'")
         inline = ("SELECT x.id\nFROM (\n  SELECT a.id\n  FROM a\n  JOIN b ON b.id = a.id) AS x\n"
                   "JOIN c ON c.id = x.id\nWHERE c.v = 'JOIN FROM'")
-        self.assertEqual(m(cte, "sql"), {"clauses": 8, "steps": 3, "moving_parts": 1})
-        self.assertEqual(m(inline, "sql"), {"clauses": 7, "steps": 3, "moving_parts": 1})
+        # 018's symmetric rule: a join counts once, as a step, never also as a clause
+        self.assertEqual(m(cte, "sql"), {"clauses": 6, "steps": 3, "moving_parts": 1})
+        self.assertEqual(m(inline, "sql"), {"clauses": 5, "steps": 3, "moving_parts": 1})
         subquery = "SELECT a.id\nFROM a\nWHERE a.id IN (\n  SELECT b.id\n  FROM b)"
         self.assertEqual(m(subquery, "sql"), {"clauses": 5, "steps": 1, "moving_parts": 1})
         correlated = "SELECT a.id\nFROM a\nWHERE EXISTS (\n  SELECT 1\n  FROM b\n  WHERE b.id = a.id)"
@@ -176,7 +129,8 @@ class RoundTests(unittest.TestCase):
         self.assertEqual(m(union, "sql"), {"clauses": 5, "steps": 1, "moving_parts": 1})
         recursive = ("WITH RECURSIVE t(n) AS (\n  SELECT 1\n  UNION ALL\n  SELECT n + 1\n  FROM t\n  WHERE n < 5)\n"
                      "SELECT n\nFROM t")
-        self.assertEqual(m(recursive, "sql"), {"clauses": 8, "steps": 1, "moving_parts": 3})
+        # recursion is one moving part (018): the SELECTs inside the recursive body are not charged
+        self.assertEqual(m(recursive, "sql"), {"clauses": 8, "steps": 1, "moving_parts": 1})
         ddl = "CREATE TEMP TABLE z AS\nSELECT id\nFROM a"
         self.assertEqual(m(ddl, "sql"), {"clauses": 2, "steps": 0, "moving_parts": 1})
         arrows = "MATCH (a:A)-->(b:B)<--(c)\nMATCH (c)--(d)\nRETURN a.id"
@@ -207,8 +161,8 @@ class RoundTests(unittest.TestCase):
         view = "SELECT m.risk_id\nFROM mitigates AS m\nJOIN risk AS r ON r.risk_id = m.risk_id"
         unioned = ("SELECT m.risk_id\nFROM (\n  SELECT risk_id\n  FROM control_mitigates_risk_erm\n  UNION ALL\n"
                    "  SELECT risk_id\n  FROM control_mitigates_risk_ia) AS m\nJOIN risk AS r ON r.risk_id = m.risk_id")
-        self.assertEqual(m(view, "sql"), {"clauses": 3, "steps": 1, "moving_parts": 0})
-        self.assertEqual(m(unioned, "sql"), {"clauses": 8, "steps": 3, "moving_parts": 2})
+        self.assertEqual(m(view, "sql"), {"clauses": 2, "steps": 1, "moving_parts": 0})
+        self.assertEqual(m(unioned, "sql"), {"clauses": 7, "steps": 3, "moving_parts": 2})
         # views.sql is never scored: a round's metrics come from its own file alone
         for r in ROUNDS:
             self.assertNotIn("CREATE", r.sql.upper())
@@ -256,7 +210,7 @@ class RoundTests(unittest.TestCase):
 
     def test_ac4_sql_and_cypher_agree_and_the_guard_refuses(self):
         driver, out = graph()
-        results = R.run_rounds(out, driver)
+        results = R.run_rounds(out, driver, ROUNDS)
         for res in results:
             with self.subTest(round=res.round.number):
                 self.assertTrue(res.agree, f"round {res.round.number}: SQL and Cypher differ")
@@ -313,7 +267,7 @@ class RoundTests(unittest.TestCase):
             lines = result.stdout.splitlines()
             load_at = next(i for i, line in enumerate(lines) if line.startswith("loaded "))
             self.assertEqual([line.split(":")[0] for line in lines if line.startswith("round ")],
-                             [f"round {r.number}" for r in ROUNDS])
+                             [f"round {r.number}" for r in ALL_ROUNDS if not r.supporting])
             self.assertTrue(all(i > load_at for i, line in enumerate(lines) if line.startswith("round ")))
         # disagreement, for real: close one open issue in a copy's SQLite; the graph is unchanged
         driver, out = graph()
@@ -338,7 +292,7 @@ class RoundTests(unittest.TestCase):
         doc = (ROOT / "docs" / "data-model.md").read_text(encoding="utf-8")
         readme = (ROOT / "src" / "features" / "rounds" / "README.md").read_text(encoding="utf-8")
         self.assertNotIn("TODO", readme)
-        results = R.run_rounds(out)
+        results = R.run_rounds(out, rounds=ROUNDS)
         for text in (doc, readme):
             for phrase in ("views.sql", "on or after", "2023-12-31", "clauses + steps + 5", "1.25",
                            "agreement", "oracle", "scenario", "has_ia_member", "LoadComplete"):

@@ -1,0 +1,1109 @@
+{
+  "parameters": {
+    "round_2_cutoff": "2023-12-31",
+    "round_5_register": [
+      {
+        "relies_on": "Aldwyn Software",
+        "vendor": "Calvane Analytics"
+      },
+      {
+        "relies_on": "Tarrance Systems",
+        "vendor": "Carrowmere Holdings"
+      },
+      {
+        "relies_on": "Velistra Software",
+        "vendor": "Fennick Labs"
+      },
+      {
+        "relies_on": "Ivelle Financial Technology",
+        "vendor": "Kestrin Security"
+      },
+      {
+        "relies_on": "Okrin Technologies",
+        "vendor": "Merrow Analytics"
+      },
+      {
+        "relies_on": "Ostrand Treasury Group",
+        "vendor": "Quorvane Systems"
+      },
+      {
+        "relies_on": "Tarrance Systems",
+        "vendor": "Sorrelin Data"
+      },
+      {
+        "relies_on": "Kestrin Security",
+        "vendor": "Tessaly Labs"
+      }
+    ],
+    "round_5_vendor": "Ivelle Financial Technology"
+  },
+  "reconciled_checksum": "867dac12b54601541bb14622ba951d561ba0204858e6d4923cc45e1358116c36",
+  "rounds": [
+    {
+      "checks": {
+        "agreement": true,
+        "oracle": true,
+        "scenario": null
+      },
+      "columns": [
+        "business_unit_id",
+        "business_unit_name",
+        "rating",
+        "open_issues"
+      ],
+      "cypher": "// Round 1: open issues by business unit and rating\nMATCH (i:Issue)-[:AGAINST]->(:Risk)<-[:EXPOSED_TO]-(:AuditableEntity)<-[:OWNS]-(b:BusinessUnit)\nWHERE i.closed_date IS NULL\nRETURN b.id AS business_unit_id, b.name AS business_unit_name, i.rating AS rating,\n  count(DISTINCT i) AS open_issues\nORDER BY business_unit_id, rating;\n",
+      "engines": [
+        "sqlite",
+        "neo4j"
+      ],
+      "expected_verdict": "SQL",
+      "lines": {
+        "cypher": 5,
+        "sql": 10
+      },
+      "margin": 0.25,
+      "measured_verdict": "graph",
+      "metrics": {
+        "cypher": {
+          "clauses": 4,
+          "moving_parts": 0,
+          "steps": 3
+        },
+        "sql": {
+          "clauses": 5,
+          "moving_parts": 0,
+          "steps": 4
+        }
+      },
+      "note": "A four-join group-by in SQL; one pattern and implicit grouping in Cypher.",
+      "number": 1,
+      "question": "Open issues by business unit and rating",
+      "row_count": 61,
+      "rows": [
+        [
+          "BU-119",
+          "Investment Portfolio",
+          "Medium",
+          1
+        ],
+        [
+          "BU-215",
+          "Compliance",
+          "Low",
+          1
+        ],
+        [
+          "BU-215",
+          "Compliance",
+          "Medium",
+          1
+        ],
+        [
+          "BU-221",
+          "Equipment Finance",
+          "Medium",
+          5
+        ],
+        [
+          "BU-223",
+          "Commercial Lending",
+          "Low",
+          1
+        ],
+        [
+          "BU-223",
+          "Commercial Lending",
+          "Medium",
+          3
+        ],
+        [
+          "BU-266",
+          "Payment Operations",
+          "High",
+          3
+        ],
+        [
+          "BU-266",
+          "Payment Operations",
+          "Low",
+          1
+        ],
+        [
+          "BU-266",
+          "Payment Operations",
+          "Medium",
+          4
+        ],
+        [
+          "BU-272",
+          "Card Services",
+          "High",
+          1
+        ],
+        [
+          "BU-272",
+          "Card Services",
+          "Medium",
+          3
+        ],
+        [
+          "BU-313",
+          "Enterprise Technology",
+          "High",
+          2
+        ],
+        [
+          "BU-313",
+          "Enterprise Technology",
+          "Low",
+          2
+        ],
+        [
+          "BU-313",
+          "Enterprise Technology",
+          "Medium",
+          11
+        ],
+        [
+          "BU-392",
+          "Capital Markets",
+          "Medium",
+          2
+        ],
+        [
+          "BU-429",
+          "Middle Market Banking",
+          "Low",
+          1
+        ],
+        [
+          "BU-429",
+          "Middle Market Banking",
+          "Medium",
+          3
+        ],
+        [
+          "BU-468",
+          "Digital Banking",
+          "High",
+          4
+        ],
+        [
+          "BU-468",
+          "Digital Banking",
+          "Low",
+          5
+        ],
+        [
+          "BU-468",
+          "Digital Banking",
+          "Medium",
+          13
+        ]
+      ],
+      "scores": {
+        "cypher": 7,
+        "sql": 9
+      },
+      "sql": "-- Round 1: open issues by business unit and rating\nSELECT b.business_unit_id, b.name AS business_unit_name, i.rating,\n  COUNT(DISTINCT i.issue_id) AS open_issues\nFROM issue AS i\nJOIN against_risk AS ar ON ar.issue_id = i.issue_id\nJOIN exposed_to AS ex ON ex.risk_id = ar.risk_id\nJOIN business_unit_owns_auditable_entity AS o ON o.auditable_entity_id = ex.auditable_entity_id\nJOIN business_unit AS b ON b.business_unit_id = o.business_unit_id\nWHERE i.closed_date IS NULL\nGROUP BY b.business_unit_id, b.name, i.rating\nORDER BY b.business_unit_id, i.rating;\n",
+      "supporting": false
+    },
+    {
+      "checks": {
+        "agreement": true,
+        "oracle": true,
+        "scenario": {
+          "planted": "untested_high_risk",
+          "rule": "contains",
+          "verified_by": "rounds.test_rounds.RoundTests.test_ac3_sqlite_answers_match_oracle_and_scenarios"
+        }
+      },
+      "columns": [
+        "canonical_risk_id",
+        "has_ia_member"
+      ],
+      "cypher": "// Round 2: High canonical risks with stale coverage\nMATCH (c:CanonicalRisk)<-[:MAPS_TO]-(r:Risk)\nWITH c, collect(r) AS members\nWHERE any(m IN members WHERE m.inherent_rating = 'High')\n  AND NOT EXISTS {\n    MATCH (c)<-[:MAPS_TO]-(:Risk)<-[:MITIGATES]-(:Control)<-[:TESTED]-(a:Audit)\n    WHERE a.end_date >= $cutoff }\nRETURN c.id AS canonical_risk_id,\n  CASE WHEN any(m IN members WHERE m.source = 'IA') THEN 'Y' ELSE 'N' END AS has_ia_member\nORDER BY canonical_risk_id;\n",
+      "engines": [
+        "sqlite",
+        "neo4j"
+      ],
+      "expected_verdict": "close",
+      "lines": {
+        "cypher": 9,
+        "sql": 15
+      },
+      "margin": -5.25,
+      "measured_verdict": "close",
+      "metrics": {
+        "cypher": {
+          "clauses": 7,
+          "moving_parts": 2,
+          "steps": 4
+        },
+        "sql": {
+          "clauses": 10,
+          "moving_parts": 1,
+          "steps": 6
+        }
+      },
+      "note": "A CTE and an anti-join in SQL; a WITH stage and an EXISTS subquery in Cypher.",
+      "number": 2,
+      "question": "High risks with stale coverage, on canonical items",
+      "row_count": 56,
+      "rows": [
+        [
+          "CR-0003",
+          "N"
+        ],
+        [
+          "CR-0008",
+          "N"
+        ],
+        [
+          "CR-0011",
+          "N"
+        ],
+        [
+          "CR-0023",
+          "N"
+        ],
+        [
+          "CR-0026",
+          "N"
+        ],
+        [
+          "CR-0027",
+          "N"
+        ],
+        [
+          "CR-0028",
+          "N"
+        ],
+        [
+          "CR-0029",
+          "N"
+        ],
+        [
+          "CR-0033",
+          "N"
+        ],
+        [
+          "CR-0034",
+          "N"
+        ],
+        [
+          "CR-0036",
+          "Y"
+        ],
+        [
+          "CR-0043",
+          "N"
+        ],
+        [
+          "CR-0044",
+          "N"
+        ],
+        [
+          "CR-0050",
+          "Y"
+        ],
+        [
+          "CR-0051",
+          "N"
+        ],
+        [
+          "CR-0063",
+          "N"
+        ],
+        [
+          "CR-0068",
+          "N"
+        ],
+        [
+          "CR-0076",
+          "N"
+        ],
+        [
+          "CR-0078",
+          "N"
+        ],
+        [
+          "CR-0081",
+          "N"
+        ]
+      ],
+      "scores": {
+        "cypher": 21,
+        "sql": 21
+      },
+      "sql": "-- Round 2: High canonical risks with stale coverage\nWITH fresh AS (\n  SELECT DISTINCT m.canonical_risk_id\n  FROM risk_maps_to_canonical AS m\n  JOIN mitigates AS mi ON mi.risk_id = m.risk_id\n  JOIN audit_tested_control_ia AS t ON t.control_id = mi.control_id\n  JOIN audit AS a ON a.audit_id = t.audit_id\n  WHERE a.end_date >= :cutoff)\nSELECT m.canonical_risk_id, MAX(CASE WHEN m.source = 'IA' THEN 'Y' ELSE 'N' END) AS has_ia_member\nFROM risk_maps_to_canonical AS m\nJOIN risk AS r ON r.risk_id = m.risk_id\nLEFT JOIN fresh AS f ON f.canonical_risk_id = m.canonical_risk_id\nWHERE f.canonical_risk_id IS NULL\nGROUP BY m.canonical_risk_id\nHAVING MAX(r.inherent_rating = 'High') = 1\nORDER BY m.canonical_risk_id;\n",
+      "supporting": false
+    },
+    {
+      "checks": {
+        "agreement": true,
+        "oracle": true,
+        "scenario": {
+          "planted": "shared_system",
+          "rule": "equal",
+          "verified_by": "rounds.test_rounds.RoundTests.test_ac3_sqlite_answers_match_oracle_and_scenarios"
+        }
+      },
+      "columns": [
+        "system_id",
+        "system_name",
+        "entities"
+      ],
+      "cypher": "// Round 3: shared-system blast radius\nMATCH (s:System)<-[:DEPENDS_ON]-(:Control)-[:MITIGATES]->(:Risk)<-[:EXPOSED_TO]-(e:AuditableEntity)\nRETURN s.id AS system_id, s.name AS system_name, count(DISTINCT e) AS entities\nORDER BY entities DESC, system_name\nLIMIT 3;\n",
+      "engines": [
+        "sqlite",
+        "neo4j"
+      ],
+      "expected_verdict": "graph",
+      "lines": {
+        "cypher": 4,
+        "sql": 8
+      },
+      "margin": -0.75,
+      "measured_verdict": "close",
+      "metrics": {
+        "cypher": {
+          "clauses": 4,
+          "moving_parts": 0,
+          "steps": 3
+        },
+        "sql": {
+          "clauses": 5,
+          "moving_parts": 0,
+          "steps": 3
+        }
+      },
+      "note": "Three joins and a top-3 in SQL; one four-node pattern in Cypher.",
+      "number": 3,
+      "question": "Shared-system blast radius: the 3 systems reaching the most auditable entities",
+      "row_count": 3,
+      "rows": [
+        [
+          "SYS-526",
+          "Ylvara Data Warehouse",
+          41
+        ],
+        [
+          "SYS-254",
+          "Corvessa Core Banking",
+          35
+        ],
+        [
+          "SYS-100",
+          "Tessaly Case Manager",
+          33
+        ]
+      ],
+      "scores": {
+        "cypher": 7,
+        "sql": 8
+      },
+      "sql": "-- Round 3: shared-system blast radius\nSELECT s.system_id, s.name AS system_name, COUNT(DISTINCT ex.auditable_entity_id) AS entities\nFROM system AS s\nJOIN depends_on AS d ON d.system_id = s.system_id\nJOIN mitigates AS mi ON mi.control_id = d.control_id\nJOIN exposed_to AS ex ON ex.risk_id = mi.risk_id\nGROUP BY s.system_id, s.name\nORDER BY entities DESC, system_name\nLIMIT 3;\n",
+      "supporting": false
+    },
+    {
+      "checks": {
+        "agreement": true,
+        "oracle": true,
+        "scenario": null
+      },
+      "columns": [
+        "regulation_id",
+        "business_unit_id",
+        "paths"
+      ],
+      "cypher": "// Round 4: every path from a regulation to a business unit\nMATCH (g:Regulation)-[:REQUIRES]->(:Control)-[:MITIGATES]->(:Risk)\n  <-[:EXPOSED_TO]-(:AuditableEntity)<-[:OWNS]-(b:BusinessUnit)\nRETURN g.id AS regulation_id, b.id AS business_unit_id, count(*) AS paths\nORDER BY regulation_id, business_unit_id;\n",
+      "engines": [
+        "sqlite",
+        "neo4j"
+      ],
+      "expected_verdict": "graph",
+      "lines": {
+        "cypher": 4,
+        "sql": 7
+      },
+      "margin": -1.75,
+      "measured_verdict": "close",
+      "metrics": {
+        "cypher": {
+          "clauses": 3,
+          "moving_parts": 0,
+          "steps": 4
+        },
+        "sql": {
+          "clauses": 4,
+          "moving_parts": 0,
+          "steps": 3
+        }
+      },
+      "note": "Three joins counting rows in SQL; one five-node path counted in Cypher.",
+      "number": 4,
+      "question": "Every path from a regulation to a business unit",
+      "row_count": 133,
+      "rows": [
+        [
+          "REG-249",
+          "BU-215",
+          12
+        ],
+        [
+          "REG-249",
+          "BU-313",
+          8
+        ],
+        [
+          "REG-249",
+          "BU-468",
+          2
+        ],
+        [
+          "REG-249",
+          "BU-514",
+          1
+        ],
+        [
+          "REG-249",
+          "BU-548",
+          2
+        ],
+        [
+          "REG-249",
+          "BU-710",
+          6
+        ],
+        [
+          "REG-249",
+          "BU-967",
+          5
+        ],
+        [
+          "REG-249",
+          "BU-976",
+          6
+        ],
+        [
+          "REG-249",
+          "BU-990",
+          31
+        ],
+        [
+          "REG-258",
+          "BU-215",
+          6
+        ],
+        [
+          "REG-258",
+          "BU-272",
+          13
+        ],
+        [
+          "REG-258",
+          "BU-468",
+          6
+        ],
+        [
+          "REG-258",
+          "BU-586",
+          1
+        ],
+        [
+          "REG-258",
+          "BU-662",
+          15
+        ],
+        [
+          "REG-258",
+          "BU-710",
+          3
+        ],
+        [
+          "REG-258",
+          "BU-741",
+          3
+        ],
+        [
+          "REG-258",
+          "BU-968",
+          2
+        ],
+        [
+          "REG-258",
+          "BU-976",
+          2
+        ],
+        [
+          "REG-258",
+          "BU-981",
+          2
+        ],
+        [
+          "REG-304",
+          "BU-549",
+          2
+        ]
+      ],
+      "scores": {
+        "cypher": 7,
+        "sql": 7
+      },
+      "sql": "-- Round 4: every path from a regulation to a business unit\nSELECT rq.regulation_id, o.business_unit_id, COUNT(*) AS paths\nFROM requires AS rq\nJOIN mitigates AS mi ON mi.control_id = rq.control_id\nJOIN exposed_to AS ex ON ex.risk_id = mi.risk_id\nJOIN business_unit_owns_auditable_entity AS o ON o.auditable_entity_id = ex.auditable_entity_id\nGROUP BY rq.regulation_id, o.business_unit_id\nORDER BY rq.regulation_id, o.business_unit_id;\n",
+      "supporting": false
+    },
+    {
+      "checks": {
+        "agreement": true,
+        "oracle": true,
+        "scenario": null
+      },
+      "columns": [
+        "auditable_entity_id",
+        "exposure"
+      ],
+      "cypher": "// Round 5 setup: vendors become nodes, and the fourth-party register becomes edges\nMATCH (s:System)\nMERGE (v:Vendor {name: s.vendor})\nCREATE (s)-[:SUPPLIED_BY]->(v);\nUNWIND $rows AS row\nMERGE (a:Vendor {name: row.vendor})\nMERGE (b:Vendor {name: row.relies_on})\nCREATE (a)-[:RELIES_ON]->(b);\n\n// Round 5: entities exposed to a vendor, directly or through fourth parties\nMATCH p = (e:AuditableEntity)-[:PERFORMS]->(:Process)-[:RUNS_ON]->(:System)\n  -[:SUPPLIED_BY]->(:Vendor)-[:RELIES_ON*0..]->(:Vendor {name: $vendor})\nRETURN e.id AS auditable_entity_id,\n  CASE WHEN min(length(p)) = 3 THEN 'direct' ELSE 'fourth_party_only' END AS exposure\nORDER BY auditable_entity_id;\n",
+      "engines": [
+        "sqlite",
+        "neo4j"
+      ],
+      "expected_verdict": "graph",
+      "lines": {
+        "cypher": 12,
+        "sql": 17
+      },
+      "margin": 9.75,
+      "measured_verdict": "SQL",
+      "metrics": {
+        "cypher": {
+          "clauses": 10,
+          "moving_parts": 6,
+          "steps": 6
+        },
+        "sql": {
+          "clauses": 9,
+          "moving_parts": 3,
+          "steps": 5
+        }
+      },
+      "note": "SQL adds one table and a recursive CTE; the graph must first turn vendors into nodes and edges.",
+      "number": 5,
+      "question": "A third-party register arrives: which auditable entities are exposed to the vendor most others rely on, directly or only through fourth parties?",
+      "row_count": 17,
+      "rows": [
+        [
+          "AE-142",
+          "fourth_party_only"
+        ],
+        [
+          "AE-214",
+          "fourth_party_only"
+        ],
+        [
+          "AE-292",
+          "direct"
+        ],
+        [
+          "AE-352",
+          "fourth_party_only"
+        ],
+        [
+          "AE-384",
+          "fourth_party_only"
+        ],
+        [
+          "AE-430",
+          "fourth_party_only"
+        ],
+        [
+          "AE-457",
+          "fourth_party_only"
+        ],
+        [
+          "AE-479",
+          "direct"
+        ],
+        [
+          "AE-499",
+          "fourth_party_only"
+        ],
+        [
+          "AE-587",
+          "direct"
+        ],
+        [
+          "AE-802",
+          "direct"
+        ],
+        [
+          "AE-811",
+          "fourth_party_only"
+        ],
+        [
+          "AE-867",
+          "fourth_party_only"
+        ],
+        [
+          "AE-882",
+          "fourth_party_only"
+        ],
+        [
+          "AE-913",
+          "direct"
+        ],
+        [
+          "AE-929",
+          "fourth_party_only"
+        ],
+        [
+          "AE-978",
+          "fourth_party_only"
+        ]
+      ],
+      "scores": {
+        "cypher": 46,
+        "sql": 29
+      },
+      "sql": "-- Round 5 setup: the fourth-party register arrives as a new table\nCREATE TEMP TABLE vendor_relies_on (vendor TEXT NOT NULL, relies_on TEXT NOT NULL);\nINSERT INTO vendor_relies_on (vendor, relies_on)\nVALUES (:vendor, :relies_on);\n\n-- Round 5: entities exposed to a vendor, directly or through fourth parties\nWITH RECURSIVE upstream(vendor) AS (\n  SELECT :vendor\n  UNION\n  SELECT r.vendor\n  FROM vendor_relies_on AS r\n  JOIN upstream AS u ON r.relies_on = u.vendor)\nSELECT p.auditable_entity_id,\n  CASE WHEN MAX(s.vendor = :vendor) = 1 THEN 'direct' ELSE 'fourth_party_only' END AS exposure\nFROM auditable_entity_performs_process AS p\nJOIN process_runs_on_system AS ro ON ro.process_id = p.process_id\nJOIN system AS s ON s.system_id = ro.system_id\nJOIN upstream AS u ON u.vendor = s.vendor\nGROUP BY p.auditable_entity_id\nORDER BY p.auditable_entity_id;\n",
+      "supporting": false
+    },
+    {
+      "checks": {
+        "agreement": true,
+        "oracle": true,
+        "scenario": {
+          "planted": "repeat_finding",
+          "rule": "equal",
+          "verified_by": "rounds.test_rounds_5_7.Rounds57Tests.test_ac2_sqlite_answers_match_oracle_and_scenarios"
+        }
+      },
+      "columns": [
+        "control_id",
+        "issue_id",
+        "opened_date",
+        "title"
+      ],
+      "cypher": "// Round 6: repeat findings in disguise\nMATCH (c:Control {source: 'IA'})<-[:AGAINST]-(i:Issue)\nWITH c, collect(i) AS issues, count(DISTINCT substring(i.opened_date, 0, 4)) AS years\nWHERE years >= 2\nUNWIND issues AS i\nRETURN c.id AS control_id, i.issue_id AS issue_id, i.opened_date AS opened_date, i.title AS title\nORDER BY control_id, issue_id;\n",
+      "engines": [
+        "sqlite",
+        "neo4j"
+      ],
+      "expected_verdict": "close",
+      "lines": {
+        "cypher": 6,
+        "sql": 11
+      },
+      "margin": 2.0,
+      "measured_verdict": "graph",
+      "metrics": {
+        "cypher": {
+          "clauses": 6,
+          "moving_parts": 1,
+          "steps": 1
+        },
+        "sql": {
+          "clauses": 8,
+          "moving_parts": 1,
+          "steps": 4
+        }
+      },
+      "note": "A grouped CTE joined back in SQL; collect and unwind in Cypher. Links and dates, never titles.",
+      "number": 6,
+      "question": "Repeat findings in disguise: IA controls with issues in two or more years, and their issues",
+      "row_count": 14,
+      "rows": [
+        [
+          "IAC-6553",
+          "ISS-4077",
+          "2025-08-02",
+          "Weaknesses noted in data quality rules"
+        ],
+        [
+          "IAC-6553",
+          "ISS-4180",
+          "2024-08-22",
+          "Exceptions in data quality rules"
+        ],
+        [
+          "IAC-6816",
+          "ISS-6172",
+          "2024-04-09",
+          "Exceptions in change tickets"
+        ],
+        [
+          "IAC-6816",
+          "ISS-9449",
+          "2023-03-23",
+          "Gaps in change tickets evidence"
+        ],
+        [
+          "IAC-8814",
+          "ISS-4080",
+          "2025-09-25",
+          "Gaps in administrator accounts evidence"
+        ],
+        [
+          "IAC-8814",
+          "ISS-4944",
+          "2024-07-03",
+          "Weaknesses noted in administrator accounts"
+        ],
+        [
+          "IAC-9329",
+          "ISS-2285",
+          "2023-04-13",
+          "Weaknesses noted in reconciling item aging"
+        ],
+        [
+          "IAC-9329",
+          "ISS-2861",
+          "2024-09-05",
+          "Gaps in reconciling item aging evidence"
+        ],
+        [
+          "IAC-9329",
+          "ISS-8558",
+          "2025-08-11",
+          "Reconciling item aging not performed as designed"
+        ],
+        [
+          "IAC-9797",
+          "ISS-1283",
+          "2025-03-09",
+          "Exceptions in security alert triage"
+        ],
+        [
+          "IAC-9797",
+          "ISS-4014",
+          "2024-10-27",
+          "Weaknesses noted in security alert triage"
+        ],
+        [
+          "IAC-9985",
+          "ISS-5149",
+          "2025-08-01",
+          "Weaknesses noted in capital stress tests"
+        ],
+        [
+          "IAC-9985",
+          "ISS-8602",
+          "2023-06-03",
+          "Capital stress tests not performed as designed"
+        ],
+        [
+          "IAC-9985",
+          "ISS-8888",
+          "2024-04-23",
+          "Exceptions in capital stress tests"
+        ]
+      ],
+      "scores": {
+        "cypher": 12,
+        "sql": 17
+      },
+      "sql": "-- Round 6: repeat findings in disguise\nWITH repeat AS (\n  SELECT ac.control_id\n  FROM issue_against_control_ia AS ac\n  JOIN issue AS i ON i.issue_id = ac.issue_id\n  GROUP BY ac.control_id\n  HAVING COUNT(DISTINCT substr(i.opened_date, 1, 4)) >= 2)\nSELECT ac.control_id, i.issue_id, i.opened_date, i.title\nFROM repeat AS r\nJOIN issue_against_control_ia AS ac ON ac.control_id = r.control_id\nJOIN issue AS i ON i.issue_id = ac.issue_id\nORDER BY ac.control_id, i.issue_id;\n",
+      "supporting": false
+    },
+    {
+      "checks": {
+        "agreement": true,
+        "oracle": true,
+        "scenario": {
+          "planted": "rising_category",
+          "rule": "equal",
+          "verified_by": "rounds.test_rounds_5_7.Rounds57Tests.test_ac2_sqlite_answers_match_oracle_and_scenarios"
+        }
+      },
+      "columns": [
+        "l1_node_id",
+        "l1_name",
+        "year",
+        "issues"
+      ],
+      "cypher": "// Round 7: year-over-year findings by ERM L1 (regulator, self-identified and 2nd-line issues)\nMATCH (l1:TaxonomyNode {source: 'ERM', level: 1})-[:PARENT_OF*2]->(:TaxonomyNode)\n  -[:CLASSIFIES]->(:Risk)<-[:AGAINST]-(i:Issue)\nWHERE i.source <> 'IA'\nRETURN l1.id AS l1_node_id, l1.name AS l1_name, substring(i.opened_date, 0, 4) AS year,\n  count(DISTINCT i) AS issues\nORDER BY l1_node_id, year;\n",
+      "engines": [
+        "sqlite",
+        "neo4j"
+      ],
+      "expected_verdict": "SQL",
+      "lines": {
+        "cypher": 6,
+        "sql": 11
+      },
+      "margin": 0.0,
+      "measured_verdict": "graph",
+      "metrics": {
+        "cypher": {
+          "clauses": 4,
+          "moving_parts": 0,
+          "steps": 4
+        },
+        "sql": {
+          "clauses": 5,
+          "moving_parts": 0,
+          "steps": 5
+        }
+      },
+      "note": "Two parent joins up the taxonomy in SQL; a fixed two-hop path in Cypher.",
+      "number": 7,
+      "question": "Year-over-year findings by ERM L1 (regulator, self-identified and 2nd-line issues)",
+      "row_count": 21,
+      "rows": [
+        [
+          "ERMT-173",
+          "Operational",
+          "2023",
+          18
+        ],
+        [
+          "ERMT-173",
+          "Operational",
+          "2024",
+          17
+        ],
+        [
+          "ERMT-173",
+          "Operational",
+          "2025",
+          15
+        ],
+        [
+          "ERMT-600",
+          "Compliance",
+          "2023",
+          8
+        ],
+        [
+          "ERMT-600",
+          "Compliance",
+          "2024",
+          8
+        ],
+        [
+          "ERMT-600",
+          "Compliance",
+          "2025",
+          7
+        ],
+        [
+          "ERMT-618",
+          "Liquidity",
+          "2023",
+          2
+        ],
+        [
+          "ERMT-618",
+          "Liquidity",
+          "2024",
+          1
+        ],
+        [
+          "ERMT-618",
+          "Liquidity",
+          "2025",
+          1
+        ],
+        [
+          "ERMT-679",
+          "Credit",
+          "2023",
+          8
+        ],
+        [
+          "ERMT-679",
+          "Credit",
+          "2024",
+          10
+        ],
+        [
+          "ERMT-679",
+          "Credit",
+          "2025",
+          13
+        ],
+        [
+          "ERMT-866",
+          "Reputational",
+          "2023",
+          2
+        ],
+        [
+          "ERMT-866",
+          "Reputational",
+          "2024",
+          2
+        ],
+        [
+          "ERMT-866",
+          "Reputational",
+          "2025",
+          2
+        ],
+        [
+          "ERMT-887",
+          "Strategic",
+          "2023",
+          2
+        ],
+        [
+          "ERMT-887",
+          "Strategic",
+          "2024",
+          2
+        ],
+        [
+          "ERMT-887",
+          "Strategic",
+          "2025",
+          2
+        ],
+        [
+          "ERMT-953",
+          "Market",
+          "2023",
+          2
+        ],
+        [
+          "ERMT-953",
+          "Market",
+          "2024",
+          2
+        ]
+      ],
+      "scores": {
+        "cypher": 8,
+        "sql": 10
+      },
+      "sql": "-- Round 7: year-over-year findings by ERM L1 (regulator, self-identified and 2nd-line issues)\nSELECT l1.taxonomy_node_id AS l1_node_id, l1.name AS l1_name, substr(i.opened_date, 1, 4) AS year,\n  COUNT(DISTINCT i.issue_id) AS issues\nFROM issue AS i\nJOIN issue_against_risk_erm AS ar ON ar.issue_id = i.issue_id\nJOIN taxonomy_node_classifies_risk_erm AS c ON c.risk_id = ar.risk_id\nJOIN taxonomy_node_parent_of_taxonomy_node_erm AS p3 ON p3.child_id = c.taxonomy_node_id\nJOIN taxonomy_node_parent_of_taxonomy_node_erm AS p2 ON p2.child_id = p3.parent_id\nJOIN taxonomy_node_erm AS l1 ON l1.taxonomy_node_id = p2.parent_id\nWHERE i.source <> 'IA'\nGROUP BY l1.taxonomy_node_id, l1.name, year\nORDER BY l1_node_id, year;\n",
+      "supporting": false,
+      "top_riser": {
+        "2023": 8,
+        "2025": 13,
+        "l1_name": "Credit",
+        "l1_node_id": "ERMT-679"
+      }
+    }
+  ],
+  "seed": 42,
+  "supporting": [
+    {
+      "checks": {
+        "agreement": true,
+        "oracle": true,
+        "scenario": null
+      },
+      "columns": [
+        "person_id",
+        "key_controls",
+        "business_units"
+      ],
+      "cypher": "// Supporting query: owner concentration of key controls\nMATCH (p:Person)<-[:OWNED_BY]-(c:Control {key_control: 'Y'})\nOPTIONAL MATCH (c)-[:MITIGATES]->(:Risk)<-[:EXPOSED_TO]-(:AuditableEntity)<-[:OWNS]-(b:BusinessUnit)\nRETURN p.id AS person_id, count(DISTINCT c) AS key_controls, count(DISTINCT b) AS business_units\nORDER BY key_controls DESC, business_units DESC, person_id\nLIMIT 10;\n",
+      "engines": [
+        "sqlite",
+        "neo4j"
+      ],
+      "expected_verdict": null,
+      "lines": {
+        "cypher": 5,
+        "sql": 12
+      },
+      "margin": -1.25,
+      "measured_verdict": "close",
+      "metrics": {
+        "cypher": {
+          "clauses": 5,
+          "moving_parts": 0,
+          "steps": 4
+        },
+        "sql": {
+          "clauses": 6,
+          "moving_parts": 0,
+          "steps": 4
+        }
+      },
+      "note": "LEFT JOINs keep key controls that reach no unit; OPTIONAL MATCH does the same in Cypher.",
+      "number": "owners",
+      "question": "Owner concentration: who owns the most key controls, and how many business units those controls reach (derived, not planted)",
+      "row_count": 10,
+      "rows": [
+        [
+          "P-1562",
+          9,
+          7
+        ],
+        [
+          "P-9499",
+          9,
+          7
+        ],
+        [
+          "P-8998",
+          7,
+          7
+        ],
+        [
+          "P-1066",
+          6,
+          7
+        ],
+        [
+          "P-3407",
+          6,
+          6
+        ],
+        [
+          "P-6024",
+          6,
+          6
+        ],
+        [
+          "P-7085",
+          6,
+          6
+        ],
+        [
+          "P-8293",
+          6,
+          6
+        ],
+        [
+          "P-6097",
+          6,
+          4
+        ],
+        [
+          "P-6511",
+          6,
+          4
+        ]
+      ],
+      "scores": {
+        "cypher": 9,
+        "sql": 10
+      },
+      "sql": "-- Supporting query: owner concentration of key controls\nSELECT o.person_id, COUNT(DISTINCT c.control_id) AS key_controls,\n  COUNT(DISTINCT bo.business_unit_id) AS business_units\nFROM owned_by AS o\nJOIN control AS c ON c.control_id = o.control_id\nLEFT JOIN mitigates AS mi ON mi.control_id = c.control_id\nLEFT JOIN exposed_to AS ex ON ex.risk_id = mi.risk_id\nLEFT JOIN business_unit_owns_auditable_entity AS bo\n  ON bo.auditable_entity_id = ex.auditable_entity_id\nWHERE c.key_control = 'Y'\nGROUP BY o.person_id\nORDER BY key_controls DESC, business_units DESC, o.person_id\nLIMIT 10;\n",
+      "supporting": true
+    }
+  ],
+  "verdict_rule": {
+    "counting": [
+      "clauses: clause keywords; JOIN is not a clause (a join counts once, as a step); OPTIONAL MATCH is a clause",
+      "steps: SQL FROM/JOIN targets minus one; Cypher relationship patterns, *n and *m..n counting n hops",
+      "moving_parts: extra SELECTs (CTE, subquery, union branch) or Cypher WITH stages, subqueries and UNION; recursion once per side (RECURSIVE, or an unbounded *); writes and DDL",
+      "a round with setup is scored as setup plus query"
+    ],
+    "margin": 1.25,
+    "margin_definition": "max(score) - 1.25 * min(score); zero or more names a winner, negative is close",
+    "score": "clauses + steps + 5 * moving_parts",
+    "verdict": "SQL when SQL's score times 1.25 is at most Cypher's; graph the other way round; close otherwise",
+    "weight": 5
+  },
+  "views": {
+    "lines": 48,
+    "sql": "-- Shared views: one per relationship that ERM and IA publish as separate tables.\nCREATE TEMP VIEW risk AS\nSELECT 'ERM' AS source, risk_id, inherent_rating\nFROM risk_erm\nUNION ALL\nSELECT 'IA', risk_id, inherent_rating\nFROM risk_ia;\nCREATE TEMP VIEW mitigates AS\nSELECT control_id, risk_id\nFROM control_mitigates_risk_erm\nUNION ALL\nSELECT control_id, risk_id\nFROM control_mitigates_risk_ia;\nCREATE TEMP VIEW exposed_to AS\nSELECT auditable_entity_id, risk_id\nFROM auditable_entity_exposed_to_risk_erm\nUNION ALL\nSELECT auditable_entity_id, risk_id\nFROM auditable_entity_exposed_to_risk_ia;\nCREATE TEMP VIEW against_risk AS\nSELECT issue_id, risk_id\nFROM issue_against_risk_erm\nUNION ALL\nSELECT issue_id, risk_id\nFROM issue_against_risk_ia;\nCREATE TEMP VIEW depends_on AS\nSELECT control_id, system_id\nFROM control_depends_on_system_erm\nUNION ALL\nSELECT control_id, system_id\nFROM control_depends_on_system_ia;\nCREATE TEMP VIEW requires AS\nSELECT regulation_id, control_id\nFROM regulation_requires_control_erm\nUNION ALL\nSELECT regulation_id, control_id\nFROM regulation_requires_control_ia;\nCREATE TEMP VIEW control AS\nSELECT 'ERM' AS source, control_id, key_control\nFROM control_erm\nUNION ALL\nSELECT 'IA', control_id, key_control\nFROM control_ia;\nCREATE TEMP VIEW owned_by AS\nSELECT control_id, person_id\nFROM control_owned_by_person_erm\nUNION ALL\nSELECT control_id, person_id\nFROM control_owned_by_person_ia;\n",
+    "unions": 8
+  },
+  "weights_fingerprint": "421d7c38fd77cf362375d99d6cdc67db046584343277dc0a7970063acfde9825"
+}
