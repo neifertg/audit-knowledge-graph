@@ -4,7 +4,7 @@
 {
   "id": "003-e3-dual-stores-and-head-to-head-rounds",
   "tier": "epic",
-  "status": "approved",
+  "status": "draft",
   "created": "2026-11-19",
   "objective": "O2",
   "children": [
@@ -42,8 +42,7 @@
       ]
     }
   ],
-  "approved": "2026-11-21",
-  "approved_hash": "8e98b8a3ba364178"
+  "revised": "2026-11-21"
 }
 ```
 
@@ -85,7 +84,7 @@ Rules:
 - Review-queue rows become `REVIEW_CANDIDATE` edges carrying `kind`, `logit`, `reason` and `drivers`.
 - One sampled row per file has matching properties in both stores.
 
-**Verdicts are measured, not assumed.** Each round's "expected verdict" below is a hypothesis written before the queries exist. The export also carries a **measured verdict** from a rule child c's plan pins: lines of code, joins against hops, and the moving parts each engine needs (recursive CTEs, new tables, schema changes). The page publishes the measured verdict. Where it differs from the expected one, the page says so; that is part of the honest comparison.
+**Verdicts are measured, not assumed.** Each round's "expected verdict" below is a hypothesis written before the queries exist. The export also carries a **measured verdict** from a rule child c's plan pins: lines of code, joins against hops, and the moving parts each engine needs (recursive CTEs, new tables, schema changes). *(Superseded, see the revision: clauses rather than lines, and made symmetric in 018 by owner decision.)* The page publishes the measured verdict. Where it differs from the expected one, the page says so; that is part of the honest comparison.
 
 **Every round is checked three ways:**
 1. *Agreement:* the SQL and Cypher answers are identical rows, after normalising and sorting.
@@ -115,7 +114,7 @@ Rules:
      - The new data: `system.csv` already names each system's vendor. Round 5 adds what is new, a deterministic overlay of **fourth-party dependencies** (vendor relies on vendor), drawn from E1's fictional vendor list (`names/vendors.txt`, INV-9).
      - The question: which auditable entities are exposed to a given critical vendor, directly through its systems or through a chain of fourth parties? The answer marks which are newly exposed through fourth parties only, against the direct-only baseline.
      - Effort: SQL needs a new table and a recursive CTE; the graph needs new nodes and edges and a variable-length path.
-     - Isolation: both stores apply the overlay inside an explicit transaction (SQLite opens it with `BEGIN`, since Python's sqlite3 otherwise commits DDL) and roll it back. A test checks that both stores' counts and INV-8 parity are identical before and after round 5. The vendor asked about and the overlay's construction are pinned in d's plan.
+     - Isolation: both stores apply the overlay inside an explicit transaction (SQLite opens it with `BEGIN`, since Python's sqlite3 otherwise commits DDL) and roll it back. A test checks that both stores' counts and INV-8 parity are identical before and after round 5. *(Superseded, see the revision: a TEMP table on a read-only connection inside `BEGIN` ... `ROLLBACK`, and a full Neo4j snapshot plus the SQLite file's hash compared before and after, on success and on failure.)* The vendor asked about and the overlay's construction are pinned in d's plan.
   6. *Repeat finding in disguise* (expected verdict: close; in SQL it is one join and a group by year; replaces "why is this audit on the plan", which had no forward-plan data; owner decision 2026-11-21): IA controls with issues in two or more years under different titles, and their issue groups. It must equal the planted `repeat_finding` groups exactly; E1 guarantees that the listed groups are all such controls. This is the page's second story.
   7. *Year-over-year finding trend by ERM L1* (expected verdict: SQL), counted like `rising_category`: regulator, self-identified and 2nd-line issues on the published ERM taxonomy, with IA issues excluded. The top riser (the largest 2023-to-2025 increase in issues opened, with E1's thresholds) must equal `rising_category`. "Tested" in round 2 uses the audit's end date; c's plan pins both rules exactly.
 
@@ -123,7 +122,7 @@ Rules:
 
   *The export:* `rounds.json`. For each round it holds:
   - the question and both queries;
-  - lines of code, and the join or hop count;
+  - lines of code, and the join or hop count *(as built: lines plus the full metrics, scores and margin per side; see the revision)*;
   - a readability note and the expected verdict;
   - the result: row count and up to 20 rows;
   - the agreement, oracle and scenario outcomes;
@@ -140,6 +139,24 @@ Rules:
   - Done when the first runs are green and the Neo4j tests ran, not skipped.
 
 **Test-suite time** (L-014): child a's plan counts every build a store test adds, and store tests reuse the cached seed-42 build.
+
+## Revision 2026-11-21: what the children built (closing E3)
+All five children are done: a (015), b (016), c (017), d (018) and e (019). Where they diverged from the shape above, the owner decided at each child's approval or in the conversation recorded in its plan. This section records the divergences and the results:
+- **SQLite store** (015) as planned: `schema.sql` is generated from the two data dictionaries; 10,034 rows load in about 1.4 s at seed 42.
+- **Neo4j store** (016). The graph is derived from the schema metadata and loaded from `akg.sqlite` (not the CSVs), so both stores come from the same typed rows: 2,821 nodes and 7,495 edges in about 10 s. A `LoadComplete` node holds the reconciled checksum, and the rounds refuse a graph without it or with another build's checksum. The guard does not detect a changed `akg.sqlite` or changed published CSVs (the checksum covers `reconciled/*.csv` only; stated in docs/data-model.md, and 017's disagreement test relies on it). The load lock covers loading only, so **concurrent local test runs on one server are unsupported** (stated in the stores README); CI runs one job per container.
+- **Shared SQL views** (017, from its critique; not in the shape above). `views.sql` merges the ERM and IA tables of each kind as eight temporary views, the analogue of Neo4j's shared labels, so a verdict compares languages, not the one-table-per-source schema. They are shared setup, published once and never scored.
+- **The measured-verdict rule** (017, then 018). 017 pinned `clauses + steps + 5 * moving_parts` with a 1.25 margin, counting clauses rather than lines so layout cannot move a score. **Owner decision (2026-11-21, during 018's critique): make it symmetric** — a SQL join counts once, a Cypher `*n` counts n hops, recursion counts once per side, a round with setup is scored as setup plus query. Rounds 1-4 were re-measured, and the export publishes each round's margin from the line. A remaining asymmetry was found in 018's review and parked (see below).
+- **Round 5** (018). The register is `fourth_party.csv`, 8 generated rows from the fictional vendor list (`random.Random('fourth-party-v1')`); the vendor asked about is the one most vendors rely on (Ivelle Financial Technology); direct exposure is the operational path (entity, process, system, vendor). Isolation uses a TEMP table on a read-only SQLite connection inside `BEGIN` ... `ROLLBACK`, rather than a transaction on the store, and one rolled-back Neo4j transaction with no schema change; Neo4j keeps the new label and type names in its token store, while all data is unchanged, tested on success and on failure.
+- **Round 7's top riser** is derived in Python from the agreed rows (largest 2025 minus 2023 increase), not by a query.
+- **The export** (018). Scenario outcomes are claims naming the test that verifies them, because only tests read the answer key; `oracle.py` (moved from the tests) reports the oracle check for real. The export has no timings and no paths. The committed `src/features/rounds/rounds.json` is regenerated by `python -m src.features.rounds.export` with Neo4j configured.
+- **Results at seed 42** (SQL vs Cypher score, measured verdict, expected verdict): round 1, 9 vs 7, `graph` (SQL); round 2, 21 vs 21, `close` (close); round 3, 8 vs 7, `close` (graph); round 4, 7 vs 7, `close` (graph); round 5, 29 vs 46, `SQL` (graph); round 6, 17 vs 12, `graph` (close); round 7, 10 vs 8, `graph` exactly on the line (SQL); owner concentration, 10 vs 9, `close`. **Six of the seven measured verdicts differ from the expected ones**; rounds 1, 3 and 7 are within one point of the line. Every scenario check holds: round 3 equals `shared_system`, round 2 contains every `untested_high_risk`, round 6 equals the planted `repeat_finding` groups, round 7's riser is `rising_category` (Credit, 8 to 13).
+- **Owner concentration is derived, not planted** (as the epic said), and the export marks it supporting.
+- **The repository and CI** (019). `neifertg/audit-knowledge-graph` is public; the history was audited before the first push (no secret patterns in any commit, one noreply email, largest blob 0.6 MB). `.github/workflows/tests.yml` runs all 103 tests on every push and pull request against a `neo4j:5.26.33-community` service container, with no secrets and `AKG_REQUIRE_NEO4J=1`, and fails on any skip. The first runs were green in about 4 minutes, with no Linux-only failure and no golden drift: on the change branch (https://github.com/neifertg/audit-knowledge-graph/actions/runs/44981150868, suite 170 s) and on main after the merge (https://github.com/neifertg/audit-knowledge-graph/actions/runs/44982451692, suite 176 s, job 4 min 7 s). `docs/ci.md` records the first; the main run is recorded here. A CI-environment leak (`akg_env` passed `AKG_REQUIRE_NEO4J` to test subprocesses) was found by the critique and fixed before the first run. A short top-level README and `docs/ci.md` were added; `data/` is ignored.
+- **Test-suite time:** 103 tests; locally 227-421 s plain (018's and 019's logged runs) and 500-970 s under Neo4j on the owner's 7.6 GB laptop (L-017), 170-176 s in CI.
+- **Before E4 publishes** (parked, ROADMAP): the verdict rule still charges a Cypher write clause as a clause and a moving part, while SQL's write counts once (round 5's Cypher side would be 41, not 46; the verdict stays `SQL`); fix it or disclose it beside the `OPTIONAL MATCH` note, and correct docs/data-model.md's line saying "writes and DDL count on both sides", which overstates the symmetry until then. E4's epic revision is also parked: owner concentration is derived, the repository already exists (E4 child c only turns on Pages), and the page shows measured verdicts beside expected ones.
+- **Parked from the children's reviews** (ROADMAP): clearer errors and guard cases in the loaders, a stale `akg.sqlite` left beside new CSVs after a failed build (015), `akg rounds` exiting 0 on a failed oracle check, two rare Cypher path-length forms, the export finding round 5 by position, round 5's Cypher setup failing on a system with no vendor (none at seed 42), and the CI doc test's checks.
+- **Resolved by this epic** (still listed in ROADMAP's parking lot from 2026-11-19): round 2 uses E1's stale-coverage definition (017); round 2 runs on canonical items (017); round 5 brings its fourth parties from the existing fictional vendor list, so E1 needed no new list (018).
+- L-016 to L-020 (from E3's children): grep every copy of a fingerprint before editing its source; reviewers must not wait on long runs on a low-memory machine; measure a published metric on the prototypes before approval; audit a scoring rule's symmetry as a table of constructs; a CI test must not require evidence of its own run.
 
 ## Out of scope
 - Scaling benchmark and centrality analysis: M2.
