@@ -26,11 +26,12 @@ CDN = "https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.34.4/cytoscape.min.js"
 SRI = "sha512-9oWrVcc9R1+KL87uqCWwsamtDPJknyeNh/xCFh5SHEsgvV7Icb5Vgungsyljhdeyt+LNKGC9bhwKKQ0C6TiPOw=="
 # The approved copy's fixed text: the words between the figures (021 plan, "Top-section copy").
 COPY = [
-    "Audit risk hides between the tables. This is what it looks like when you connect them.",
-    "A synthetic US regional bank keeps its risks in the ERM register and in Internal Audit's risk and control "
-    "matrices. They describe the same business in different words. Reconciled into a single framework and connected "
-    "as a graph, they show exposure no table holds on its own.",
-    "Synthetic data throughout; descriptions AI-written ahead of time and committed; no real institution, person or vendor.",
+    # 025 (revised): the headline, the three risks, the pointer and the reworded synthetic note
+    "See the audit risks that sit between your risk register and your audit records.",
+    "A single system failure that reaches", "business units.", "The same control failing again, filed under a new title.",
+    "people each holding", "key controls reaching",
+    "New to knowledge graphs? A short explanation opens the rounds below.",
+    "Synthetic data: a fictional US regional bank; descriptions AI-written ahead of time; no real institution, person or vendor.",
     "A shared system, a wide blast radius", "fails,", "controls that depend on it are affected; between them they "
     "protect risks in", "auditable entities across", "business units.", "Plan coverage by dependency, not by org chart.",
     "A repeat finding in disguise", "controls failed in different years under different titles:",
@@ -39,10 +40,17 @@ COPY = [
     "Concentrated ownership", "derived from the data, not planted", "each own", "key controls whose risks reach",
     "Key-person risk is visible before it becomes an issue.",
     "Graph or SQL?", "Both answer the same", "planning questions over the same facts, and their answers are proved equal. What differs is how much query each needs, scored by a published rule: SQL wins",
-    # 025: the In short paragraph
-    "In short:", "linking risks, controls, systems and issues, in the ERM register and Internal Audit's records alike, shows an audit leader risks that no table shows on its own: a shared system that many business units depend on, the same control failing in different years under different titles, and key controls concentrated in a few hands. That is what audit planning can target.",
     "the graph", "are close.", "The difference is how much query each needs, not speed: no speed claims are made at demo scale.",
     "The graph informs auditor judgment; it does not score risk or set the audit plan.",
+    # 025: the explainer that opens #rounds
+    "What is a knowledge graph?",
+    "A relational database keeps facts in tables and connects them only when a query joins those tables. A knowledge "
+    "graph stores the connections themselves: each system, control, risk, issue, auditable entity and business unit is a "
+    "node, and each relationship, such as \"this control mitigates that risk\" or \"this control depends on that "
+    "system\", is a stored link you can follow. Both hold the same facts here. A question that follows a chain of links, "
+    "such as \"what does this system's failure reach?\", is written in the graph as a path and in SQL as a series of "
+    "joins. The rounds below compare how much query each needs; for that question, both come out close.",
+    "How a system failure reaches a business unit:", "system → control → risk → auditable entity → business unit",
 ]
 
 # 022's approved copy: the fixed text of the rounds intro, the verdict rule, the operating model and the appendix.
@@ -262,6 +270,9 @@ class SiteTests(unittest.TestCase):
         self.assertEqual(FORMATTERS["scenario"]({"planted": "shared_system", "rule": "equal", "verified_by": "t"}),
                          "shared_system (equal)")
         self.assertEqual(FORMATTERS["triple"]([5, 1, 1]), "5 / 1 / 1")
+        # 025
+        self.assertEqual([FORMATTERS["count_of_cap"](v) for v in (["A"], ["A", "B"], list(range(7)))],
+                         ["One", "Two", "Seven"])
 
     def test_ac4_no_typed_figures_and_js_carries_none(self):
         out, text, page = built()
@@ -502,13 +513,62 @@ class SiteTests(unittest.TestCase):
         self.assertTrue([x for x in close if st(x, "sql") <= st(x, "cypher")], "SQL steps no more than Cypher's")
         self.assertTrue([x for x in close if mp(x, "cypher") > mp(x, "sql")], "Cypher needs more moving parts")
 
-    def test_ac1_025_in_short_first(self):
+    # ---------------- 025: the top section and the explainer ----------------
+
+    @staticmethod
+    def _sections(text):
+        top = text.split('<section id="top"', 1)[1].split("</section>", 1)[0]
+        rounds_ = text.split('<section id="rounds"', 1)[1].split("</section>", 1)[0]
+        return top, rounds_
+
+    def test_ac1_025_three_risks_first(self):
         _, text, _ = built()
-        after_h1 = text.split("</h1>", 1)[1].lstrip()
-        self.assertTrue(after_h1.startswith('<p class="in-short" data-statement="in-short">'),
-                        "the In short paragraph is the first element after the headline")
-        self.assertLess(text.index('data-statement="in-short"'), text.index('id="story-blast-radius"'))
-        self.assertNotIn("Does a graph beat SQL?", text)
+        top, _ = self._sections(text)
+        after_h1 = top.split("</h1>", 1)[1].lstrip()
+        self.assertTrue(after_h1.startswith('<ul class="three-risks" data-statement="three-risks">'),
+                        "the list of three risks is the first element after the headline")
+        risks = after_h1.split("</ul>", 1)[0]
+        self.assertEqual(risks.count("<li>"), 3)
+        items = risks.split("<li>")[1:]
+        self.assertIn('data-source="site.json:blast_radius.units"', items[0])
+        self.assertNotIn("data-source", items[1], "the repeat-finding bullet carries no figure")
+        for source in ("site.json:owners.top", "site.json:owners.key_controls", "site.json:owners.units"):
+            self.assertIn(f'data-source="{source}"', items[2], source)
+        self.assertIn('data-format="count_of_cap"', items[2])
+        # removed from the top section: the long intro, the In short paragraph and the teaser
+        for gone in ("A synthetic US regional bank keeps its risks", "In short", "Graph or SQL?", "Does a graph beat SQL?"):
+            self.assertNotIn(gone, top, gone)
+        order = [top.index(m) for m in ('data-statement="three-risks"', 'data-statement="kg-pointer"',
+                                        'data-disclosure="synthetic"', 'id="story-blast-radius"', 'data-statement="judgment"')]
+        self.assertEqual(order, sorted(order))
+
+    def test_ac1_025_teaser_in_rounds(self):
+        _, text, _ = built()
+        top, rounds_ = self._sections(text)
+        self.assertNotIn("Graph or SQL?", top)
+        self.assertIn("Graph or SQL?", rounds_)
+        teaser = rounds_.split('id="graph-or-sql"', 1)[1].split("</div>", 1)[0]
+        self.assertIn('data-disclosure="no-speed-claims"', teaser)
+
+    def test_ac3_025_explainer_opens_rounds(self):
+        _, text, page = built()
+        _, rounds_ = self._sections(text)
+        self.assertTrue(rounds_.split(">", 1)[1].lstrip().startswith(
+            '<div class="explainer" id="what-is-a-knowledge-graph" data-statement="kg-explainer">'),
+            "the explainer is the first element of #rounds")
+        self.assertLess(rounds_.index("What is a knowledge graph?"), rounds_.index("Graph or SQL?"))
+        self.assertLess(rounds_.index("Graph or SQL?"), rounds_.index("<h2>The rounds</h2>"))
+        explainer = rounds_.split('data-statement="kg-explainer"', 1)[1].split("</div>", 1)[0]
+        self.assertNotIn("data-source", explainer, "the explainer carries no figure")
+        words = re.sub(r"<[^>]+>", " ", explainer)
+        self.assertIsNone(re.search(r"\d", words))
+        self.assertEqual(NUMBER_WORDS.findall(words), [])
+        self.assertEqual(SPEED_WORDS.findall(words), [])
+        # the pointer links to the explainer, and the target exists
+        self.assertIn('href="#what-is-a-knowledge-graph"', text.split('data-statement="kg-pointer"', 1)[1].split("</p>", 1)[0])
+        self.assertIn("what-is-a-knowledge-graph", page.ids)
+        # the explainer's fixed "both come out close" for its example question (round 3) must stay true
+        self.assertEqual(next(x for x in rounds()["rounds"] if x["number"] == 3)["measured_verdict"], "close")
 
     def test_ac7_docs(self):
         readme = (B.HERE / "README.md").read_text(encoding="utf-8")

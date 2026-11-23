@@ -17,10 +17,14 @@
 
 <main>
 <section id="top" class="top">
-  <h1>Audit risk hides between the tables. This is what it looks like when you connect them.</h1>
-  <p class="in-short" data-statement="in-short"><strong>In short:</strong> linking risks, controls, systems and issues, in the ERM register and Internal Audit's records alike, shows an audit leader risks that no table shows on its own: a shared system that many business units depend on, the same control failing in different years under different titles, and key controls concentrated in a few hands. That is what audit planning can target.</p>
-  <p class="lede">A synthetic US regional bank keeps its risks in the ERM register and in Internal Audit's risk and control matrices. They describe the same business in different words. Reconciled into a single framework and connected as a graph, they show exposure no table holds on its own.</p>
-  <p class="note" data-disclosure="synthetic">Synthetic data throughout; descriptions AI-written ahead of time and committed; no real institution, person or vendor.</p>
+  <h1>See the audit risks that sit between your risk register and your audit records.</h1>
+  <ul class="three-risks" data-statement="three-risks">
+    <li>A single system failure that reaches {{site.json:blast_radius.units}} business units.</li>
+    <li>The same control failing again, filed under a new title.</li>
+    <li>{{site.json:owners.top|count_of_cap}} people each holding {{site.json:owners.key_controls}} key controls reaching {{site.json:owners.units}} business units.</li>
+  </ul>
+  <p class="pointer" data-statement="kg-pointer">New to knowledge graphs? <a href="#what-is-a-knowledge-graph">A short explanation opens the rounds below.</a></p>
+  <p class="note" data-disclosure="synthetic">Synthetic data: a fictional US regional bank; descriptions AI-written ahead of time; no real institution, person or vendor.</p>
 
   <article class="story" id="story-blast-radius">
     <h2>A shared system, a wide blast radius</h2>
@@ -48,15 +52,21 @@
     <p>{{site.json:owners.top[*].name|names_and}} each own {{site.json:owners.key_controls}} key controls whose risks reach {{site.json:owners.units}} business units. <em>Key-person risk is visible before it becomes an issue.</em></p>
   </article>
 
-  <article class="story" id="story-comparison">
-    <h2>Graph or SQL?</h2>
-    <p>Both answer the same {{derived:rounds_count|count_word}} planning questions over the same facts, and their answers are proved equal. What differs is how much query each needs, scored by a published rule: SQL wins {{derived:verdict_counts.SQL|times_word}}, the graph {{derived:verdict_counts.graph|times_word}}, and {{derived:verdict_counts.close|count_word}} are close. <span data-disclosure="no-speed-claims">The difference is how much query each needs, not speed: no speed claims are made at demo scale.</span> <a href="#rounds">Details below.</a></p>
-  </article>
-
   <p class="judgment" data-statement="judgment">The graph informs auditor judgment; it does not score risk or set the audit plan.</p>
 </section>
 
 <section id="rounds" class="later">
+  <div class="explainer" id="what-is-a-knowledge-graph" data-statement="kg-explainer">
+    <h2>What is a knowledge graph?</h2>
+    <p>A relational database keeps facts in tables and connects them only when a query joins those tables. A knowledge graph stores the connections themselves: each system, control, risk, issue, auditable entity and business unit is a node, and each relationship, such as "this control mitigates that risk" or "this control depends on that system", is a stored link you can follow. Both hold the same facts here. A question that follows a chain of links, such as "what does this system's failure reach?", is written in the graph as a path and in SQL as a series of joins. The rounds below compare how much query each needs; for that question, both come out close.</p>
+    <p class="chain"><span class="chain-caption">How a system failure reaches a business unit:</span> system → control → risk → auditable entity → business unit</p>
+  </div>
+
+  <div class="teaser" id="graph-or-sql">
+    <h2>Graph or SQL?</h2>
+    <p>Both answer the same {{derived:rounds_count|count_word}} planning questions over the same facts, and their answers are proved equal. What differs is how much query each needs, scored by a published rule: SQL wins {{derived:verdict_counts.SQL|times_word}}, the graph {{derived:verdict_counts.graph|times_word}}, and {{derived:verdict_counts.close|count_word}} are close. <span data-disclosure="no-speed-claims">The difference is how much query each needs, not speed: no speed claims are made at demo scale.</span></p>
+  </div>
+
   <h2>The rounds</h2>
   <p>Each planning question was asked in SQL and in Cypher over the same facts. Each answer is checked: the SQL and Cypher answers must agree, an independent Python computation must agree, and where a scenario was planted, the answer must find it. <span data-disclosure="no-speed-claims">The verdict compares how much query each language needs; it is not a measure of speed.</span> Rounds {{derived:near_the_line|names_and}} sit within a point of the line, so a single extra clause would change their verdict.</p>
 

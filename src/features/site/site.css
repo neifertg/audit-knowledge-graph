@@ -40,8 +40,17 @@ a { color: var(--link); }
 
 h1 { font-size: clamp(26px, 5vw, 38px); line-height: 1.2; margin: 24px 0 16px; }
 h2 { font-size: 21px; margin: 0 0 8px; }
-.lede { font-size: 19px; }
-.in-short { font-size: 19px; border-left: 4px solid var(--accent); padding: 4px 0 4px 14px; margin: 0 0 18px; }
+.three-risks { font-size: 19px; margin: 0 0 16px; padding-left: 22px; }
+.three-risks li { margin: 6px 0; }
+.three-risks li::marker { color: var(--accent); }
+.pointer { margin: 0 0 8px; }
+.explainer, .teaser {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; margin: 0 0 20px;
+}
+.explainer { border-left: 4px solid var(--accent); }
+.chain { margin: 10px 0 0; font-weight: 600; }
+.chain-caption { display: block; font-weight: 400; color: var(--muted); font-size: 15px; }
 .note, .hint, .pending { color: var(--muted); font-size: 15px; }
 .judgment { color: var(--muted); font-style: italic; margin-top: 28px; }
 
