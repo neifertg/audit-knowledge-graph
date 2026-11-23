@@ -1,10 +1,41 @@
 # Audit knowledge graph
 
-**The page:** https://neifertg.github.io/audit-knowledge-graph/ (how it is published: [docs/pages.md](docs/pages.md))
+## The brief
+
+A synthetic US regional bank keeps its risks in the ERM register and in Internal Audit's risk and control matrices. Both lists were reconciled into a single framework, loaded into SQLite and Neo4j, and asked the same planning questions. The public page is that brief:
+
+**https://neifertg.github.io/audit-knowledge-graph/**
+
+The scoring rule, both queries and the inventory are on the [methods page](https://neifertg.github.io/audit-knowledge-graph/methods.html). How the page is published: [docs/pages.md](docs/pages.md).
 
 [![tests](https://github.com/neifertg/audit-knowledge-graph/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/neifertg/audit-knowledge-graph/actions/workflows/tests.yml)
 
-A synthetic US regional bank's Enterprise Risk Management and Internal Audit data, generated with two separate risk taxonomies, reconciled into one framework, and loaded into SQLite and Neo4j side by side. Seven audit-planning questions are then asked in both SQL and Cypher, and every answer is proved three ways: the two engines agree, an independent Python computation agrees, and the planted scenario is found. Everything is synthetic and every number is reproducible from a fresh clone.
+Synthetic data throughout. Descriptions were written by a model ahead of time and committed. No real institution, person or vendor.
+
+**Cover the shared warehouse across units.** Ylvara Data Warehouse is the shared system that reaches the most auditable entities. If it fails, 44 controls that depend on it are affected; between them they protect risks in 41 auditable entities across 20 business units. Schedule the coverage as a review of that system across units. The page draws the dependency.
+
+**Escalate the repeat-control findings.** 6 controls failed in different years under different titles: 14 issues a text search would treat as unrelated, linked through the control and the dates. Escalate the group.
+
+**Review concentrated ownership.** Dorothea Sandoval and Greer Kowalczyk each own 9 key controls whose risks reach 7 business units. That tie was computed from the data; it was not planted. Schedule a key-person review of that ownership.
+
+**Fourth-party vendor exposure.** With a register of which vendors rely on which others, 17 auditable entities are exposed to Ivelle Financial Technology. It is the vendor the most others rely on, directly or further out, with ties broken by name. 5 perform a process that runs on a system that vendor supplies. 12 appear only through another vendor's reliance.
+
+**High risks with stale coverage.** 56 canonical risks include a high-rated member, and no control mitigating any member was tested by an audit ending on or after 2023-12-31.
+
+**Findings by ERM category.** Regulator, self-identified and second-line issues (Internal Audit issues excluded). The largest increase is Credit, from 8 in 2023 to 13 in 2025. The category-year table has 21 rows.
+
+**Does a graph beat SQL?** Asked 7 planning questions in both, with the same facts and answers proved equal. SQL wins 1, the graph 3, and 3 are close. That comparison is query size, not speed.
+
+**What was merged, and what is waiting.** Auto-merge uses a training-bank precision target of 0.95. Merged precision is 33/33 for risks and 68/68 for controls. Merged recall is 33/103 for risks and 68/245 for controls. If a reviewer resolves the queue correctly, recall would be 101/103 for risks and 240/245 for controls. The review queue holds 482 pairs. The matcher's thresholds are deliberately conservative, so most true matches wait in the review queue rather than being merged silently.
+
+The graph informs auditor judgment; it does not score risk or set the audit plan.
+
+## How to read these numbers
+
+- Every figure above is taken from the committed results for seed 42. `python -m akg build` reproduces them. On the page, each figure is marked with the file it came from.
+- "SQL" and "graph" compare how much query each language writes, not how fast it runs. No speed or scale claim is made. Rounds 1, 3 and 7 sit within a point of the decision line, so a single extra clause would change their verdict.
+- The matcher auto-merges only at the training precision above. High merged precision and low merged recall are the setting that was chosen. The review queue is the rest, for a person to decide.
+- The bank, the people and the vendors are fictional. The graph does not score risk or write the plan.
 
 ## Reproduce
 
@@ -33,5 +64,5 @@ CI runs every test, Neo4j included, on every push and pull request, against a Ne
 
 - `GOALS.md`: objectives, current milestone, non-goals.
 - `docs/data-model.md`: entities, invariants, the reconciliation and the rounds, with measured figures.
-- `src/features/`: `generator`, `reconciliation`, `stores`, `rounds` (each with its own README).
+- `src/features/`: `generator`, `reconciliation`, `stores`, `rounds`, `site` (each with its own README). The public brief is `src/features/site/template.html`; the methods page is `src/features/site/methods.html`.
 - `src/features/rounds/rounds.json`: every round's queries, scores, verdicts and checks, as published.

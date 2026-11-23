@@ -96,6 +96,9 @@
       name: 'concentric',
       concentric: function (n) { return ring.indexOf(n.data('kind')); },
       levelWidth: function () { return Number.MIN_VALUE; },
+      spacingFactor: parseFloat(token('--ring-spacing')),
+      minNodeSpacing: parseFloat(token('--node-gap')),
+      avoidOverlap: true,
       fit: true
     }).run();
   }
