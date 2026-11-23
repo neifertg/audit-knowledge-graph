@@ -28,9 +28,9 @@ SRI = "sha512-9oWrVcc9R1+KL87uqCWwsamtDPJknyeNh/xCFh5SHEsgvV7Icb5Vgungsyljhdeyt+
 COPY = [
     "Audit planning results from a reconciled risk and control map",
     "A synthetic US regional bank keeps its risks in the ERM register and in Internal Audit's risk and control "
-    "matrices. Both lists were reconciled into a single framework, then loaded into a relational database and a graph. "
-    "The notes below are planning consequences of the published results.",
-    "Synthetic data throughout; descriptions AI-written ahead of time and committed; no real institution, person or vendor.",
+    "matrices. Both lists were reconciled into a single framework, then loaded into a relational database and a graph.",
+    "Synthetic data throughout. Descriptions were written by a model ahead of time and committed. Names and companies are invented. This is not any employer's data.",
+    "The warehouse, repeat-finding, stale-coverage, and Credit-increase examples are planted test cases used to check the queries; the ownership tie was not planted.",
     "For the audit plan",
     "Cover the shared warehouse across units",
     "is the shared system that reaches the most auditable entities. If it fails,",
@@ -40,14 +40,21 @@ COPY = [
     "owned by a single unit.",
     "Escalate the repeat-control findings",
     "controls failed in different years under different titles:",
-    "issues a text search would treat as unrelated, linked through the control and the dates. Escalate the group.",
+    "issues with different titles, linked through the control and the dates. Escalate the group.",
     "Review concentrated ownership", "derived from the data, not planted", "each own",
     "key controls whose risks reach", "Schedule a key-person review of that ownership.",
     "Fourth-party vendor exposure",
     "have no such link and appear only through another vendor's reliance.",
     "High risks with stale coverage",
-    "canonical risks include a high-rated member, and no control mitigating any member was tested by an audit ending on or after",
-    "Findings by ERM category, year over year", "The largest increase is",
+    "reconciled risks (the 'canonical' items that group the ERM and Internal Audit records for the same risk) include a high-rated member and had no mitigating control tested by an audit ending on or after",
+    "months before the end of the data window.",
+    "have no Internal Audit member, and because audits here test only IA controls,",
+    "are untested by construction. The remaining",
+    "are the coverage candidates.",
+    "Findings by ERM category, year over year",
+    "counted by top-level ERM category and by year. The largest increase, measured as",
+    "which rose from",
+    "The other categories were flat or down, and each year's total was",
     "Does a graph beat SQL?",
     "planning questions in both, with the same facts and answers proved equal: SQL wins",
     "the graph", "are close.",
@@ -62,6 +69,7 @@ COPY = [
 
 # Fixed text that moved to the methods page: the rounds intro, the verdict rule, the measured operating notes and the appendix.
 COPY_022 = [
+    "Synthetic data throughout. Descriptions were written by a model ahead of time and committed. Names and companies are invented. This is not any employer's data.",
     "Each planning question was asked in SQL and in Cypher over the same facts. Each answer is checked: the SQL and "
     "Cypher answers must agree, an independent Python computation must agree, and where a scenario was planted, the "
     "answer must find it.", "The verdict compares how much query each language needs; it is not a measure of speed.",
@@ -75,7 +83,8 @@ COPY_022 = [
     "Cypher needed hops, to fetch a name or to join a grouped result back. The languages came out close in rounds",
     ", where SQL's joins were no more than Cypher's hops, and in round", ", where Cypher needed an extra stage. SQL needed "
     "less query in round", ", the question of exposure through fourth parties, of unknown depth: asked on its own, the "
-    "question was shorter in Cypher,", "but bringing the new register in cost the graph", "against SQL's",
+    "question scored lower in Cypher,", "(query-size scores, not line counts), but bringing the new register in cost the graph",
+    "against SQL's",
     "because a new table had to become nodes and edges.",
     "The measured rounds say: when the joins a question needs are no more than the hops, and when new data arrives as tables.",
     "Reconcile first: a graph of unreconciled data only draws the confusion more vividly. Keep the graph an analysis layer "
@@ -275,12 +284,13 @@ class SiteTests(unittest.TestCase):
             "derived:featured.stale_cutoff": r["parameters"]["round_2_cutoff"],
             "derived:featured.vendor": r["parameters"]["round_5_vendor"],
             "derived:featured.vendor_rows": five["row_count"],
-            "derived:featured.yoy_rows": by_num[7]["row_count"],
             "derived:featured.yoy_name": riser["l1_name"],
             "derived:featured.yoy_from_year": years[0],
             "derived:featured.yoy_to_year": years[-1],
             "derived:featured.yoy_from": riser[years[0]],
             "derived:featured.yoy_to": riser[years[-1]],
+            "derived:featured.yoy_mid_year": (mid := [y for y in sorted({row[2] for row in by_num[7]["rows"] if row[1] == riser["l1_name"]}) if y not in (years[0], years[-1])])[0],
+            "derived:featured.yoy_mid": next(row[3] for row in by_num[7]["rows"] if row[1] == riser["l1_name"] and row[2] == mid[0]),
             "derived:fourth_party.direct": exposure["direct"],
             "derived:fourth_party.fourth_party_only": exposure["fourth_party_only"],
         })
@@ -618,8 +628,16 @@ class SiteTests(unittest.TestCase):
         for piece in (r["parameters"]["round_5_vendor"], str(five["row_count"]), str(exposure["direct"]),
                       str(exposure["fourth_party_only"]), str(by_num[2]["row_count"]),
                       r["parameters"]["round_2_cutoff"], riser["l1_name"], str(riser[years[0]]),
-                      str(riser[years[-1]]), years[0], years[-1], str(seven["row_count"])):
+                      str(riser[years[-1]]), years[0], years[-1],
+                      str(site["planning"]["stale_without_ia"]), str(site["planning"]["stale_with_ia"]),
+                      str(site["planning"]["stale_months"]), str(site["planning"]["yoy_year_total"]),
+                      str(next(row[3] for row in seven["rows"] if row[1] == riser["l1_name"] and row[2] not in (years[0], years[-1])))):
             self.assertIn(piece, brief, piece)
+        self.assertIn("issues with different titles", brief)
+        self.assertNotIn("text search would treat as unrelated", brief)
+        self.assertIn("not any employer's data", brief)
+        self.assertIn("planted test cases", brief)
+        self.assertIn("flat or down", brief)
         counts = {"SQL": 0, "graph": 0, "close": 0}
         for x in r["rounds"]:
             counts[x["measured_verdict"]] += 1

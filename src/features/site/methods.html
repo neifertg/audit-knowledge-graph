@@ -21,6 +21,7 @@
 <section class="top">
   <h1>Methods and appendix</h1>
   <p class="lede">How the verdict is scored, the shared SQL views, every planning query, and the inventory behind the <a href="index.html">planning notes</a>. These are the same published results, with the workings shown.</p>
+  <p class="note" data-disclosure="synthetic">Synthetic data throughout. Descriptions were written by a model ahead of time and committed. Names and companies are invented. This is not any employer's data.</p>
 </section>
 
 <section id="rounds" class="later">
@@ -51,7 +52,7 @@
 <section id="operating-model" class="later">
   <h2>When a graph earns its place</h2>
   <h3>What the rounds measured</h3>
-  <p data-label="measured">Cypher needed less query in rounds {{derived:graph_rule|names_and}}: with the same number of stages on both sides, SQL needed more joins than Cypher needed hops, to fetch a name or to join a grouped result back. The languages came out close in rounds {{derived:close_steps|names_and}}, where SQL's joins were no more than Cypher's hops, and in round {{derived:close_moving|names_and}}, where Cypher needed an extra stage. SQL needed less query in round {{derived:rounds_by_verdict.SQL|names_and}}, the question of exposure through fourth parties, of unknown depth: asked on its own, the question was shorter in Cypher, {{site.json:round5_split.query.cypher}} against {{site.json:round5_split.query.sql}}, but bringing the new register in cost the graph {{site.json:round5_split.setup.cypher}} against SQL's {{site.json:round5_split.setup.sql}}, because a new table had to become nodes and edges.</p>
+  <p data-label="measured">Cypher needed less query in rounds {{derived:graph_rule|names_and}}: with the same number of stages on both sides, SQL needed more joins than Cypher needed hops, to fetch a name or to join a grouped result back. The languages came out close in rounds {{derived:close_steps|names_and}}, where SQL's joins were no more than Cypher's hops, and in round {{derived:close_moving|names_and}}, where Cypher needed an extra stage. SQL needed less query in round {{derived:rounds_by_verdict.SQL|names_and}}, the question of exposure through fourth parties, of unknown depth: asked on its own, the question scored lower in Cypher, {{site.json:round5_split.query.cypher}} against {{site.json:round5_split.query.sql}} (query-size scores, not line counts), but bringing the new register in cost the graph {{site.json:round5_split.setup.cypher}} against SQL's {{site.json:round5_split.setup.sql}}, because a new table had to become nodes and edges.</p>
 
   <h3>When good SQL views are enough</h3>
   <p data-label="measured">The measured rounds say: when the joins a question needs are no more than the hops, and when new data arrives as tables.</p>

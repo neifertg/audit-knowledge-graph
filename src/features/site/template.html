@@ -21,8 +21,9 @@
 <main>
 <section id="top" class="top">
   <h1>Audit planning results from a reconciled risk and control map</h1>
-  <p class="lede">A synthetic US regional bank keeps its risks in the ERM register and in Internal Audit's risk and control matrices. Both lists were reconciled into a single framework, then loaded into a relational database and a graph. The notes below are planning consequences of the published results.</p>
-  <p class="note" data-disclosure="synthetic">Synthetic data throughout; descriptions AI-written ahead of time and committed; no real institution, person or vendor.</p>
+  <p class="lede">A synthetic US regional bank keeps its risks in the ERM register and in Internal Audit's risk and control matrices. Both lists were reconciled into a single framework, then loaded into a relational database and a graph.</p>
+  <p class="note" data-disclosure="synthetic">Synthetic data throughout. Descriptions were written by a model ahead of time and committed. Names and companies are invented. This is not any employer's data.</p>
+  <p>The warehouse, repeat-finding, stale-coverage, and Credit-increase examples are planted test cases used to check the queries; the ownership tie was not planted.</p>
 
   <h2 class="group">For the audit plan</h2>
 
@@ -44,7 +45,7 @@
 
   <article class="story" id="story-repeat-finding">
     <h2>Escalate the repeat-control findings</h2>
-    <p>{{site.json:repeat_finding.controls}} controls failed in different years under different titles: {{site.json:repeat_finding.issues}} issues a text search would treat as unrelated, linked through the control and the dates. Escalate the group. A new title on the same control is not a new finding.</p>
+    <p>{{site.json:repeat_finding.controls}} controls failed in different years under different titles: {{site.json:repeat_finding.issues}} issues with different titles, linked through the control and the dates. Escalate the group.</p>
   </article>
 
   <article class="story" id="story-owner-concentration">
@@ -56,17 +57,17 @@
 
   <article class="story" id="story-fourth-party">
     <h2>Fourth-party vendor exposure</h2>
-    <p>With a register of which vendors rely on which others, {{derived:featured.vendor_rows}} auditable entities are exposed to {{derived:featured.vendor}}. It is the vendor the most others rely on, directly or further out, with ties broken by name. {{derived:fourth_party.direct}} of them perform a process that runs on a system that vendor supplies. {{derived:fourth_party.fourth_party_only}} have no such link and appear only through another vendor's reliance. Those are the entities a direct-vendor list would miss.</p>
+    <p>With a register of which vendors rely on which others, {{derived:featured.vendor_rows}} auditable entities are exposed to {{derived:featured.vendor}}. It is the vendor the most others rely on, directly or further out, with ties broken by name. {{derived:fourth_party.direct}} of them perform a process that runs on a system that vendor supplies. {{derived:fourth_party.fourth_party_only}} have no such link and appear only through another vendor's reliance.</p>
   </article>
 
   <article class="story" id="story-stale">
     <h2>High risks with stale coverage</h2>
-    <p>{{derived:featured.stale_rows}} canonical risks include a high-rated member, and no control mitigating any member was tested by an audit ending on or after {{derived:featured.stale_cutoff}}. The result also records whether Internal Audit already lists the risk. These are coverage candidates for the plan, not a ranking.</p>
+    <p>{{derived:featured.stale_rows}} reconciled risks (the 'canonical' items that group the ERM and Internal Audit records for the same risk) include a high-rated member and had no mitigating control tested by an audit ending on or after {{derived:featured.stale_cutoff}}, {{site.json:planning.stale_months}} months before the end of the data window. {{site.json:planning.stale_without_ia}} of the {{derived:featured.stale_rows}} have no Internal Audit member, and because audits here test only IA controls, those {{site.json:planning.stale_without_ia}} are untested by construction. The remaining {{site.json:planning.stale_with_ia}} are the coverage candidates.</p>
   </article>
 
   <article class="story" id="story-yoy">
     <h2>Findings by ERM category, year over year</h2>
-    <p>Regulator, self-identified and second-line issues (Internal Audit issues excluded), counted by ERM L1 and by year. The largest increase is {{derived:featured.yoy_name}}, from {{derived:featured.yoy_from}} in {{derived:featured.yoy_from_year}} to {{derived:featured.yoy_to}} in {{derived:featured.yoy_to_year}}. The category-year table has {{derived:featured.yoy_rows}} rows; the queries list it.</p>
+    <p>Regulator, self-identified and second-line issues (Internal Audit issues excluded), counted by top-level ERM category and by year. The largest increase, measured as {{derived:featured.yoy_to_year}} minus {{derived:featured.yoy_from_year}}, is {{derived:featured.yoy_name}}, which rose from {{derived:featured.yoy_from}} issues in {{derived:featured.yoy_from_year}} to {{derived:featured.yoy_mid}} in {{derived:featured.yoy_mid_year}} and {{derived:featured.yoy_to}} in {{derived:featured.yoy_to_year}}. The other categories were flat or down, and each year's total was {{site.json:planning.yoy_year_total}}.</p>
   </article>
 
   <h2 class="group">Supporting evidence</h2>

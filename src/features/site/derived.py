@@ -74,14 +74,18 @@ def featured(sources: dict) -> dict:
     by = _by_number(sources)
     riser = by[7]["top_riser"]
     years = sorted(k for k in riser if str(k).isdigit())
+    published = {row[2]: row[3] for row in by[7]["rows"] if row[1] == riser["l1_name"]}
+    middle = [y for y in sorted(published) if y not in (years[0], years[-1])]
+    if len(middle) != 1:
+        raise ValueError("the top riser's published rows do not have one year between the endpoints")
     return {"stale_rows": by[2]["row_count"],
             "stale_cutoff": sources["rounds.json"]["parameters"]["round_2_cutoff"],
             "vendor": sources["rounds.json"]["parameters"]["round_5_vendor"],
             "vendor_rows": by[5]["row_count"],
-            "yoy_rows": by[7]["row_count"],
             "yoy_name": riser["l1_name"],
             "yoy_from_year": years[0], "yoy_to_year": years[-1],
-            "yoy_from": riser[years[0]], "yoy_to": riser[years[-1]]}
+            "yoy_from": riser[years[0]], "yoy_to": riser[years[-1]],
+            "yoy_mid_year": middle[0], "yoy_mid": published[middle[0]]}
 
 
 def fourth_party(sources: dict) -> dict:

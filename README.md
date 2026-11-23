@@ -10,19 +10,21 @@ The scoring rule, both queries and the inventory are on the [methods page](https
 
 [![tests](https://github.com/neifertg/audit-knowledge-graph/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/neifertg/audit-knowledge-graph/actions/workflows/tests.yml)
 
-Synthetic data throughout. Descriptions were written by a model ahead of time and committed. No real institution, person or vendor.
+Synthetic data throughout. Descriptions were written by a model ahead of time and committed. Names and companies are invented. This is not any employer's data.
+
+The warehouse, repeat-finding, stale-coverage, and Credit-increase examples are planted test cases used to check the queries; the ownership tie was not planted.
 
 **Cover the shared warehouse across units.** Ylvara Data Warehouse is the shared system that reaches the most auditable entities. If it fails, 44 controls that depend on it are affected; between them they protect risks in 41 auditable entities across 20 business units. Schedule the coverage as a review of that system across units. The page draws the dependency.
 
-**Escalate the repeat-control findings.** 6 controls failed in different years under different titles: 14 issues a text search would treat as unrelated, linked through the control and the dates. Escalate the group.
+**Escalate the repeat-control findings.** 6 controls failed in different years under different titles: 14 issues with different titles, linked through the control and the dates. Escalate the group.
 
 **Review concentrated ownership.** Dorothea Sandoval and Greer Kowalczyk each own 9 key controls whose risks reach 7 business units. That tie was computed from the data; it was not planted. Schedule a key-person review of that ownership.
 
 **Fourth-party vendor exposure.** With a register of which vendors rely on which others, 17 auditable entities are exposed to Ivelle Financial Technology. It is the vendor the most others rely on, directly or further out, with ties broken by name. 5 perform a process that runs on a system that vendor supplies. 12 appear only through another vendor's reliance.
 
-**High risks with stale coverage.** 56 canonical risks include a high-rated member, and no control mitigating any member was tested by an audit ending on or after 2023-12-31.
+**High risks with stale coverage.** 56 reconciled risks (the 'canonical' items that group the ERM and Internal Audit records for the same risk) include a high-rated member and had no mitigating control tested by an audit ending on or after 2023-12-31, 24 months before the end of the data window. 41 of the 56 have no Internal Audit member, and because audits here test only IA controls, those 41 are untested by construction. The remaining 15 are the coverage candidates.
 
-**Findings by ERM category.** Regulator, self-identified and second-line issues (Internal Audit issues excluded). The largest increase is Credit, from 8 in 2023 to 13 in 2025. The category-year table has 21 rows.
+**Findings by ERM category.** Regulator, self-identified and second-line issues (Internal Audit issues excluded), counted by top-level ERM category and by year. The largest increase, measured as 2025 minus 2023, is Credit, which rose from 8 issues in 2023 to 10 in 2024 and 13 in 2025. The other categories were flat or down, and each year's total was 42.
 
 **Does a graph beat SQL?** Asked 7 planning questions in both, with the same facts and answers proved equal. SQL wins 1, the graph 3, and 3 are close. That comparison is query size, not speed.
 
