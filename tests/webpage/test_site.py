@@ -12,7 +12,7 @@ from pathlib import Path
 
 from src.features.site import build as B
 from src.features.site import export as X
-from src.features.site.formatters import FORMATTERS, count_word, fraction, names_and, plain, rows_shown, signed, times_word
+from src.features.site.formatters import FORMATTERS, count_word, count_word_cap, fraction, names_and, plain, rows_shown, signed, times_word
 
 from tests.generator.dictionary import denied_in, deny_entries
 from tests.generator.helpers import ROOT, read
@@ -25,6 +25,12 @@ SPEED_WORDS = re.compile(r"\b(faster|slower|speed|speedup|latency|milliseconds|m
 CDN = "https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.34.4/cytoscape.min.js"
 SRI = "sha512-9oWrVcc9R1+KL87uqCWwsamtDPJknyeNh/xCFh5SHEsgvV7Icb5Vgungsyljhdeyt+LNKGC9bhwKKQ0C6TiPOw=="
 # The brief's fixed text: the words between the figures.
+EXECUTIVE = [
+    "A reconciled map of risks, controls, owners, issues, audits, and systems lets second-line risk and third-line internal audit follow how the ERM register and Internal Audit's matrices connect. This project loads that map into a graph and into SQL and asks the same planning questions in both. The answers match. A graph can make some of those multi-step paths shorter to write; a spreadsheet, a GRC query, or SQL can return the same facts. The comparison here is query size, not ease of use or speed.",
+    "On a synthetic US regional bank (invented names; not any employer's data): 56 reconciled risks that include a high-rated member had no mitigating control tested by an audit ending on or after 2023-12-31, 24 months before the end of the data window. 41 have no Internal Audit member and are untested by construction; the other 15 are coverage candidates. 6 controls failed in different years under different titles: 14 issues, linked through the control and the dates. If Ylvara Data Warehouse fails, 44 controls that depend on it are affected; between them they protect risks in 41 auditable entities across 20 business units, which argues for a cross-unit review of that system. Dorothea Sandoval and Greer Kowalczyk each own 9 key controls whose risks reach 7 business units; that tie was computed from the data, not planted.",
+    "The warehouse, repeat-finding, and stale-coverage examples are planted. The graph took a smaller query in three rounds, SQL in one, and three were close. One synthetic bank, one generator, small samples. The graph informs auditor judgment; it does not score risk or set the audit plan.",
+]
+
 COPY = [
     "Audit planning results from a reconciled risk and control map",
     "A synthetic US regional bank keeps its risks in the ERM register and in Internal Audit's risk and control "
@@ -293,6 +299,9 @@ class SiteTests(unittest.TestCase):
             "derived:featured.yoy_mid": next(row[3] for row in by_num[7]["rows"] if row[1] == riser["l1_name"] and row[2] == mid[0]),
             "derived:fourth_party.direct": exposure["direct"],
             "derived:fourth_party.fourth_party_only": exposure["fourth_party_only"],
+            # The executive summary's "One synthetic bank, one generator" is this showcase, not a count from the exports.
+            "derived:showcase.banks": 1,
+            "derived:showcase.generators": 1,
         })
         derived = {s: t for s, _, t in marked if s.startswith("derived:")}
         self.assertEqual(set(derived), set(independent))
@@ -313,6 +322,7 @@ class SiteTests(unittest.TestCase):
     def test_ac3_formatters(self):
         self.assertEqual(plain(44), "44")
         self.assertEqual([count_word(n) for n in (1, 3, 7, 12, 13)], ["one", "three", "seven", "twelve", "13"])
+        self.assertEqual([count_word_cap(n) for n in (1, 3, 13)], ["One", "Three", "13"])
         self.assertEqual([times_word(n) for n in (1, 2, 3)], ["once", "twice", "three times"])
         self.assertEqual([signed(x) for x in (4.75, -0.75, 0.0)], ["+4.75", "-0.75", "+0.00"])
         self.assertEqual(fraction([33, 33]), "33/33")
@@ -350,6 +360,11 @@ class SiteTests(unittest.TestCase):
         visible = norm(" ".join(page.visible))
         for segment in COPY:
             self.assertIn(norm(segment), visible, segment)
+        # Joining text nodes with spaces puts a space before punctuation that follows a marked figure.
+        # The summary is checked on the rendered text, which keeps "2023-12-31," and "in one,".
+        rendered = "".join(page.visible)
+        for paragraph in EXECUTIVE:
+            self.assertIn(paragraph, rendered, paragraph)
         self.assertIn('data-disclosure="synthetic"', text)
         self.assertIn('data-label="derived"', text)
         self.assertIn('data-statement="judgment"', text)
@@ -600,6 +615,11 @@ class SiteTests(unittest.TestCase):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         brief, _, rest = readme.partition("## How to read these numbers")
         self.assertIn("## The brief", readme)
+        self.assertLess(readme.find("## Executive summary"), readme.find("## The brief"))
+        summary, _, _ = readme.partition("## The brief")
+        for paragraph in EXECUTIVE:
+            self.assertIn(paragraph, summary)
+        self.assertIn("https://neifertg.github.io/audit-knowledge-graph/", summary)
         self.assertLess(readme.find("## The brief"), readme.find("## Reproduce"))
         self.assertLess(readme.find("## How to read these numbers"), readme.find("## Reproduce"))
         self.assertLess(readme.find("## Reproduce"), readme.find("## Neo4j"))

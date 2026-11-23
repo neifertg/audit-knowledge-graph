@@ -100,6 +100,15 @@ def fourth_party(sources: dict) -> dict:
     return counts
 
 
+def showcase(_sources: dict) -> dict:
+    """This page publishes one synthetic bank from one generator.
+
+    The executive summary says that in words ("One synthetic bank, one generator").
+    These are constants of the showcase, not counts read from the exports.
+    """
+    return {"banks": 1, "generators": 1}
+
+
 def shown_rows(sources: dict) -> dict:
     """[rows shown on the page, rows in the answer], by round number (owner concentration as 'owners')."""
     out = {}
@@ -110,4 +119,4 @@ def shown_rows(sources: dict) -> dict:
 
 DERIVED = {f.__name__: f for f in (verdict_counts, rounds_count, differ_from_expected, near_the_line, rounds_by_verdict,
                                    graph_rule, close_steps, close_moving, disclosed_count, shown_rows,
-                                   featured, fourth_party)}
+                                   featured, fourth_party, showcase)}
