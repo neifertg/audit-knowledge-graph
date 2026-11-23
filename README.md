@@ -1,5 +1,15 @@
 # Audit knowledge graph
 
+## Executive summary
+
+A reconciled map of risks, controls, owners, issues, audits, and systems lets second-line risk and third-line internal audit follow how the ERM register and Internal Audit's matrices connect. This project loads that map into a graph and into SQL and asks the same planning questions in both. The answers match. A graph can make some of those multi-step paths shorter to write; a spreadsheet, a GRC query, or SQL can return the same facts. The comparison here is query size, not ease of use or speed.
+
+On a synthetic US regional bank (invented names; not any employer's data): 56 reconciled risks that include a high-rated member had no mitigating control tested by an audit ending on or after 2023-12-31, 24 months before the end of the data window. 41 have no Internal Audit member and are untested by construction; the other 15 are coverage candidates. 6 controls failed in different years under different titles: 14 issues, linked through the control and the dates. If Ylvara Data Warehouse fails, 44 controls that depend on it are affected; between them they protect risks in 41 auditable entities across 20 business units, which argues for a cross-unit review of that system. Dorothea Sandoval and Greer Kowalczyk each own 9 key controls whose risks reach 7 business units; that tie was computed from the data, not planted.
+
+The warehouse, repeat-finding, and stale-coverage examples are planted. The graph took a smaller query in three rounds, SQL in one, and three were close. One synthetic bank, one generator, small samples. The graph informs auditor judgment; it does not score risk or set the audit plan.
+
+[https://neifertg.github.io/audit-knowledge-graph/](https://neifertg.github.io/audit-knowledge-graph/)
+
 ## The brief
 
 A synthetic US regional bank keeps its risks in the ERM register and in Internal Audit's risk and control matrices. Both lists were reconciled into a single framework, loaded into SQLite and Neo4j, and asked the same planning questions. The public page is that brief:
