@@ -1,6 +1,6 @@
 """Render the page from committed exports (021). Standard library only; reads no build or database.
 
-    python -m src.features.site.build --out <dir>       writes <dir>/index.html and the files it links
+    python -m src.features.site.build --out <dir>       writes <dir>/index.html, methods.html and the files they link
 
 Template syntax in template.html:
 - `{{<source>|<format>}}` becomes `<span data-source="<source>" data-format="<format>">text</span>`, where
@@ -29,6 +29,7 @@ SITE_JSON = HERE / "data" / "site.json"
 ROUNDS_JSON = FEATURES / "rounds" / "rounds.json"
 SCORES = FEATURES / "reconciliation" / "scores.json"
 TEMPLATE = HERE / "template.html"
+METHODS = HERE / "methods.html"
 STATIC = ("site.css", "site.js")
 PLACEHOLDER = re.compile(r"\{\{\s*([^}|]+?)\s*(?:\|\s*(\w+)\s*)?\}\}")
 
@@ -79,8 +80,6 @@ def one_round(base: str, r: dict, sources: dict) -> str:
     else:
         heading = f'<h3>Round {m("number")}</h3><p class="question">{m("question")}</p>'
         scenario = m("checks.scenario", "scenario")
-    differs = (' <span class="differs">differs from expected</span>'
-               if r["expected_verdict"] is not None and r["expected_verdict"] != r["measured_verdict"] else "")
     rows = r["rows"][:SHOWN]   # the same constant derived.shown_rows reports
     head = "".join(f"<th scope=\"col\">{m(f'columns[{j}]')}</th>" for j, _ in enumerate(r["columns"]))
     body = "\n".join("<tr>" + "".join(f"<td>{m(f'rows[{i}][{j}]')}</td>" for j, _ in enumerate(row)) + "</tr>"
@@ -97,7 +96,6 @@ def one_round(base: str, r: dict, sources: dict) -> str:
 <dt>Score</dt><dd>SQL {m("scores.sql")} against Cypher {m("scores.cypher")}</dd>
 <dt>Margin</dt><dd>{m("margin", "signed")}</dd>
 <dt>Measured verdict</dt><dd>{m("measured_verdict", "verdict")}</dd>
-<dt>Expected verdict</dt><dd>{m("expected_verdict", "verdict")}{differs}</dd>
 <dt>Agreement</dt><dd>{m("checks.agreement", "check")}</dd>
 <dt>Oracle</dt><dd>{m("checks.oracle", "check")}</dd>
 <dt>Scenario</dt><dd>{scenario}</dd>
@@ -167,8 +165,9 @@ def graph_data(sources: dict) -> str:
     return f'<script type="application/json" id="site-data">{data}</script>'
 
 
-def render(sources: dict | None = None) -> str:
+def render(sources: dict | None = None, template: Path | None = None) -> str:
     sources = sources or load_sources()
+    template = template or TEMPLATE
     blocks = {"@graph-data": graph_data, "@unit-table": unit_table, "@rounds": rounds_block,
               "@counting": counting_block, "@symmetry-table": symmetry_block, "@inventory-table": inventory_block,
               "@project-list": project_block, "@caveats": caveats_block,
@@ -180,13 +179,14 @@ def render(sources: dict | None = None) -> str:
             return blocks[source](sources)
         return marked(source, fmt or "plain", sources)
 
-    return PLACEHOLDER.sub(replace, TEMPLATE.read_text(encoding="utf-8"))
+    return PLACEHOLDER.sub(replace, template.read_text(encoding="utf-8"))
 
 
 def build(out: Path) -> Path:
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
-    (out / "index.html").write_text(render(), encoding="utf-8", newline="\n")
+    (out / "index.html").write_text(render(template=TEMPLATE), encoding="utf-8", newline="\n")
+    (out / "methods.html").write_text(render(template=METHODS), encoding="utf-8", newline="\n")
     for name in STATIC:
         shutil.copyfile(HERE / name, out / name)
     for path in (SITE_JSON, ROUNDS_JSON, SCORES):
