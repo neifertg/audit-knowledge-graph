@@ -62,6 +62,53 @@ def disclosed_count(sources: dict) -> int:
     return sum(row["disclosed"] for row in sources["site.json"]["symmetry"])
 
 
+def _by_number(sources: dict) -> dict:
+    return {r["number"]: r for r in _rounds(sources)}
+
+
+def featured(sources: dict) -> dict:
+    """Brief figures already stored on the rounds: row counts, the cutoff, the vendor, the top riser.
+
+    The year labels are the top-riser object's own year keys, not a second calendar.
+    """
+    by = _by_number(sources)
+    riser = by[7]["top_riser"]
+    years = sorted(k for k in riser if str(k).isdigit())
+    published = {row[2]: row[3] for row in by[7]["rows"] if row[1] == riser["l1_name"]}
+    middle = [y for y in sorted(published) if y not in (years[0], years[-1])]
+    if len(middle) != 1:
+        raise ValueError("the top riser's published rows do not have one year between the endpoints")
+    return {"stale_rows": by[2]["row_count"],
+            "stale_cutoff": sources["rounds.json"]["parameters"]["round_2_cutoff"],
+            "vendor": sources["rounds.json"]["parameters"]["round_5_vendor"],
+            "vendor_rows": by[5]["row_count"],
+            "yoy_name": riser["l1_name"],
+            "yoy_from_year": years[0], "yoy_to_year": years[-1],
+            "yoy_from": riser[years[0]], "yoy_to": riser[years[-1]],
+            "yoy_mid_year": middle[0], "yoy_mid": published[middle[0]]}
+
+
+def fourth_party(sources: dict) -> dict:
+    """Direct vs fourth-party-only. Round 5 publishes every row, so this is the answer, not a sample."""
+    r = _by_number(sources)[5]
+    if len(r["rows"]) != r["row_count"]:
+        raise ValueError("round 5's published rows are incomplete; refusing a partial count")
+    column = r["columns"].index("exposure")
+    counts = {"direct": 0, "fourth_party_only": 0}
+    for row in r["rows"]:
+        counts[row[column]] += 1
+    return counts
+
+
+def showcase(_sources: dict) -> dict:
+    """This page publishes one synthetic bank from one generator.
+
+    The executive summary says that in words ("One synthetic bank, one generator").
+    These are constants of the showcase, not counts read from the exports.
+    """
+    return {"banks": 1, "generators": 1}
+
+
 def shown_rows(sources: dict) -> dict:
     """[rows shown on the page, rows in the answer], by round number (owner concentration as 'owners')."""
     out = {}
@@ -71,4 +118,5 @@ def shown_rows(sources: dict) -> dict:
 
 
 DERIVED = {f.__name__: f for f in (verdict_counts, rounds_count, differ_from_expected, near_the_line, rounds_by_verdict,
-                                   graph_rule, close_steps, close_moving, disclosed_count, shown_rows)}
+                                   graph_rule, close_steps, close_moving, disclosed_count, shown_rows,
+                                   featured, fourth_party, showcase)}

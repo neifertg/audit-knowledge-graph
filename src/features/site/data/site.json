@@ -190,6 +190,12 @@
   ],
   "units": 7
  },
+ "planning": {
+  "stale_months": 24,
+  "stale_with_ia": 15,
+  "stale_without_ia": 41,
+  "yoy_year_total": 42
+ },
  "project": [
   {
    "changes": 6,

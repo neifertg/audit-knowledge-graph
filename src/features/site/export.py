@@ -125,13 +125,44 @@ def round5_split(rounds: dict) -> dict:
             "setup": {"sql": score(five.sql_setup, "sql"), "cypher": score(five.cypher_setup, "cypher")}}
 
 
+def planning_counts(build_dir: Path, rounds: dict) -> dict:
+    """Counts the page states that rounds.json cannot, because it keeps only the first rows.
+
+    Stale coverage and the year totals come from the oracle over every CSV, the same full extract
+    the agreement tests use. The month count is the cutoff against the generator's window end.
+    """
+    from datetime import date
+
+    from src.features.generator.generate import WINDOW_END
+    from src.features.rounds.oracle import answers
+
+    got = answers(build_dir)
+    stale = got[2]
+    without = sum(flag == "N" for _, flag in stale)
+    with_ia = sum(flag == "Y" for _, flag in stale)
+    if without + with_ia != len(stale):
+        raise ValueError("a stale-coverage row is neither Y nor N")
+    cutoff = date.fromisoformat(rounds["parameters"]["round_2_cutoff"])
+    if cutoff.day != WINDOW_END.day:
+        raise ValueError("the cutoff and the window end are not the same day of the month")
+    months = (WINDOW_END.year - cutoff.year) * 12 + (WINDOW_END.month - cutoff.month)
+    totals: dict[str, int] = defaultdict(int)
+    for _node, _name, year, n in got[7]:
+        totals[str(year)] += n
+    if len(set(totals.values())) != 1:
+        raise ValueError(f"year totals are not equal: {dict(totals)}")
+    return {"stale_months": months, "stale_with_ia": with_ia, "stale_without_ia": without,
+            "yoy_year_total": next(iter(totals.values()))}
+
+
 def document(build_dir: Path, rounds: dict | None = None) -> dict:
     rounds = rounds or json.loads(ROUNDS_JSON.read_text(encoding="utf-8"))
     con = sqlite_connection(build_dir)
     try:
         graph, blast = subgraph(con, top_system(rounds))
         doc = {"subgraph": graph, "blast_radius": blast, "symmetry": symmetry.table(), **stories(con, rounds),
-               "inventory": inventory(con), "project": project(), "round5_split": round5_split(rounds)}
+               "inventory": inventory(con), "project": project(), "round5_split": round5_split(rounds),
+               "planning": planning_counts(build_dir, rounds)}
     finally:
         con.close()
     return doc

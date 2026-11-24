@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Methods and appendix — Audit knowledge graph</title>
+<meta name="description" content="Scoring rule, shared SQL views, every planning query, and the data inventory behind the audit planning notes.">
+<link rel="stylesheet" href="site.css">
+<script src="site.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="index.html">Audit knowledge graph</a>
+  <nav class="nav" aria-label="Page">
+    <a href="index.html">Brief</a>
+    <button type="button" id="theme-toggle" class="toggle" aria-label="Switch between light and dark theme">Theme</button>
+  </nav>
+</header>
+
+<main>
+<section class="top">
+  <h1>Methods and appendix</h1>
+  <p class="lede">How the verdict is scored, the shared SQL views, every planning query, and the inventory behind the <a href="index.html">planning notes</a>. These are the same published results, with the workings shown.</p>
+  <p class="note" data-disclosure="synthetic">Synthetic data throughout. Descriptions were written by a model ahead of time and committed. Names and companies are invented. This is not any employer's data.</p>
+</section>
+
+<section id="rounds" class="later">
+  <h2>The planning questions</h2>
+  <p>Each planning question was asked in SQL and in Cypher over the same facts. Each answer is checked: the SQL and Cypher answers must agree, an independent Python computation must agree, and where a scenario was planted, the answer must find it. <span data-disclosure="no-speed-claims">The verdict compares how much query each language needs; it is not a measure of speed.</span> Rounds {{derived:near_the_line|names_and}} sit within a point of the line, so a single extra clause would change their verdict.</p>
+
+  <h3>How the verdict is measured</h3>
+  <p>Each side scores clauses plus steps plus {{rounds.json:verdict_rule.weight}} times its moving parts; the side whose score times {{rounds.json:verdict_rule.margin}} is at most the other's wins, and otherwise the round is close. Moving parts follow a single rule on both sides, with {{derived:disclosed_count|count_word}} disclosed exceptions; clauses and steps measure what each language writes.</p>
+  <ul class="rules">
+{{@counting}}
+  </ul>
+  <div class="scroll">
+  <table class="data symmetry">
+    <caption>The measured symmetry table: clauses / steps / moving parts for a minimal snippet of each construct</caption>
+    <thead><tr><th scope="col">Construct</th><th scope="col">SQL</th><th scope="col">Cypher</th><th scope="col">SQL counts</th><th scope="col">Cypher counts</th></tr></thead>
+    <tbody>
+{{@symmetry-table}}
+    </tbody>
+  </table>
+  </div>
+  <h4>The shared views</h4>
+  <p>SQL gets the ERM and IA tables merged in a single place, in {{rounds.json:views.lines}} lines with {{rounds.json:views.unions}} unions, as the graph database gets them merged by its labels; the views are published as setup and never scored.</p>
+{{@views-sql}}
+
+{{@rounds}}
+</section>
+
+<section id="operating-model" class="later">
+  <h2>When a graph earns its place</h2>
+  <h3>What the rounds measured</h3>
+  <p data-label="measured">Cypher needed less query in rounds {{derived:graph_rule|names_and}}: with the same number of stages on both sides, SQL needed more joins than Cypher needed hops, to fetch a name or to join a grouped result back. The languages came out close in rounds {{derived:close_steps|names_and}}, where SQL's joins were no more than Cypher's hops, and in round {{derived:close_moving|names_and}}, where Cypher needed an extra stage. SQL needed less query in round {{derived:rounds_by_verdict.SQL|names_and}}, the question of exposure through fourth parties, of unknown depth: asked on its own, the question scored lower in Cypher, {{site.json:round5_split.query.cypher}} against {{site.json:round5_split.query.sql}} (query-size scores, not line counts), but bringing the new register in cost the graph {{site.json:round5_split.setup.cypher}} against SQL's {{site.json:round5_split.setup.sql}}, because a new table had to become nodes and edges.</p>
+
+  <h3>When good SQL views are enough</h3>
+  <p data-label="measured">The measured rounds say: when the joins a question needs are no more than the hops, and when new data arrives as tables.</p>
+
+  <h3>Keys for success</h3>
+  <p data-label="practice"><span class="tag">practice, from building this project</span> Reconcile first: a graph of unreconciled data only draws the confusion more vividly. Keep the graph an analysis layer over the system of record, not a replacement. Prove both stores hold the same facts on every load. Keep a human review queue for uncertain matches. Publish every answer with its checks.</p>
+
+  <h3>Maintenance</h3>
+  <div data-label="practice">
+  <p><span class="tag">practice, from building this project</span></p>
+  <table class="data">
+    <thead><tr><th scope="col">When this changes</th><th scope="col">Do this</th></tr></thead>
+    <tbody>
+      <tr><td>A taxonomy</td><td>Re-run the mapping, clear the review queue, regenerate.</td></tr>
+      <tr><td>A new source system</td><td>Map it into both stores and extend the parity test.</td></tr>
+      <tr><td>The matching rules</td><td>Retrain on the training bank and rescore.</td></tr>
+      <tr><td>A new planning question</td><td>Write it in both languages with an oracle and an agreement test.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="appendix" class="later">
+  <h2>Technical appendix</h2>
+  <h3>The data model</h3>
+  <p>{{site.json:inventory.entity_files}} entity files and {{site.json:inventory.relationship_files}} relationship files are published; each entity with its rows at seed {{rounds.json:seed}}:</p>
+  <div class="scroll">
+  <table class="data">
+    <thead><tr><th scope="col">Entity file</th><th scope="col">Rows</th></tr></thead>
+    <tbody>
+{{@inventory-table}}
+    </tbody>
+  </table>
+  </div>
+  <p>The full dictionary is in the repository.</p>
+
+  <h3>The generator</h3>
+  <p>The bank is synthetic and seeded: seed {{rounds.json:seed}} rebuilds every file byte for byte. Its descriptions were written by an AI model ahead of time and committed, so the build never calls an API.</p>
+
+  <h3>Reconciliation accuracy</h3>
+  <p>Risks: merged precision {{scores.json:risk.precision.count}}, merged recall {{scores.json:risk.recall.count}}, and {{scores.json:risk.recall_if_resolved.count}} if a reviewer resolves the queue correctly. Controls: {{scores.json:control.precision.count}}, {{scores.json:control.recall.count}} and {{scores.json:control.recall_if_resolved.count}}. The review queue holds {{scores.json:review_queue.total}} pairs; IA risks placed in the right ERM category: {{scores.json:placement.all.count}}. Caveats:</p>
+  <ul class="caveats">
+{{@caveats}}
+  </ul>
+
+  <h3>Tests and CI</h3>
+  <p>Every round's answer must agree between the engines, match an independent Python computation, and find its planted scenario where a scenario was planted. The full suite runs against a real graph database on every push: <a href="https://github.com/neifertg/audit-knowledge-graph/actions">the test runs</a>.</p>
+
+  <h3>Limitations</h3>
+  <p>The data is synthetic, from a single generator and a single bank, with small samples. The matcher's thresholds are deliberately conservative, so most true matches wait in the review queue. The training bank comes from the same generator, so its weights know the generator's habits. <span data-disclosure="no-speed-claims">No speed or scale claim is made.</span> The graph informs auditor judgment; it does not score risk or set the plan.</p>
+
+  <h3>Reproduce</h3>
+  <p>From a fresh clone, with seed {{rounds.json:seed}} as the default:</p>
+  <pre class="code"><code>python -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+python -m akg build
+python -m unittest discover -s tests</code></pre>
+</section>
+</main>
+
+<footer class="foot">
+  <p><a href="index.html">Planning notes</a>. <a href="https://github.com/neifertg/audit-knowledge-graph">Source, tests and how to reproduce every figure</a>.</p>
+</footer>
+</body>
+</html>
