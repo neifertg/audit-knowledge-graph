@@ -12,7 +12,7 @@ from pathlib import Path
 
 from src.features.site import build as B
 from src.features.site import export as X
-from src.features.site.formatters import FORMATTERS, count_word, fraction, names_and, plain, rows_shown, signed, times_word
+from src.features.site.formatters import FORMATTERS, count_word, count_word_cap, fraction, names_and, plain, rows_shown, signed, times_word
 
 from tests.generator.dictionary import denied_in, deny_entries
 from tests.generator.helpers import ROOT, read
@@ -24,27 +24,77 @@ NUMBER_WORDS = re.compile(r"\b(one|two|three|four|five|six|seven|eight|nine|ten|
 SPEED_WORDS = re.compile(r"\b(faster|slower|speed|speedup|latency|milliseconds|ms)\b", re.I)
 CDN = "https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.34.4/cytoscape.min.js"
 SRI = "sha512-9oWrVcc9R1+KL87uqCWwsamtDPJknyeNh/xCFh5SHEsgvV7Icb5Vgungsyljhdeyt+LNKGC9bhwKKQ0C6TiPOw=="
-# The approved copy's fixed text: the words between the figures (021 plan, "Top-section copy").
+# The brief's fixed text: the words between the figures.
+EXECUTIVE = [
+    # The owner's choice of 2026-11-23 (option A): a hook, four findings, a footnote. Same text in the README.
+    "Your risk register and your audit files describe the same bank in different words. Linked, they show where the next audit plan should look.",
+    "A single point of failure.",
+    "Ylvara Data Warehouse sits under 44 controls that protect risks in 20 business units. Review it across those units in a single audit.",
+    "Repeat findings under new titles.",
+    "6 controls failed again in later years, logged as 14 issues with different titles.",
+    "Coverage gone stale.",
+    "15 high-rated risks in Internal Audit's scope had no control tested in the last 24 months of the data.",
+    "Key-person risk.",
+    "2 people each own 9 key controls reaching 7 business units.",
+    "A synthetic bank with invented names, not any employer's data. Asked in SQL and in a graph, the same questions return the same answers. The graph informs auditor judgment; it does not score risk or set the audit plan.",
+]
+
 COPY = [
-    "Audit risk hides between the tables. This is what it looks like when you connect them.",
-    "A synthetic US regional bank keeps its risks in the ERM register and in Internal Audit's risk and control "
-    "matrices. They describe the same business in different words. Reconciled into a single framework and connected "
-    "as a graph, they show exposure no table holds on its own.",
-    "Synthetic data throughout; descriptions AI-written ahead of time and committed; no real institution, person or vendor.",
-    "A shared system, a wide blast radius", "fails,", "controls that depend on it are affected; between them they "
-    "protect risks in", "auditable entities across", "business units.", "Plan coverage by dependency, not by org chart.",
-    "A repeat finding in disguise", "controls failed in different years under different titles:",
-    "issues a text search would treat as unrelated, linked through the control and the dates.",
-    "Repeat findings should escalate, not reset.",
-    "Concentrated ownership", "derived from the data, not planted", "each own", "key controls whose risks reach",
-    "Key-person risk is visible before it becomes an issue.",
-    "Does a graph beat SQL?", "planning questions in both, with the same facts and answers proved equal: SQL wins",
-    "the graph", "are close.", "The difference is how much query each needs, not speed: no speed claims are made at demo scale.",
+    "Audit planning results from a reconciled risk and control map",
+    # 025: the merged note and the pointer
+    "Descriptions in the data were written by a model ahead of time and committed. The warehouse, repeat-finding and "
+    "stale-coverage findings and the", "increase are planted test cases that check the queries; the ownership "
+    "concentration was not planted.",
+    "New to knowledge graphs? A short explanation opens the supporting evidence below.",
+    "For the audit plan",
+    "Cover the shared warehouse across units",
+    "is the shared system that reaches the most auditable entities. If it fails,",
+    "controls that depend on it are affected; between them they protect risks in",
+    "auditable entities across",
+    "business units. Schedule the coverage as a review of this system across the units below, rather than as a review "
+    "owned by a single unit.",
+    "Escalate the repeat-control findings",
+    "controls failed in different years under different titles:",
+    "issues with different titles, linked through the control and the dates. Escalate the group.",
+    "Review concentrated ownership", "derived from the data, not planted", "each own",
+    "key controls whose risks reach", "Schedule a key-person review of that ownership.",
+    "Fourth-party vendor exposure",
+    "have no such link and appear only through another vendor's reliance.",
+    "High risks with stale coverage",
+    "reconciled risks (the 'canonical' items that group the ERM and Internal Audit records for the same risk) include a high-rated member and had no mitigating control tested by an audit ending on or after",
+    "months before the end of the data window.",
+    "have no Internal Audit member, and because audits here test only IA controls,",
+    "are untested by construction. The remaining",
+    "are the coverage candidates.",
+    "Findings by ERM category, year over year",
+    "counted by top-level ERM category and by year. The largest increase, measured as",
+    "which rose from",
+    "The other categories were flat or down, and each year's total was",
+    # 025: the explainer, then the comparison under its new heading
+    "What is a knowledge graph?",
+    "A knowledge graph stores facts as nodes and the links between them: things such as systems, controls, risks, issues, "
+    "auditable entities and business units are nodes, and each relationship, such as \"this control mitigates that risk\" "
+    "or \"this control depends on that system\", is a link you can follow from node to node. A relational database can "
+    "hold the same facts in tables, with each relationship as a row in a link table. Here, both stores hold exactly the "
+    "same links. What differs is how a query is written: a question that follows a chain of links, such as \"what does "
+    "this system's failure reach?\", is a path in the graph and a series of joins in SQL. The comparison below counts how "
+    "much query each needs; for that question, both come out close.",
+    "How a system failure reaches a business unit:", "system → control → risk → auditable entity → business unit",
+    "Graph or SQL?",
+    "planning questions in both, with the same facts and answers proved equal: SQL wins",
+    "the graph", "are close.",
+    "The difference is how much query each needs, not speed: no speed claims are made at demo scale.",
+    "What was merged, and what is waiting",
+    "The matcher's thresholds are deliberately conservative, so most true matches wait in the review queue rather than "
+    "being merged silently.",
+    "The data is synthetic, from a single generator and a single bank, with small samples.",
+    "No speed or scale claim is made.",
     "The graph informs auditor judgment; it does not score risk or set the audit plan.",
 ]
 
-# 022's approved copy: the fixed text of the rounds intro, the verdict rule, the operating model and the appendix.
+# Fixed text that moved to the methods page: the rounds intro, the verdict rule, the measured operating notes and the appendix.
 COPY_022 = [
+    "Synthetic data throughout. Descriptions were written by a model ahead of time and committed. Names and companies are invented. This is not any employer's data.",
     "Each planning question was asked in SQL and in Cypher over the same facts. Each answer is checked: the SQL and "
     "Cypher answers must agree, an independent Python computation must agree, and where a scenario was planted, the "
     "answer must find it.", "The verdict compares how much query each language needs; it is not a measure of speed.",
@@ -58,20 +108,15 @@ COPY_022 = [
     "Cypher needed hops, to fetch a name or to join a grouped result back. The languages came out close in rounds",
     ", where SQL's joins were no more than Cypher's hops, and in round", ", where Cypher needed an extra stage. SQL needed "
     "less query in round", ", the question of exposure through fourth parties, of unknown depth: asked on its own, the "
-    "question was shorter in Cypher,", "but bringing the new register in cost the graph", "against SQL's",
+    "question scored lower in Cypher,", "(query-size scores, not line counts), but bringing the new register in cost the graph",
+    "against SQL's",
     "because a new table had to become nodes and edges.",
-    "When auditors explore rather than report, as in clicking through a blast radius; when the same entities are linked "
-    "from many systems; when new relationship types keep arriving and the data is already in the graph; and at larger "
-    "scale, which is the M2 benchmark's question.",
     "The measured rounds say: when the joins a question needs are no more than the hops, and when new data arrives as tables.",
-    "Most audit and data teams already read SQL, which matters as much as query length.",
     "Reconcile first: a graph of unreconciled data only draws the confusion more vividly. Keep the graph an analysis layer "
     "over the system of record, not a replacement. Prove both stores hold the same facts on every load. Keep a human "
     "review queue for uncertain matches. Publish every answer with its checks.",
     "Re-run the mapping, clear the review queue, regenerate.", "Map it into both stores and extend the parity test.",
     "Retrain on the training bank and rescore.", "Write it in both languages with an oracle and an agreement test.",
-    "This project's change log, closed epics:", "Each change was planned, critiqued, tested and reviewed.",
-    "For a team with clean ERM and IA exports, expect the reconciliation to be most of the work and the graph the smaller part.",
     "entity files and", "relationship files are published; each entity with its rows at seed",
     "The bank is synthetic and seeded: seed", "rebuilds every file byte for byte. Its descriptions were written by an AI "
     "model ahead of time and committed, so the build never calls an API.",
@@ -84,6 +129,12 @@ COPY_022 = [
     "generator, so its weights know the generator's habits.", "No speed or scale claim is made.",
     "The graph informs auditor judgment; it does not score risk or set the plan.",
 ]
+
+# Lab scaffolding that the public pages no longer carry.
+SHELVED = (
+    "expected, not measured", "differs from expected", "Expected verdict", "closed epics",
+    "E1 Synthetic", "E2 ERM", "E3 Dual",
+)
 
 
 class Page(HTMLParser):
@@ -150,14 +201,20 @@ class Page(HTMLParser):
                 self.speed_scope.append(data)
 
 
-def built() -> tuple[Path, str, Page]:
+def built() -> tuple[Path, str, Page, str, Page]:
     if not hasattr(built, "cache"):
         tmp = tempfile.mkdtemp(prefix="akg-site-")
         B.build(Path(tmp))
-        text = (Path(tmp) / "index.html").read_text(encoding="utf-8")
-        page = Page()
-        page.feed(text)
-        built.cache = (Path(tmp), text, page)
+
+        def load(name: str) -> tuple[str, Page]:
+            text = (Path(tmp) / name).read_text(encoding="utf-8")
+            page = Page()
+            page.feed(text)
+            return text, page
+
+        index_text, index_page = load("index.html")
+        methods_text, methods_page = load("methods.html")
+        built.cache = (Path(tmp), index_text, index_page, methods_text, methods_page)
     return built.cache
 
 
@@ -211,10 +268,11 @@ class SiteTests(unittest.TestCase):
               f"({b['controls_with_risks']} with risks), {b['entities']} entities, {b['units']} units; owners {top}")
 
     def test_ac3_every_marked_figure_matches_its_source(self):
-        _, _, page = built()
+        _, _, index_page, _, methods_page = built()
+        marked = index_page.marked + methods_page.marked
         sources = B.load_sources()
-        self.assertGreater(len(page.marked), 20)
-        for source, fmt, text in page.marked:
+        self.assertGreater(len(marked), 20)
+        for source, fmt, text in marked:
             with self.subTest(source=source):
                 self.assertIn(fmt, FORMATTERS)
                 self.assertEqual(text, FORMATTERS[fmt](B.resolve(source, sources)))
@@ -236,9 +294,43 @@ class SiteTests(unittest.TestCase):
                        "derived:rounds_by_verdict.SQL": [x["number"] for x in r["rounds"] if x["measured_verdict"] == "SQL"],
                        **{f"derived:shown_rows.{x['number']}": [min(5, len(x["rows"])), x["row_count"]]
                           for x in r["rounds"] + r["supporting"]}}
-        derived = {s: t for s, _, t in page.marked if s.startswith("derived:")}
+        by_num = {x["number"]: x for x in r["rounds"]}
+        riser = by_num[7]["top_riser"]
+        years = sorted(k for k in riser if str(k).isdigit())
+        five = by_num[5]
+        self.assertEqual(len(five["rows"]), five["row_count"], "round 5 publishes every row")
+        column = five["columns"].index("exposure")
+        exposure = {"direct": 0, "fourth_party_only": 0}
+        for row in five["rows"]:
+            exposure[row[column]] += 1
+        self.assertEqual(sum(exposure.values()), five["row_count"])
+        independent.update({
+            "derived:featured.stale_rows": by_num[2]["row_count"],
+            "derived:featured.stale_cutoff": r["parameters"]["round_2_cutoff"],
+            "derived:featured.vendor": r["parameters"]["round_5_vendor"],
+            "derived:featured.vendor_rows": five["row_count"],
+            "derived:featured.yoy_name": riser["l1_name"],
+            "derived:featured.yoy_from_year": years[0],
+            "derived:featured.yoy_to_year": years[-1],
+            "derived:featured.yoy_from": riser[years[0]],
+            "derived:featured.yoy_to": riser[years[-1]],
+            "derived:featured.yoy_mid_year": (mid := [y for y in sorted({row[2] for row in by_num[7]["rows"] if row[1] == riser["l1_name"]}) if y not in (years[0], years[-1])])[0],
+            "derived:featured.yoy_mid": next(row[3] for row in by_num[7]["rows"] if row[1] == riser["l1_name"] and row[2] == mid[0]),
+            "derived:fourth_party.direct": exposure["direct"],
+            "derived:fourth_party.fourth_party_only": exposure["fourth_party_only"],
+            "derived:featured.owners": len(site["owners"]["top"]),
+        })
+        derived = {s: t for s, _, t in marked if s.startswith("derived:")}
         self.assertEqual(set(derived), set(independent))
-        fmt_of = {s: f for s, f, _ in page.marked}
+        fmt_of = {s: f for s, f, _ in marked}
+        index_sources = {s for s, _, _ in index_page.marked}
+        methods_sources = {s for s, _, _ in methods_page.marked}
+        self.assertIn("derived:fourth_party.direct", index_sources)
+        self.assertNotIn("rounds.json:rounds[0].sql", index_sources)
+        self.assertNotIn("rounds.json:verdict_rule.weight", index_sources)
+        self.assertIn("rounds.json:rounds[0].sql", methods_sources)
+        self.assertIn("rounds.json:verdict_rule.weight", methods_sources)
+        self.assertIn("rounds.json:views.sql", methods_sources)
         for source, value in independent.items():
             self.assertEqual(derived[source], FORMATTERS[fmt_of[source]](value), source)
         # the copy says the answers are proved equal: every round's agreement check must be true
@@ -247,6 +339,7 @@ class SiteTests(unittest.TestCase):
     def test_ac3_formatters(self):
         self.assertEqual(plain(44), "44")
         self.assertEqual([count_word(n) for n in (1, 3, 7, 12, 13)], ["one", "three", "seven", "twelve", "13"])
+        self.assertEqual([count_word_cap(n) for n in (1, 3, 13)], ["One", "Three", "13"])
         self.assertEqual([times_word(n) for n in (1, 2, 3)], ["once", "twice", "three times"])
         self.assertEqual([signed(x) for x in (4.75, -0.75, 0.0)], ["+4.75", "-0.75", "+0.00"])
         self.assertEqual(fraction([33, 33]), "33/33")
@@ -262,44 +355,62 @@ class SiteTests(unittest.TestCase):
         self.assertEqual(FORMATTERS["triple"]([5, 1, 1]), "5 / 1 / 1")
 
     def test_ac4_no_typed_figures_and_js_carries_none(self):
-        out, text, page = built()
-        unmarked = norm(" ".join(page.unmarked))
-        stray = [t for t in re.findall(r"\S*\d\S*", unmarked) if t.strip(".,;:()") not in ALLOWED_TOKENS]
-        self.assertEqual(stray, [], "a digit outside a marked figure")
-        self.assertEqual(NUMBER_WORDS.findall(unmarked), [], "a number word outside a marked figure")
+        out, _, index_page, _, methods_page = built()
+        for page in (index_page, methods_page):
+            unmarked = norm(" ".join(page.unmarked))
+            stray = [t for t in re.findall(r"\S*\d\S*", unmarked) if t.strip(".,;:()") not in ALLOWED_TOKENS]
+            self.assertEqual(stray, [], "a digit outside a marked figure")
+            self.assertEqual(NUMBER_WORDS.findall(unmarked), [], "a number word outside a marked figure")
         js = (B.HERE / "site.js").read_text(encoding="utf-8")
         self.assertIsNone(re.search(r"\d", js), "site.js holds a digit")
         for banned in ("fetch", "XMLHttpRequest", "import(", "innerHTML", "outerHTML", "insertAdjacentHTML", "document.write"):
             self.assertNotIn(banned, js, banned)
         self.assertIsNone(re.search(r"(textContent|innerText)\s*=(?!=)", js), "site.js writes text into the page")
-        embedded = [s for a, s in page.scripts if a.get("id") == "site-data"]
+        embedded = [s for a, s in index_page.scripts if a.get("id") == "site-data"]
         self.assertEqual(len(embedded), 1)
         self.assertEqual(json.loads(embedded[0]), json.loads(X.SITE_JSON.read_text(encoding="utf-8"))["subgraph"])
+        self.assertEqual([s for a, s in methods_page.scripts if a.get("id") == "site-data"], [])
+        self.assertTrue((out / "methods.html").exists())
 
     def test_ac5_required_statements_and_no_speed_claims(self):
-        _, text, page = built()
+        _, text, page, methods_text, methods_page = built()
         visible = norm(" ".join(page.visible))
         for segment in COPY:
             self.assertIn(norm(segment), visible, segment)
+        # Joining text nodes with spaces puts a space before punctuation that follows a marked figure.
+        # The summary is checked on the rendered text, which keeps "2023-12-31," and "in one,".
+        rendered = "".join(page.visible)
+        for paragraph in EXECUTIVE:
+            self.assertIn(paragraph, rendered, paragraph)
         self.assertIn('data-disclosure="synthetic"', text)
         self.assertIn('data-label="derived"', text)
         self.assertIn('data-statement="judgment"', text)
         self.assertIn('data-disclosure="no-speed-claims"', text)
-        self.assertEqual(SPEED_WORDS.findall(norm(" ".join(page.speed_scope))), [], "speed language outside the disclosure")
-        self.assertEqual(denied_in(visible, deny_entries()), [], "a real name on the page (INV-9)")
+        self.assertIn('href="methods.html"', text)
+        for page_text, parsed in ((text, page), (methods_text, methods_page)):
+            self.assertEqual(SPEED_WORDS.findall(norm(" ".join(parsed.speed_scope))), [], "speed language outside the disclosure")
+            self.assertEqual(denied_in(norm(" ".join(parsed.visible)), deny_entries()), [], "a real name on the page (INV-9)")
+            for phrase in SHELVED:
+                self.assertNotIn(phrase, page_text, phrase)
 
     def test_ac6_skeleton_pins_and_sections(self):
-        out, text, page = built()
+        out, text, page, methods_text, methods_page = built()
         self.assertIn('<meta name="viewport"', text)
-        self.assertLessEqual({"top", "rounds", "operating-model", "appendix", "graph", "theme-toggle", "site-data"}, page.ids)
+        self.assertIn('<meta name="viewport"', methods_text)
+        self.assertLessEqual({"top", "graph", "theme-toggle", "site-data"}, page.ids)
+        self.assertLessEqual({"rounds", "operating-model", "appendix", "theme-toggle"}, methods_page.ids)
+        self.assertIn('href="index.html"', methods_text)
         external = [(t, a) for t, a in page.resources if (a.get("src") or a.get("href", "")).startswith(("http:", "https:", "//"))]
         self.assertEqual(len(external), 1, external)
         tag, attrs = external[0]
         self.assertEqual((tag, attrs["src"], attrs["integrity"], attrs["crossorigin"]), ("script", CDN, SRI, "anonymous"))
+        methods_external = [(t, a) for t, a in methods_page.resources
+                            if (a.get("src") or a.get("href", "")).startswith(("http:", "https:", "//"))]
+        self.assertEqual(methods_external, [])
         css = (B.HERE / "site.css").read_text(encoding="utf-8")
         self.assertIn("prefers-color-scheme: dark", css)
         self.assertIn(':root[data-theme="dark"]', css)
-        for name in ("index.html", "site.css", "site.js", "site.json", "rounds.json", "scores.json"):
+        for name in ("index.html", "methods.html", "site.css", "site.js", "site.json", "rounds.json", "scores.json"):
             self.assertTrue((out / name).exists(), name)
         rows = [s for s, _, _ in page.marked if s.startswith("site.json:blast_radius.by_unit[")]
         self.assertEqual(len(rows), 2 * json.loads(X.SITE_JSON.read_text(encoding="utf-8"))["blast_radius"]["units"])
@@ -307,7 +418,7 @@ class SiteTests(unittest.TestCase):
     # ---------------- 022: rounds, operating model and appendix ----------------
 
     def test_ac1_022_rounds_section(self):
-        _, text, page = built()
+        _, _, _, text, page = built()
         r = rounds()
         sources = {s for s, _, _ in page.marked}
         articles = dict(re.findall(r'<article class="round" id="round-([^"]+)">(.*?)</article>', text, re.S))
@@ -318,19 +429,20 @@ class SiteTests(unittest.TestCase):
             with self.subTest(round=x["number"]):
                 body = articles[str(x["number"])]
                 for field in ("question", "sql", "cypher", "scores.sql", "scores.cypher", "margin", "measured_verdict",
-                              "expected_verdict", "checks.agreement", "checks.oracle"):
+                              "checks.agreement", "checks.oracle"):
                     self.assertIn(f"{base}.{field}", sources, field)
+                self.assertNotIn(f"{base}.expected_verdict", sources)
                 for j, _ in enumerate(x["columns"]):
                     self.assertIn(f"{base}.columns[{j}]", sources)          # headers are marked (l1_node_id holds a digit)
                 for i in range(min(5, len(x["rows"]))):
                     self.assertIn(f"{base}.rows[{i}][0]", sources)
                 self.assertNotIn(f"{base}.rows[5][0]", sources)
-                differs = x["expected_verdict"] is not None and x["expected_verdict"] != x["measured_verdict"]
-                self.assertEqual("differs from expected" in body, differs)
+                self.assertNotIn("differs from expected", body)
+                self.assertNotIn("Expected verdict", body)
                 self.assertEqual('href="rounds.json"' in body, len(x["rows"]) < x["row_count"])
                 if x["supporting"]:
                     self.assertIn("derived (supporting query)", body)
-                    self.assertIn("none (supporting query)", body)
+                    self.assertNotIn("none (supporting query)", body)
                 else:
                     self.assertIn(f"{base}.checks.scenario", sources)
                     if x["checks"]["scenario"] is None:
@@ -340,7 +452,7 @@ class SiteTests(unittest.TestCase):
         self.assertEqual({str(x["number"]) for _, x in entries if len(x["rows"]) < x["row_count"]}, {"1", "2", "4", "7"})
 
     def test_ac2_022_verdict_rule_and_symmetry(self):
-        _, text, page = built()
+        _, _, _, text, page = built()
         sources = {s for s, _, _ in page.marked}
         r, site = rounds(), json.loads(X.SITE_JSON.read_text(encoding="utf-8"))
         for i, _ in enumerate(r["verdict_rule"]["counting"]):
@@ -355,7 +467,7 @@ class SiteTests(unittest.TestCase):
             self.assertIn(field, sources)
 
     def test_ac3_022_operating_model(self):
-        _, _, page = built()
+        _, _, _, _, page = built()
         r = rounds()
         mp = lambda x, side: x["metrics"][side]["moving_parts"]
         st = lambda x, side: x["metrics"][side]["steps"]
@@ -381,19 +493,19 @@ class SiteTests(unittest.TestCase):
         self.assertEqual(V.score(V.metrics(five.scored("cypher"), "cypher")), five_r["scores"]["cypher"])
         self.assertLess(split["query"]["cypher"], split["query"]["sql"], "asked on its own, round 5 is shorter in Cypher")
         self.assertGreater(five_r["scores"]["cypher"], five_r["scores"]["sql"], "with its setup, SQL wins round 5")
-        # every unmeasured claim sits in an expected element; the practice paragraphs are labelled
-        expected = norm(" ".join(page.labelled["expected-not-measured"]))
+        # unmeasured claims are not published; the practice paragraphs stay labelled
+        visible = norm(" ".join(page.visible))
         for claim in ("explore rather than report", "linked from many systems", "new relationship types keep arriving",
-                      "larger scale", "already read SQL", "most of the work"):
-            self.assertIn(claim, expected, claim)
-        self.assertEqual(expected.count("expected, not measured in M1"), 3)
+                      "already read SQL", "most of the work", "expected, not measured"):
+            self.assertNotIn(claim, visible, claim)
+        self.assertNotIn("expected-not-measured", page.labelled)
         practice = norm(" ".join(page.labelled["practice"]))
         for claim in ("Reconcile first", "Re-run the mapping", "extend the parity test", "Retrain on the training bank"):
             self.assertIn(claim, practice, claim)
         measured = norm(" ".join(page.labelled["measured"]))
         self.assertNotIn("expected", measured)
         for phrase in COPY_022:
-            self.assertIn(norm(phrase), norm(" ".join(page.visible)), phrase)
+            self.assertIn(norm(phrase), visible, phrase)
         # 'each change was planned, critiqued, tested and reviewed': every counted change has both files
         for epic in json.loads(X.SITE_JSON.read_text(encoding="utf-8"))["project"]:
             children = [p.parent for p in (ROOT / "changes").glob("*/plan.md") if X.plan_json(p).get("epic") == epic["epic"]]
@@ -402,7 +514,7 @@ class SiteTests(unittest.TestCase):
                 self.assertTrue((child / "critique.md").exists() and (child / "review.md").exists(), child.name)
 
     def test_ac4_022_appendix(self):
-        _, text, page = built()
+        _, _, _, text, page = built()
         sources = {s for s, _, _ in page.marked}
         site = json.loads(X.SITE_JSON.read_text(encoding="utf-8"))
         for i, _ in enumerate(site["inventory"]["entities"]):
@@ -478,7 +590,7 @@ class SiteTests(unittest.TestCase):
             self.assertEqual(split["query"][side] + split["setup"][side], five["scores"][side], side)
 
     def test_ac1_023_owner_scenario_through_formatter(self):
-        _, text, page = built()
+        _, _, _, text, page = built()
         body = text.split('id="round-owners"')[1].split("</article>")[0]
         self.assertIn('data-source="rounds.json:supporting[0].checks.scenario" data-format="scenario_supporting"', body)
         marked = {s: t for s, f, t in page.marked if s == "rounds.json:supporting[0].checks.scenario"}
@@ -515,6 +627,113 @@ class SiteTests(unittest.TestCase):
             self.assertIn(phrase, doc, phrase)
         self.assertIn("src/features/rounds/symmetry.py", doc)
         self.assertNotIn("is in `changes/020-verdict-rule-count-cypher-writes-once-as/plan.md`", doc)
+        self.assertIn("kg-explainer", readme)   # 025
+
+    # ---------------- 025: finish the brief ----------------
+
+    @staticmethod
+    def _top(text: str) -> str:
+        return text.split('<section id="top"', 1)[1].split('<h2 class="group">For the audit plan</h2>', 1)[0]
+
+    def test_ac1_025_top_trimmed(self):
+        _, text, page, _, _ = built()
+        top = self._top(text)
+        order = [top.index(m) for m in ("<h1>", 'id="executive-summary"', 'data-disclosure="synthetic"',
+                                        'data-statement="kg-pointer"')]
+        self.assertEqual(order, sorted(order))
+        self.assertLess(text.index('data-statement="kg-pointer"'), text.index("For the audit plan"))
+        for gone in ("A synthetic US regional bank keeps its risks", "Synthetic data throughout. Descriptions were written",
+                     "This is not any employer's data.", "Credit-increase examples are planted test cases"):
+            self.assertNotIn(gone, text, gone)
+        self.assertEqual(text.count('data-disclosure="synthetic"'), 1)
+        note = top.split('data-disclosure="synthetic"', 1)[1].split("</p>", 1)[0]
+        self.assertIn('data-source="derived:featured.yoy_name"', note, "the riser's name is rendered, not typed")
+        self.assertIn('href="#what-is-a-knowledge-graph"', top.split('data-statement="kg-pointer"', 1)[1].split("</p>", 1)[0])
+
+    def test_ac2_025_explainer_before_comparison(self):
+        _, text, page, _, _ = built()
+        self.assertIn("what-is-a-knowledge-graph", page.ids)
+        positions = [text.index(m) for m in ('<h2 class="group">Supporting evidence</h2>', 'id="what-is-a-knowledge-graph"',
+                                             'id="story-comparison"')]
+        self.assertEqual(positions, sorted(positions))
+        after = text[positions[1]:].split("</article>", 1)[1].lstrip()
+        self.assertTrue(after.startswith('<article class="story" id="story-comparison">'),
+                        "the explainer sits directly before the comparison story")
+        explainer = text.split('id="what-is-a-knowledge-graph"', 1)[1].split("</article>", 1)[0]
+        self.assertIn('data-statement="kg-explainer"', text.split('id="what-is-a-knowledge-graph"', 1)[1].split(">", 1)[0])
+        self.assertNotIn("data-source", explainer, "the explainer carries no figure")
+        words = re.sub(r"<[^>]+>", " ", explainer)
+        self.assertIsNone(re.search(r"\d", words))
+        self.assertEqual(NUMBER_WORDS.findall(words), [])
+        self.assertEqual(SPEED_WORDS.findall(words), [])
+        # fair to SQL: the relational store's link tables are named; it never says SQL lacks the connections
+        self.assertIn("link table", words)
+        self.assertNotIn("only when", words)
+        self.assertIn("<h2>Graph or SQL?</h2>", text.split('id="story-comparison"', 1)[1].split("</article>", 1)[0])
+        self.assertNotIn("Does a graph beat SQL?", text)
+        # "for that question, both come out close": round 3 is the blast-radius question and is measured close
+        three = next(x for x in rounds()["rounds"] if x["number"] == 3)
+        self.assertEqual(three["measured_verdict"], "close")
+        site = json.loads(X.SITE_JSON.read_text(encoding="utf-8"))
+        self.assertEqual(three["rows"][0][0], site["blast_radius"]["system_id"])
+
+    def test_readme_brief_uses_published_figures(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        brief, _, rest = readme.partition("## How to read these numbers")
+        self.assertIn("## The brief", readme)
+        self.assertLess(readme.find("## Executive summary"), readme.find("## The brief"))
+        summary, _, _ = readme.partition("## The brief")
+        for paragraph in EXECUTIVE:
+            self.assertIn(paragraph, summary)
+        self.assertIn("https://neifertg.github.io/audit-knowledge-graph/", summary)
+        self.assertLess(readme.find("## The brief"), readme.find("## Reproduce"))
+        self.assertLess(readme.find("## How to read these numbers"), readme.find("## Reproduce"))
+        self.assertLess(readme.find("## Reproduce"), readme.find("## Neo4j"))
+        site = json.loads(X.SITE_JSON.read_text(encoding="utf-8"))
+        scores = json.loads(B.SCORES.read_text(encoding="utf-8"))
+        r = rounds()
+        b, owners = site["blast_radius"], site["owners"]
+        for piece in (b["system_name"], str(b["controls"]), str(b["entities"]), str(b["units"]),
+                      str(site["repeat_finding"]["controls"]), str(site["repeat_finding"]["issues"]),
+                      str(owners["key_controls"]), str(owners["units"]),
+                      str(scores["review_queue"]["total"]), str(scores["threshold_targets"]["auto_accept_training_precision"]),
+                      scores["risk"]["precision"]["count"], scores["risk"]["recall"]["count"],
+                      scores["risk"]["recall_if_resolved"]["count"], scores["control"]["precision"]["count"],
+                      scores["control"]["recall"]["count"], scores["control"]["recall_if_resolved"]["count"]):
+            self.assertIn(piece, brief, piece)
+        for person in owners["top"]:
+            self.assertIn(person["name"], brief)
+        by_num = {x["number"]: x for x in r["rounds"]}
+        five, seven = by_num[5], by_num[7]
+        column = five["columns"].index("exposure")
+        exposure = {"direct": 0, "fourth_party_only": 0}
+        for row in five["rows"]:
+            exposure[row[column]] += 1
+        riser = seven["top_riser"]
+        years = sorted(k for k in riser if str(k).isdigit())
+        for piece in (r["parameters"]["round_5_vendor"], str(five["row_count"]), str(exposure["direct"]),
+                      str(exposure["fourth_party_only"]), str(by_num[2]["row_count"]),
+                      r["parameters"]["round_2_cutoff"], riser["l1_name"], str(riser[years[0]]),
+                      str(riser[years[-1]]), years[0], years[-1],
+                      str(site["planning"]["stale_without_ia"]), str(site["planning"]["stale_with_ia"]),
+                      str(site["planning"]["stale_months"]), str(site["planning"]["yoy_year_total"]),
+                      str(next(row[3] for row in seven["rows"] if row[1] == riser["l1_name"] and row[2] not in (years[0], years[-1])))):
+            self.assertIn(piece, brief, piece)
+        self.assertIn("issues with different titles", brief)
+        self.assertNotIn("text search would treat as unrelated", brief)
+        self.assertIn("not any employer's data", brief)
+        self.assertIn("planted test cases", brief)
+        self.assertIn("flat or down", brief)
+        counts = {"SQL": 0, "graph": 0, "close": 0}
+        for x in r["rounds"]:
+            counts[x["measured_verdict"]] += 1
+        self.assertIn(f"SQL wins {counts['SQL']}", brief)
+        self.assertIn(f"the graph {counts['graph']}", brief)
+        self.assertIn(f"{counts['close']} are close", brief)
+        near = names_and([x["number"] for x in r["rounds"] if abs(x["margin"]) <= 1])
+        self.assertIn(near, rest)
+        self.assertIn(str(r["seed"]), rest)
+        self.assertIn("The graph informs auditor judgment; it does not score risk or set the audit plan.", brief)
 
 
 if __name__ == "__main__":
