@@ -26,9 +26,8 @@
   <p>On a synthetic US regional bank (invented names; not any employer's data): {{derived:featured.stale_rows}} reconciled risks that include a high-rated member had no mitigating control tested by an audit ending on or after {{derived:featured.stale_cutoff}}, {{site.json:planning.stale_months}} months before the end of the data window. {{site.json:planning.stale_without_ia}} have no Internal Audit member and are untested by construction; the other {{site.json:planning.stale_with_ia}} are coverage candidates. {{site.json:repeat_finding.controls}} controls failed in different years under different titles: {{site.json:repeat_finding.issues}} issues, linked through the control and the dates. If {{site.json:blast_radius.system_name}} fails, {{site.json:blast_radius.controls}} controls that depend on it are affected; between them they protect risks in {{site.json:blast_radius.entities}} auditable entities across {{site.json:blast_radius.units}} business units, which argues for a cross-unit review of that system. {{site.json:owners.top[*].name|names_and}} each own {{site.json:owners.key_controls}} key controls whose risks reach {{site.json:owners.units}} business units; that tie was computed from the data, not planted.</p>
   <p>The warehouse, repeat-finding, and stale-coverage examples are planted. The graph took a smaller query in {{derived:verdict_counts.graph|count_word}} rounds, SQL in {{derived:verdict_counts.SQL|count_word}}, and {{derived:verdict_counts.close|count_word}} were close. {{derived:showcase.banks|count_word_cap}} synthetic bank, {{derived:showcase.generators|count_word}} generator, small samples. The graph informs auditor judgment; it does not score risk or set the audit plan.</p>
   </div>
-  <p class="lede">A synthetic US regional bank keeps its risks in the ERM register and in Internal Audit's risk and control matrices. Both lists were reconciled into a single framework, then loaded into a relational database and a graph.</p>
-  <p class="note" data-disclosure="synthetic">Synthetic data throughout. Descriptions were written by a model ahead of time and committed. Names and companies are invented. This is not any employer's data.</p>
-  <p>The warehouse, repeat-finding, stale-coverage, and Credit-increase examples are planted test cases used to check the queries; the ownership tie was not planted.</p>
+  <p class="note" data-disclosure="synthetic">Synthetic data throughout: descriptions written by a model ahead of time and committed; names and companies invented. The {{derived:featured.yoy_name}} increase in the year-over-year findings is also a planted test case; the planted cases are there to check the queries.</p>
+  <p class="pointer" data-statement="kg-pointer">New to knowledge graphs? <a href="#what-is-a-knowledge-graph">A short explanation opens the supporting evidence below.</a></p>
 
   <h2 class="group">For the audit plan</h2>
 
@@ -77,8 +76,14 @@
 
   <h2 class="group">Supporting evidence</h2>
 
+  <article class="story explainer" id="what-is-a-knowledge-graph" data-statement="kg-explainer">
+    <h2>What is a knowledge graph?</h2>
+    <p>A knowledge graph stores facts as nodes and the links between them: things such as systems, controls, risks, issues, auditable entities and business units are nodes, and each relationship, such as "this control mitigates that risk" or "this control depends on that system", is a link you can follow from node to node. A relational database can hold the same facts in tables, with each relationship as a row in a link table. Here, both stores hold exactly the same links. What differs is how a query is written: a question that follows a chain of links, such as "what does this system's failure reach?", is a path in the graph and a series of joins in SQL. The comparison below counts how much query each needs; for that question, both come out close.</p>
+    <p class="chain"><span class="chain-caption">How a system failure reaches a business unit:</span> system → control → risk → auditable entity → business unit</p>
+  </article>
+
   <article class="story" id="story-comparison">
-    <h2>Does a graph beat SQL?</h2>
+    <h2>Graph or SQL?</h2>
     <p>Asked {{derived:rounds_count|count_word}} planning questions in both, with the same facts and answers proved equal: SQL wins {{derived:verdict_counts.SQL|times_word}}, the graph {{derived:verdict_counts.graph|times_word}}, and {{derived:verdict_counts.close|count_word}} are close. <span data-disclosure="no-speed-claims">The difference is how much query each needs, not speed: no speed claims are made at demo scale.</span> <a href="methods.html#rounds">The scoring rule, the symmetry table and both queries.</a></p>
   </article>
 

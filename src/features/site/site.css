@@ -37,6 +37,10 @@ a { color: var(--link); }
 .nav { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
 .nav a, .toggle { white-space: nowrap; }
 h2.group { margin-top: 32px; }
+.pointer { margin: 0 0 8px; }
+.explainer { border-left: 4px solid var(--accent); }
+.chain { margin: 10px 0 0; font-weight: 600; }
+.chain-caption { display: block; font-weight: 400; color: var(--muted); font-size: 15px; }
 .toggle {
   font: inherit; font-size: 14px; color: var(--text); background: var(--surface);
   border: 1px solid var(--line); border-radius: 6px; padding: 4px 12px; cursor: pointer;

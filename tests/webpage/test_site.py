@@ -33,10 +33,10 @@ EXECUTIVE = [
 
 COPY = [
     "Audit planning results from a reconciled risk and control map",
-    "A synthetic US regional bank keeps its risks in the ERM register and in Internal Audit's risk and control "
-    "matrices. Both lists were reconciled into a single framework, then loaded into a relational database and a graph.",
-    "Synthetic data throughout. Descriptions were written by a model ahead of time and committed. Names and companies are invented. This is not any employer's data.",
-    "The warehouse, repeat-finding, stale-coverage, and Credit-increase examples are planted test cases used to check the queries; the ownership tie was not planted.",
+    # 025: the merged note and the pointer
+    "Synthetic data throughout: descriptions written by a model ahead of time and committed; names and companies invented. The",
+    "increase in the year-over-year findings is also a planted test case; the planted cases are there to check the queries.",
+    "New to knowledge graphs? A short explanation opens the supporting evidence below.",
     "For the audit plan",
     "Cover the shared warehouse across units",
     "is the shared system that reaches the most auditable entities. If it fails,",
@@ -61,7 +61,17 @@ COPY = [
     "counted by top-level ERM category and by year. The largest increase, measured as",
     "which rose from",
     "The other categories were flat or down, and each year's total was",
-    "Does a graph beat SQL?",
+    # 025: the explainer, then the comparison under its new heading
+    "What is a knowledge graph?",
+    "A knowledge graph stores facts as nodes and the links between them: things such as systems, controls, risks, issues, "
+    "auditable entities and business units are nodes, and each relationship, such as \"this control mitigates that risk\" "
+    "or \"this control depends on that system\", is a link you can follow from node to node. A relational database can "
+    "hold the same facts in tables, with each relationship as a row in a link table. Here, both stores hold exactly the "
+    "same links. What differs is how a query is written: a question that follows a chain of links, such as \"what does "
+    "this system's failure reach?\", is a path in the graph and a series of joins in SQL. The comparison below counts how "
+    "much query each needs; for that question, both come out close.",
+    "How a system failure reaches a business unit:", "system → control → risk → auditable entity → business unit",
+    "Graph or SQL?",
     "planning questions in both, with the same facts and answers proved equal: SQL wins",
     "the graph", "are close.",
     "The difference is how much query each needs, not speed: no speed claims are made at demo scale.",
@@ -610,6 +620,55 @@ class SiteTests(unittest.TestCase):
             self.assertIn(phrase, doc, phrase)
         self.assertIn("src/features/rounds/symmetry.py", doc)
         self.assertNotIn("is in `changes/020-verdict-rule-count-cypher-writes-once-as/plan.md`", doc)
+        self.assertIn("kg-explainer", readme)   # 025
+
+    # ---------------- 025: finish the brief ----------------
+
+    @staticmethod
+    def _top(text: str) -> str:
+        return text.split('<section id="top"', 1)[1].split('<h2 class="group">For the audit plan</h2>', 1)[0]
+
+    def test_ac1_025_top_trimmed(self):
+        _, text, page, _, _ = built()
+        top = self._top(text)
+        order = [top.index(m) for m in ("<h1>", 'id="executive-summary"', 'data-disclosure="synthetic"',
+                                        'data-statement="kg-pointer"')]
+        self.assertEqual(order, sorted(order))
+        self.assertLess(text.index('data-statement="kg-pointer"'), text.index("For the audit plan"))
+        for gone in ("A synthetic US regional bank keeps its risks", "Synthetic data throughout. Descriptions were written",
+                     "This is not any employer's data.", "Credit-increase examples are planted test cases"):
+            self.assertNotIn(gone, text, gone)
+        self.assertEqual(text.count('data-disclosure="synthetic"'), 1)
+        note = top.split('data-disclosure="synthetic"', 1)[1].split("</p>", 1)[0]
+        self.assertIn('data-source="derived:featured.yoy_name"', note, "the riser's name is rendered, not typed")
+        self.assertIn('href="#what-is-a-knowledge-graph"', top.split('data-statement="kg-pointer"', 1)[1].split("</p>", 1)[0])
+
+    def test_ac2_025_explainer_before_comparison(self):
+        _, text, page, _, _ = built()
+        self.assertIn("what-is-a-knowledge-graph", page.ids)
+        positions = [text.index(m) for m in ('<h2 class="group">Supporting evidence</h2>', 'id="what-is-a-knowledge-graph"',
+                                             'id="story-comparison"')]
+        self.assertEqual(positions, sorted(positions))
+        after = text[positions[1]:].split("</article>", 1)[1].lstrip()
+        self.assertTrue(after.startswith('<article class="story" id="story-comparison">'),
+                        "the explainer sits directly before the comparison story")
+        explainer = text.split('id="what-is-a-knowledge-graph"', 1)[1].split("</article>", 1)[0]
+        self.assertIn('data-statement="kg-explainer"', text.split('id="what-is-a-knowledge-graph"', 1)[1].split(">", 1)[0])
+        self.assertNotIn("data-source", explainer, "the explainer carries no figure")
+        words = re.sub(r"<[^>]+>", " ", explainer)
+        self.assertIsNone(re.search(r"\d", words))
+        self.assertEqual(NUMBER_WORDS.findall(words), [])
+        self.assertEqual(SPEED_WORDS.findall(words), [])
+        # fair to SQL: the relational store's link tables are named; it never says SQL lacks the connections
+        self.assertIn("link table", words)
+        self.assertNotIn("only when", words)
+        self.assertIn("<h2>Graph or SQL?</h2>", text.split('id="story-comparison"', 1)[1].split("</article>", 1)[0])
+        self.assertNotIn("Does a graph beat SQL?", text)
+        # "for that question, both come out close": round 3 is the blast-radius question and is measured close
+        three = next(x for x in rounds()["rounds"] if x["number"] == 3)
+        self.assertEqual(three["measured_verdict"], "close")
+        site = json.loads(X.SITE_JSON.read_text(encoding="utf-8"))
+        self.assertEqual(three["rows"][0][0], site["blast_radius"]["system_id"])
 
     def test_readme_brief_uses_published_figures(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
