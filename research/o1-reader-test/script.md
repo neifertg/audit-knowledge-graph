@@ -8,7 +8,12 @@ Send it to three readers: audit people the owner knows (a CAE, an audit manager,
 ## What to send
 > Could you give me a minute on something? Please open https://neifertg.github.io/audit-knowledge-graph/ and read only the top section, stopping at the heading "The rounds". Then reply with one sentence: **In one sentence, what does this show, and why would an audit leader care?**
 
-Do not explain the page first, and do not prompt with the words on it. Record the reply exactly as written.
+> Your sentence may be published, without your name, in the project's public repository as part of this test's record. If you'd rather it weren't, just say so and I'll keep it private.
+
+Do not explain the page first, and do not prompt with the words on it. Record the reply exactly as written, then apply the redaction rule below.
+
+### Redaction
+Before a reply is recorded in `results.md`, any name in it (the reader's, a colleague's, an employer's) is replaced by a role or a bracketed description, such as `[their firm]`. A reader who declines publication is recorded as "declined publication; judged privately", with both judgments and the result but not the sentence.
 
 ## The pass rule (fixed before any answer)
 A sentence passes when it says **both**:

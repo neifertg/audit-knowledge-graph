@@ -5,6 +5,7 @@ The workflow is read as text: pyyaml is approved only for one-off secrets script
 import os
 import re
 import unittest
+from pathlib import Path
 from unittest import mock
 
 from tests.generator.helpers import ROOT, akg_env
@@ -62,7 +63,8 @@ class WorkflowTests(unittest.TestCase):
 
     def test_ac2_023_pages_workflow_deploys_only_current_tested_head(self):
         pages = ROOT / ".github" / "workflows" / "pages.yml"
-        proposed = ROOT / "changes" / "023-publish-on-github-pages-portfolio-card-a" / "proposed" / "pages.yml"
+        # re-pointed in 024 to its guard-fix draft (docs/pages.md, 'Changing the workflow later')
+        proposed = ROOT / "changes" / "024-live-check-portfolio-card-and-the-o1-rea" / "proposed" / "pages.yml"
         self.assertTrue(pages.exists(), "the owner commits .github/workflows/pages.yml in block B1")
         self.assertEqual(pages.read_bytes(), proposed.read_bytes(), "the committed workflow is the reviewed draft")
         lines = [line.rstrip() for line in pages.read_text(encoding="utf-8").splitlines()
@@ -111,6 +113,125 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("https://neifertg.github.io/audit-knowledge-graph/", readme)
         self.assertIn("docs/pages.md", readme)
         self.assertIn("pages.yml", (ROOT / "src" / "features" / "site" / "README.md").read_text(encoding="utf-8"))
+
+    # ---------------- 024: the guard fix, the card draft, the reader record, the live check ----------------
+
+    def test_ac1_024_guard_fix_is_the_only_difference(self):
+        old = (ROOT / "changes" / "023-publish-on-github-pages-portfolio-card-a" / "proposed" / "pages.yml").read_text(encoding="utf-8")
+        new = (ROOT / "changes" / "024-live-check-portfolio-card-and-the-o1-rea" / "proposed" / "pages.yml").read_text(encoding="utf-8")
+        import difflib
+        diff = list(difflib.ndiff(old.splitlines(), new.splitlines()))
+        added = [l[2:] for l in diff if l.startswith("+ ")]
+        removed = [l[2:] for l in diff if l.startswith("- ")]
+        # every changed line, in order: the header, the guard fix, and the deploy retry (024 revision)
+        self.assertEqual(removed, ["# Publish the page on GitHub Pages (E4 child c, change 023).",
+                                   "      url: ${{ steps.deployment.outputs.page_url }}"])
+        self.assertEqual(added, ["# Publish the page on GitHub Pages (E4 child c, change 023; guard fix in E4 child d, change 024).",
+                                 '          if [ -z "$head" ]; then',
+                                 "            echo \"::error::could not read main's head; refusing to deploy\"",
+                                 "            exit 1",
+                                 "          fi",
+                                 "      url: ${{ steps.retry.outputs.page_url || steps.deployment.outputs.page_url }}",
+                                 "      # deploy-pages has twice failed to see the artifact uploaded seconds before, then succeeded on a re-run;",
+                                 "      # wait and deploy once more in the same job before failing the run (change 024)",
+                                 "        continue-on-error: true",
+                                 "",
+                                 "      - name: Wait before retrying the deploy",
+                                 "        if: steps.deployment.outcome == 'failure'",
+                                 "        run: sleep 30",
+                                 "",
+                                 "      - id: retry",
+                                 "        if: steps.deployment.outcome == 'failure'",
+                                 "        uses: actions/deploy-pages@v5"])
+
+    def test_ac1_024_deploy_retry(self):
+        text = (ROOT / ".github" / "workflows" / "pages.yml").read_text(encoding="utf-8")
+        lines = [l.rstrip() for l in text.splitlines() if l.strip() and not l.strip().startswith("#")]
+        deploy = "\n".join(lines).split("  deploy:", 1)[1]
+        steps = deploy.split("      - ")
+        first = next(s for s in steps if s.startswith("id: deployment"))
+        wait = next(s for s in steps if s.startswith("name: Wait before retrying the deploy"))
+        retry = next(s for s in steps if s.startswith("id: retry"))
+        self.assertIn("uses: actions/deploy-pages@v5", first)
+        self.assertIn("continue-on-error: true", first)
+        for step in (wait, retry):
+            self.assertIn("if: steps.deployment.outcome == 'failure'", step)
+            self.assertNotIn("continue-on-error", step)          # a failed retry fails the job
+        self.assertIn("run: sleep 30", wait)
+        self.assertIn("uses: actions/deploy-pages@v5", retry)
+        self.assertLess(deploy.index("id: deployment"), deploy.index("Wait before retrying"))
+        self.assertLess(deploy.index("Wait before retrying"), deploy.index("id: retry"))
+        self.assertIn("      url: ${{ steps.retry.outputs.page_url || steps.deployment.outputs.page_url }}", lines)
+
+    @staticmethod
+    def _bash() -> str:
+        """bash for the guard's behaviour test: PATH (not the System32 WSL launcher), else Git for Windows'."""
+        import shutil
+        import subprocess
+        found = shutil.which("bash")
+        if found and "system32" not in found.lower():
+            return found
+        exec_path = subprocess.run(["git", "--exec-path"], capture_output=True, text=True).stdout.strip()
+        for candidate in (Path(exec_path).parents[2] / "bin" / "bash.exe", Path(exec_path).parents[2] / "usr" / "bin" / "bash.exe"):
+            if candidate.exists():
+                return str(candidate)
+        raise AssertionError("bash not found: install Git for Windows or put bash on PATH (this test never skips)")
+
+    def test_ac1_024_guard_fails_red_on_empty_lookup(self):
+        import subprocess
+        import tempfile
+        text = (ROOT / ".github" / "workflows" / "pages.yml").read_text(encoding="utf-8")
+        block = text.split("        id: head\n        run: |\n", 1)[1]
+        script = "\n".join(line[10:] for line in block.splitlines() if line.startswith("          "))
+        script = (script.replace("${{ github.repository }}", "neifertg/audit-knowledge-graph")
+                        .replace("${{ github.event.workflow_run.head_sha }}", "0" * 40))
+        self.assertNotIn("${{", script)
+        # a fake git that prints nothing: a shell function, which bash prefers over any git on PATH (on Windows,
+        # Git's bash otherwise finds the real git)
+        script = "git() { return 0; }\n" + script
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "out"
+            run = subprocess.run([self._bash(), "-e", "-c", script], capture_output=True, text=True,
+                                 env={**os.environ, "GITHUB_OUTPUT": str(out)})
+        self.assertNotEqual(run.returncode, 0, "an empty lookup must fail the guard (red)")
+        self.assertIn("::error::could not read main's head", run.stdout)
+
+    def test_ac1_024_pages_docs(self):
+        pages = (ROOT / "docs" / "pages.md").read_text(encoding="utf-8")
+        self.assertIn("re-run **all** jobs", pages)
+        self.assertIn("retries the deploy once after 30 seconds", pages)
+        self.assertIn("changes/024-live-check-portfolio-card-and-the-o1-rea/proposed/pages.yml", pages)
+
+    def test_ac2_024_portfolio_card_draft(self):
+        card = (ROOT / "changes" / "023-publish-on-github-pages-portfolio-card-a" / "proposed" / "portfolio-card.md").read_text(encoding="utf-8")
+        self.assertTrue(card.startswith("### Audit Knowledge Graph\n"))
+        for part in ("**Planning.**", "**Problem.**", "**What it does.**", "**Why it's trustworthy.**",
+                     "<summary>Under the hood</summary>", "(https://neifertg.github.io/audit-knowledge-graph/)",
+                     "(https://github.com/neifertg/audit-knowledge-graph)"):
+            self.assertIn(part, card, part)
+        # no figure that can go stale: URLs and the product name Neo4j carry digits but are not figures
+        self.assertIsNone(re.search(r"\d", re.sub(r"https?://\S+|\bNeo4j\b", "", card)), "the card holds no figure")
+
+    def test_ac3_024_reader_record(self):
+        from tests.generator.dictionary import denied_in, deny_entries
+        folder = ROOT / "research" / "o1-reader-test"
+        script = (folder / "script.md").read_text(encoding="utf-8")
+        self.assertIn("published, without your name", script)
+        self.assertIn("Redaction", script)
+        results = (folder / "results.md").read_text(encoding="utf-8")
+        self.assertEqual(denied_in(results, deny_entries()), [], "a real name in results.md")
+        self.assertIsNone(re.search(r"[\w.+-]+@[\w-]+\.[\w.]+", results), "an email address in results.md")
+
+    def test_ac4_024_live_check_recorded(self):
+        section = (ROOT / "docs" / "pages.md").read_text(encoding="utf-8").split("## Live check", 1)[1]
+        if "Filled in by change 024" in section:
+            # The check can only be recorded after the build it checks is live; enforced once it is written.
+            self.skipTest("live check not recorded yet")
+        self.assertRegex(section, r"\b[0-9a-f]{7,40}\b", "the commit")
+        self.assertRegex(section, r"\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}", "the time")
+        self.assertIn("byte for byte", section)
+        for name in ("index.html", "methods.html", "site.css", "site.js", "site.json", "rounds.json", "scores.json"):
+            self.assertIn(name, section, name)
 
     def test_ac5_ci_environment_reaches_no_test_subprocess(self):
         ci_env = {"NEO4J_URI": "bolt://localhost:7687", "NEO4J_USER": "neo4j", "NEO4J_PASSWORD": "x",

@@ -4,7 +4,7 @@
 {
   "id": "024-live-check-portfolio-card-and-the-o1-rea",
   "tier": "standard",
-  "status": "approved",
+  "status": "in-progress",
   "created": "2026-11-22",
   "objective": "O1",
   "areas": [
@@ -47,7 +47,8 @@
   "child": "d",
   "revised": "2026-11-22",
   "approved": "2026-11-22",
-  "approved_hash": "8f43935dc9e61182"
+  "approved_hash": "8f43935dc9e61182",
+  "in_progress": "2026-11-22"
 }
 ```
 
