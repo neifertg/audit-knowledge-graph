@@ -12,42 +12,49 @@ The warehouse, repeat-finding, and stale-coverage examples are planted. The grap
 
 ## The brief
 
-A synthetic US regional bank keeps its risks in the ERM register and in Internal Audit's risk and control matrices. Both lists were reconciled into a single framework, loaded into SQLite and Neo4j, and asked the same planning questions. The public page is that brief:
-
-**https://neifertg.github.io/audit-knowledge-graph/**
-
-The scoring rule, both queries and the inventory are on the [methods page](https://neifertg.github.io/audit-knowledge-graph/methods.html). How the page is published: [docs/pages.md](docs/pages.md).
+The [public page](https://neifertg.github.io/audit-knowledge-graph/) has each finding below with the figures behind it, and it draws the warehouse dependency as a graph you can click through. The data sits in SQLite and in Neo4j. The [methods page](https://neifertg.github.io/audit-knowledge-graph/methods.html) has the scoring rule, both queries for every round and the data inventory. [docs/pages.md](docs/pages.md) explains how the page is published.
 
 [![tests](https://github.com/neifertg/audit-knowledge-graph/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/neifertg/audit-knowledge-graph/actions/workflows/tests.yml)
 
-Synthetic data throughout. Descriptions were written by a model ahead of time and committed. Names and companies are invented. This is not any employer's data.
+A model wrote the descriptions in the data once, ahead of time, and they are committed. The Credit increase below is one of the planted test cases too; the queries are checked against all of them.
 
-The warehouse, repeat-finding, stale-coverage, and Credit-increase examples are planted test cases used to check the queries; the ownership tie was not planted.
+### Cover the shared warehouse across units
 
-**Cover the shared warehouse across units.** Ylvara Data Warehouse is the shared system that reaches the most auditable entities. If it fails, 44 controls that depend on it are affected; between them they protect risks in 41 auditable entities across 20 business units. Schedule the coverage as a review of that system across units. The page draws the dependency.
+Ylvara Data Warehouse reaches more auditable entities than any other shared system. If it fails, 44 controls that depend on it are affected, and those controls protect risks in 41 auditable entities across 20 business units. Plan the coverage as one review of the system across those units, not as a review owned by one of them.
 
-**Escalate the repeat-control findings.** 6 controls failed in different years under different titles: 14 issues with different titles, linked through the control and the dates. Escalate the group.
+### Escalate the repeat-control findings
 
-**Review concentrated ownership.** Dorothea Sandoval and Greer Kowalczyk each own 9 key controls whose risks reach 7 business units. That tie was computed from the data; it was not planted. Schedule a key-person review of that ownership.
+6 controls failed in different years: 14 issues with different titles, linked through the control and the dates. Treat them as one escalating group.
 
-**Fourth-party vendor exposure.** With a register of which vendors rely on which others, 17 auditable entities are exposed to Ivelle Financial Technology. It is the vendor the most others rely on, directly or further out, with ties broken by name. 5 perform a process that runs on a system that vendor supplies. 12 appear only through another vendor's reliance.
+### Review concentrated ownership
 
-**High risks with stale coverage.** 56 reconciled risks (the 'canonical' items that group the ERM and Internal Audit records for the same risk) include a high-rated member and had no mitigating control tested by an audit ending on or after 2023-12-31, 24 months before the end of the data window. 41 of the 56 have no Internal Audit member, and because audits here test only IA controls, those 41 are untested by construction. The remaining 15 are the coverage candidates.
+Dorothea Sandoval and Greer Kowalczyk each own 9 key controls whose risks reach 7 business units. Nobody planted this tie; it came out of the data. It calls for a key-person review.
 
-**Findings by ERM category.** Regulator, self-identified and second-line issues (Internal Audit issues excluded), counted by top-level ERM category and by year. The largest increase, measured as 2025 minus 2023, is Credit, which rose from 8 issues in 2023 to 10 in 2024 and 13 in 2025. The other categories were flat or down, and each year's total was 42.
+### Fourth-party vendor exposure
 
-**Does a graph beat SQL?** Asked 7 planning questions in both, with the same facts and answers proved equal. SQL wins 1, the graph 3, and 3 are close. That comparison is query size, not speed.
+A register of which vendors rely on which others puts 17 auditable entities in reach of Ivelle Financial Technology, the vendor that the most others rely on, directly or further out (ties broken by name). 5 of them perform a process that runs on a system Ivelle supplies. The other 12 are exposed only through another vendor's reliance.
 
-**What was merged, and what is waiting.** Auto-merge uses a training-bank precision target of 0.95. Merged precision is 33/33 for risks and 68/68 for controls. Merged recall is 33/103 for risks and 68/245 for controls. If a reviewer resolves the queue correctly, recall would be 101/103 for risks and 240/245 for controls. The review queue holds 482 pairs. The matcher's thresholds are deliberately conservative, so most true matches wait in the review queue rather than being merged silently.
+### High risks with stale coverage
 
-The graph informs auditor judgment; it does not score risk or set the audit plan.
+56 reconciled risks include a high-rated member and had no mitigating control tested by an audit ending on or after 2023-12-31, 24 months before the end of the data window. (A reconciled risk is the canonical item that groups the ERM and Internal Audit records for the same risk.) 41 of the 56 have no Internal Audit member, and audits here test only IA controls, so those 41 could never have been tested. The other 15 are the coverage candidates.
+
+### Findings by ERM category
+
+Counting regulator, self-identified and second-line issues by top-level ERM category and year (Internal Audit's own issues left out), Credit rose the most from 2023 to 2025: 8 issues in 2023, 10 in 2024 and 13 in 2025. The other categories were flat or down, and each year's total was 42.
+
+### Graph or SQL
+
+Both answered the same 7 planning questions over the same facts, and their answers were checked equal. On query size, SQL wins 1, the graph 3, and 3 are close. The comparison measures how much query each needs, not how fast it runs.
+
+### What was merged, and what is waiting
+
+The matcher merges a pair on its own only above a training-bank precision target of 0.95. Merged precision is 33/33 for risks and 68/68 for controls; merged recall is 33/103 for risks and 68/245 for controls. If a reviewer resolves the queue correctly, recall rises to 101/103 for risks and 240/245 for controls. The 482 pairs in the review queue wait for a person, which is where most true matches end up under these conservative thresholds.
 
 ## How to read these numbers
 
-- Every figure above is taken from the committed results for seed 42. `python -m akg build` reproduces them. On the page, each figure is marked with the file it came from.
-- "SQL" and "graph" compare how much query each language writes, not how fast it runs. No speed or scale claim is made. Rounds 1, 3 and 7 sit within a point of the decision line, so a single extra clause would change their verdict.
-- The matcher auto-merges only at the training precision above. High merged precision and low merged recall are the setting that was chosen. The review queue is the rest, for a person to decide.
-- The bank, the people and the vendors are fictional. The graph does not score risk or write the plan.
+- Every figure comes from the committed results for seed 42, and `python -m akg build` reproduces them. On the page, each figure is marked with the file it came from.
+- The rounds compare how much query each language writes. Nothing here measures speed or scale. Rounds 1, 3 and 7 sit within a point of the decision line, so one more clause would flip their verdict.
+- The thresholds favour precision over recall on purpose: what the matcher does not merge goes to the review queue for a person to decide.
 
 ## Reproduce
 
