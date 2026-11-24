@@ -26,17 +26,26 @@ CDN = "https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.34.4/cytoscape.min.js"
 SRI = "sha512-9oWrVcc9R1+KL87uqCWwsamtDPJknyeNh/xCFh5SHEsgvV7Icb5Vgungsyljhdeyt+LNKGC9bhwKKQ0C6TiPOw=="
 # The brief's fixed text: the words between the figures.
 EXECUTIVE = [
-    "A reconciled map of risks, controls, owners, issues, audits, and systems lets second-line risk and third-line internal audit follow how the ERM register and Internal Audit's matrices connect. This project loads that map into a graph and into SQL and asks the same planning questions in both. The answers match. A graph can make some of those multi-step paths shorter to write; a spreadsheet, a GRC query, or SQL can return the same facts. The comparison here is query size, not ease of use or speed.",
-    "On a synthetic US regional bank (invented names; not any employer's data): 56 reconciled risks that include a high-rated member had no mitigating control tested by an audit ending on or after 2023-12-31, 24 months before the end of the data window. 41 have no Internal Audit member and are untested by construction; the other 15 are coverage candidates. 6 controls failed in different years under different titles: 14 issues, linked through the control and the dates. If Ylvara Data Warehouse fails, 44 controls that depend on it are affected; between them they protect risks in 41 auditable entities across 20 business units, which argues for a cross-unit review of that system. Dorothea Sandoval and Greer Kowalczyk each own 9 key controls whose risks reach 7 business units; that tie was computed from the data, not planted.",
-    "The warehouse, repeat-finding, and stale-coverage examples are planted. The graph took a smaller query in three rounds, SQL in one, and three were close. One synthetic bank, one generator, small samples. The graph informs auditor judgment; it does not score risk or set the audit plan.",
+    # The owner's choice of 2026-11-23 (option A): a hook, four findings, a footnote. Same text in the README.
+    "Your risk register and your audit files describe the same bank in different words. Linked, they show where the next audit plan should look.",
+    "A single point of failure.",
+    "Ylvara Data Warehouse sits under 44 controls that protect risks in 20 business units. Review it across those units in a single audit.",
+    "Repeat findings under new titles.",
+    "6 controls failed again in later years, logged as 14 issues with different titles.",
+    "Coverage gone stale.",
+    "15 high-rated risks in Internal Audit's scope had no control tested in the last 24 months of the data.",
+    "Key-person risk.",
+    "2 people each own 9 key controls reaching 7 business units.",
+    "A synthetic bank with invented names, not any employer's data. Asked in SQL and in a graph, the same questions return the same answers. The graph informs auditor judgment; it does not score risk or set the audit plan.",
 ]
 
 COPY = [
     "Audit planning results from a reconciled risk and control map",
-    "A synthetic US regional bank keeps its risks in the ERM register and in Internal Audit's risk and control "
-    "matrices. Both lists were reconciled into a single framework, then loaded into a relational database and a graph.",
-    "Synthetic data throughout. Descriptions were written by a model ahead of time and committed. Names and companies are invented. This is not any employer's data.",
-    "The warehouse, repeat-finding, stale-coverage, and Credit-increase examples are planted test cases used to check the queries; the ownership tie was not planted.",
+    # 025: the merged note and the pointer
+    "Descriptions in the data were written by a model ahead of time and committed. The warehouse, repeat-finding and "
+    "stale-coverage findings and the", "increase are planted test cases that check the queries; the ownership "
+    "concentration was not planted.",
+    "New to knowledge graphs? A short explanation opens the supporting evidence below.",
     "For the audit plan",
     "Cover the shared warehouse across units",
     "is the shared system that reaches the most auditable entities. If it fails,",
@@ -61,7 +70,17 @@ COPY = [
     "counted by top-level ERM category and by year. The largest increase, measured as",
     "which rose from",
     "The other categories were flat or down, and each year's total was",
-    "Does a graph beat SQL?",
+    # 025: the explainer, then the comparison under its new heading
+    "What is a knowledge graph?",
+    "A knowledge graph stores facts as nodes and the links between them: things such as systems, controls, risks, issues, "
+    "auditable entities and business units are nodes, and each relationship, such as \"this control mitigates that risk\" "
+    "or \"this control depends on that system\", is a link you can follow from node to node. A relational database can "
+    "hold the same facts in tables, with each relationship as a row in a link table. Here, both stores hold exactly the "
+    "same links. What differs is how a query is written: a question that follows a chain of links, such as \"what does "
+    "this system's failure reach?\", is a path in the graph and a series of joins in SQL. The comparison below counts how "
+    "much query each needs; for that question, both come out close.",
+    "How a system failure reaches a business unit:", "system → control → risk → auditable entity → business unit",
+    "Graph or SQL?",
     "planning questions in both, with the same facts and answers proved equal: SQL wins",
     "the graph", "are close.",
     "The difference is how much query each needs, not speed: no speed claims are made at demo scale.",
@@ -299,9 +318,7 @@ class SiteTests(unittest.TestCase):
             "derived:featured.yoy_mid": next(row[3] for row in by_num[7]["rows"] if row[1] == riser["l1_name"] and row[2] == mid[0]),
             "derived:fourth_party.direct": exposure["direct"],
             "derived:fourth_party.fourth_party_only": exposure["fourth_party_only"],
-            # The executive summary's "One synthetic bank, one generator" is this showcase, not a count from the exports.
-            "derived:showcase.banks": 1,
-            "derived:showcase.generators": 1,
+            "derived:featured.owners": len(site["owners"]["top"]),
         })
         derived = {s: t for s, _, t in marked if s.startswith("derived:")}
         self.assertEqual(set(derived), set(independent))
@@ -610,6 +627,55 @@ class SiteTests(unittest.TestCase):
             self.assertIn(phrase, doc, phrase)
         self.assertIn("src/features/rounds/symmetry.py", doc)
         self.assertNotIn("is in `changes/020-verdict-rule-count-cypher-writes-once-as/plan.md`", doc)
+        self.assertIn("kg-explainer", readme)   # 025
+
+    # ---------------- 025: finish the brief ----------------
+
+    @staticmethod
+    def _top(text: str) -> str:
+        return text.split('<section id="top"', 1)[1].split('<h2 class="group">For the audit plan</h2>', 1)[0]
+
+    def test_ac1_025_top_trimmed(self):
+        _, text, page, _, _ = built()
+        top = self._top(text)
+        order = [top.index(m) for m in ("<h1>", 'id="executive-summary"', 'data-disclosure="synthetic"',
+                                        'data-statement="kg-pointer"')]
+        self.assertEqual(order, sorted(order))
+        self.assertLess(text.index('data-statement="kg-pointer"'), text.index("For the audit plan"))
+        for gone in ("A synthetic US regional bank keeps its risks", "Synthetic data throughout. Descriptions were written",
+                     "This is not any employer's data.", "Credit-increase examples are planted test cases"):
+            self.assertNotIn(gone, text, gone)
+        self.assertEqual(text.count('data-disclosure="synthetic"'), 1)
+        note = top.split('data-disclosure="synthetic"', 1)[1].split("</p>", 1)[0]
+        self.assertIn('data-source="derived:featured.yoy_name"', note, "the riser's name is rendered, not typed")
+        self.assertIn('href="#what-is-a-knowledge-graph"', top.split('data-statement="kg-pointer"', 1)[1].split("</p>", 1)[0])
+
+    def test_ac2_025_explainer_before_comparison(self):
+        _, text, page, _, _ = built()
+        self.assertIn("what-is-a-knowledge-graph", page.ids)
+        positions = [text.index(m) for m in ('<h2 class="group">Supporting evidence</h2>', 'id="what-is-a-knowledge-graph"',
+                                             'id="story-comparison"')]
+        self.assertEqual(positions, sorted(positions))
+        after = text[positions[1]:].split("</article>", 1)[1].lstrip()
+        self.assertTrue(after.startswith('<article class="story" id="story-comparison">'),
+                        "the explainer sits directly before the comparison story")
+        explainer = text.split('id="what-is-a-knowledge-graph"', 1)[1].split("</article>", 1)[0]
+        self.assertIn('data-statement="kg-explainer"', text.split('id="what-is-a-knowledge-graph"', 1)[1].split(">", 1)[0])
+        self.assertNotIn("data-source", explainer, "the explainer carries no figure")
+        words = re.sub(r"<[^>]+>", " ", explainer)
+        self.assertIsNone(re.search(r"\d", words))
+        self.assertEqual(NUMBER_WORDS.findall(words), [])
+        self.assertEqual(SPEED_WORDS.findall(words), [])
+        # fair to SQL: the relational store's link tables are named; it never says SQL lacks the connections
+        self.assertIn("link table", words)
+        self.assertNotIn("only when", words)
+        self.assertIn("<h2>Graph or SQL?</h2>", text.split('id="story-comparison"', 1)[1].split("</article>", 1)[0])
+        self.assertNotIn("Does a graph beat SQL?", text)
+        # "for that question, both come out close": round 3 is the blast-radius question and is measured close
+        three = next(x for x in rounds()["rounds"] if x["number"] == 3)
+        self.assertEqual(three["measured_verdict"], "close")
+        site = json.loads(X.SITE_JSON.read_text(encoding="utf-8"))
+        self.assertEqual(three["rows"][0][0], site["blast_radius"]["system_id"])
 
     def test_readme_brief_uses_published_figures(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")

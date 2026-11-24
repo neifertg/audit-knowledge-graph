@@ -22,13 +22,17 @@
 <section id="top" class="top">
   <h1>Audit planning results from a reconciled risk and control map</h1>
   <div id="executive-summary">
-  <p>A reconciled map of risks, controls, owners, issues, audits, and systems lets second-line risk and third-line internal audit follow how the ERM register and Internal Audit's matrices connect. This project loads that map into a graph and into SQL and asks the same planning questions in both. The answers match. A graph can make some of those multi-step paths shorter to write; a spreadsheet, a GRC query, or SQL can return the same facts. <span data-disclosure="no-speed-claims">The comparison here is query size, not ease of use or speed.</span></p>
-  <p>On a synthetic US regional bank (invented names; not any employer's data): {{derived:featured.stale_rows}} reconciled risks that include a high-rated member had no mitigating control tested by an audit ending on or after {{derived:featured.stale_cutoff}}, {{site.json:planning.stale_months}} months before the end of the data window. {{site.json:planning.stale_without_ia}} have no Internal Audit member and are untested by construction; the other {{site.json:planning.stale_with_ia}} are coverage candidates. {{site.json:repeat_finding.controls}} controls failed in different years under different titles: {{site.json:repeat_finding.issues}} issues, linked through the control and the dates. If {{site.json:blast_radius.system_name}} fails, {{site.json:blast_radius.controls}} controls that depend on it are affected; between them they protect risks in {{site.json:blast_radius.entities}} auditable entities across {{site.json:blast_radius.units}} business units, which argues for a cross-unit review of that system. {{site.json:owners.top[*].name|names_and}} each own {{site.json:owners.key_controls}} key controls whose risks reach {{site.json:owners.units}} business units; that tie was computed from the data, not planted.</p>
-  <p>The warehouse, repeat-finding, and stale-coverage examples are planted. The graph took a smaller query in {{derived:verdict_counts.graph|count_word}} rounds, SQL in {{derived:verdict_counts.SQL|count_word}}, and {{derived:verdict_counts.close|count_word}} were close. {{derived:showcase.banks|count_word_cap}} synthetic bank, {{derived:showcase.generators|count_word}} generator, small samples. The graph informs auditor judgment; it does not score risk or set the audit plan.</p>
+  <p class="hook">Your risk register and your audit files describe the same bank in different words. Linked, they show where the next audit plan should look.</p>
+  <ul class="findings">
+    <li><strong>A single point of failure.</strong> {{site.json:blast_radius.system_name}} sits under {{site.json:blast_radius.controls}} controls that protect risks in {{site.json:blast_radius.units}} business units. Review it across those units in a single audit.</li>
+    <li><strong>Repeat findings under new titles.</strong> {{site.json:repeat_finding.controls}} controls failed again in later years, logged as {{site.json:repeat_finding.issues}} issues with different titles.</li>
+    <li><strong>Coverage gone stale.</strong> {{site.json:planning.stale_with_ia}} high-rated risks in Internal Audit's scope had no control tested in the last {{site.json:planning.stale_months}} months of the data.</li>
+    <li><strong>Key-person risk.</strong> {{derived:featured.owners}} people each own {{site.json:owners.key_controls}} key controls reaching {{site.json:owners.units}} business units.</li>
+  </ul>
+  <p class="footnote">A synthetic bank with invented names, not any employer's data. Asked in SQL and in a graph, the same questions return the same answers. The graph informs auditor judgment; it does not score risk or set the audit plan.</p>
   </div>
-  <p class="lede">A synthetic US regional bank keeps its risks in the ERM register and in Internal Audit's risk and control matrices. Both lists were reconciled into a single framework, then loaded into a relational database and a graph.</p>
-  <p class="note" data-disclosure="synthetic">Synthetic data throughout. Descriptions were written by a model ahead of time and committed. Names and companies are invented. This is not any employer's data.</p>
-  <p>The warehouse, repeat-finding, stale-coverage, and Credit-increase examples are planted test cases used to check the queries; the ownership tie was not planted.</p>
+  <p class="note" data-disclosure="synthetic">Descriptions in the data were written by a model ahead of time and committed. The warehouse, repeat-finding and stale-coverage findings and the {{derived:featured.yoy_name}} increase are planted test cases that check the queries; the ownership concentration was not planted.</p>
+  <p class="pointer" data-statement="kg-pointer">New to knowledge graphs? <a href="#what-is-a-knowledge-graph">A short explanation opens the supporting evidence below.</a></p>
 
   <h2 class="group">For the audit plan</h2>
 
@@ -77,8 +81,14 @@
 
   <h2 class="group">Supporting evidence</h2>
 
+  <article class="story explainer" id="what-is-a-knowledge-graph" data-statement="kg-explainer">
+    <h2>What is a knowledge graph?</h2>
+    <p>A knowledge graph stores facts as nodes and the links between them: things such as systems, controls, risks, issues, auditable entities and business units are nodes, and each relationship, such as "this control mitigates that risk" or "this control depends on that system", is a link you can follow from node to node. A relational database can hold the same facts in tables, with each relationship as a row in a link table. Here, both stores hold exactly the same links. What differs is how a query is written: a question that follows a chain of links, such as "what does this system's failure reach?", is a path in the graph and a series of joins in SQL. The comparison below counts how much query each needs; for that question, both come out close.</p>
+    <p class="chain"><span class="chain-caption">How a system failure reaches a business unit:</span> system → control → risk → auditable entity → business unit</p>
+  </article>
+
   <article class="story" id="story-comparison">
-    <h2>Does a graph beat SQL?</h2>
+    <h2>Graph or SQL?</h2>
     <p>Asked {{derived:rounds_count|count_word}} planning questions in both, with the same facts and answers proved equal: SQL wins {{derived:verdict_counts.SQL|times_word}}, the graph {{derived:verdict_counts.graph|times_word}}, and {{derived:verdict_counts.close|count_word}} are close. <span data-disclosure="no-speed-claims">The difference is how much query each needs, not speed: no speed claims are made at demo scale.</span> <a href="methods.html#rounds">The scoring rule, the symmetry table and both queries.</a></p>
   </article>
 
