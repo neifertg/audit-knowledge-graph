@@ -17,9 +17,9 @@ def count_word(value: int) -> str:
     return WORDS.get(value, str(value))
 
 
-def count_of_cap(value) -> str:
-    """The length of a list as a capitalised number word, to open a sentence: ['A', 'B'] -> 'Two' (025)."""
-    word = count_word(len(value))
+def count_word_cap(value: int) -> str:
+    """Sentence case of count_word: One, Three. A number above twelve stays in digits."""
+    word = count_word(value)
     return word[:1].upper() + word[1:]
 
 
@@ -84,5 +84,5 @@ def triple(value) -> str:
     return " / ".join(str(v) for v in value)
 
 
-FORMATTERS = {f.__name__: f for f in (plain, count_word, count_of_cap, times_word, signed, fraction, rows_shown, names_and,
-                                      verdict, check, scenario, scenario_supporting, triple)}
+FORMATTERS = {f.__name__: f for f in (plain, count_word, count_word_cap, times_word, signed, fraction, rows_shown,
+                                      names_and, verdict, check, scenario, scenario_supporting, triple)}
