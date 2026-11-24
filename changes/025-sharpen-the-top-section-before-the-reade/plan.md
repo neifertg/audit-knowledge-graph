@@ -1,92 +1,86 @@
-# Sharpen the top section before the reader test
+# Finish the brief before the reader test
 
 ```json plan
 {
   "id": "025-sharpen-the-top-section-before-the-reade",
   "tier": "standard",
-  "status": "approved",
+  "status": "draft",
   "created": "2026-11-22",
   "objective": "O1",
   "areas": [
     "src/features/site/**",
-    "tests/**",
-    "docs/**"
+    "tests/**"
   ],
   "timebox": "Half a day. Past this, stop and re-plan.",
   "criteria": [
     {
       "id": "AC-1",
-      "when": "the built page's top section is read",
-      "then": "it has the approved copy below (revision 2026-11-22, the owner's choice after a brainstorm): **the headline** 'See the audit risks that sit between your risk register and your audit records.'; directly under it, **a list of three risks** marked `data-statement=\"three-risks\"`, the first and third with their figures rendered and marked (the blast radius's business units; the owner-concentration tie group's size, key controls and units) and the second, the repeat finding, carrying no figure; then a one-line pointer to the explainer (AC-3), marked `data-statement=\"kg-pointer\"`; then the synthetic-data note (marked `data-disclosure=\"synthetic\"`, reworded); then 021's three story cards and the judgment line, unchanged. **Removed from the top section:** the long intro paragraph ('A synthetic US regional bank keeps its risks...'), the earlier draft's 'In short' paragraph, and the comparison teaser, which **moves to open the `#rounds` section** as 'Graph or SQL?' with the wording below and its no-speed disclosure. The tie group's size is rendered by a new formatter `count_of_cap` (the length of a list as a capitalised number word, unit-tested). The test `COPY` list is updated; a test checks the list of three risks is the first element after the `<h1>`, and that 'Graph or SQL?' sits inside `#rounds`, not `#top`.",
-      "test": "webpage.test_site.SiteTests.test_ac5_required_statements_and_no_speed_claims (COPY updated), test_ac1_025_three_risks_first, test_ac1_025_teaser_in_rounds, test_ac3_formatters (count_of_cap)",
+      "when": "the brief's top section (`index.html`, `#top`, above 'For the audit plan') is read",
+      "then": "it is the owner's brief from PRs #1 and #2 with its repetition removed (copy below): the H1 and the three-paragraph executive summary **unchanged** (they mirror the README); the second intro paragraph ('A synthetic US regional bank keeps its risks...') **removed**; the synthetic note and the planted-cases note **merged into one note** (marked `data-disclosure=\"synthetic\"`) that keeps what the summary does not already say: model-written descriptions, invented names, that the year-over-year riser is planted too (its name rendered from `derived:featured.yoy_name`, never typed), and that the planted cases are there to check the queries; then a one-line pointer to the explainer (AC-2), marked `data-statement=\"kg-pointer\"`, linking `#what-is-a-knowledge-graph`. A test on `index.html` only (the methods page keeps its own note) checks the order (H1, summary, note, pointer, 'For the audit plan'), that the removed paragraph and the old notes' text are gone from `index.html`, that `index.html` has exactly one element marked `data-disclosure=\"synthetic\"`, and that the riser's name in the note is a marked figure. The test `COPY` list is updated.",
+      "test": "webpage.test_site.SiteTests.test_ac5_required_statements_and_no_speed_claims (COPY updated), test_ac1_025_top_trimmed",
       "status": "pending"
     },
     {
       "id": "AC-2",
-      "when": "the whole built page is checked",
-      "then": "all 021 and 022 rules still hold, unchanged: every marked figure matches its source; no digit outside the allow-list and no number word outside marked elements (the new copy uses neither); no speed word outside a disclosure; `site.js` unchanged; one external resource. **The owner's visual check** of the built page on a local preview, top section only, is recorded in the review.",
-      "test": "webpage.test_site.SiteTests (all), plus the owner's recorded check",
+      "when": "the brief's 'Supporting evidence' group is read",
+      "then": "it opens with the explainer **'What is a knowledge graph?'** (copy below; the owner's request of 2026-11-22, moved from the old `#rounds`, which now lives on `methods.html`), with `id=\"what-is-a-knowledge-graph\"` and `data-statement=\"kg-explainer\"`, directly before the SQL comparison story, whose heading changes from 'Does a graph beat SQL?' to **'Graph or SQL?'** (body unchanged). **Fair to SQL** (critique 2026-11-23): it says the relational store keeps each relationship as a row in a link table and the graph as an edge, that both stores here hold exactly the same links, and that the difference is how a query is written (a series of joins versus a path); it never says a relational database lacks the connections. The node list says 'such as'. No figure, digit, number word or speed word; the diagram is captioned as the direction a failure reaches. Tests: the explainer comes after 'Supporting evidence' and before the comparison story; the pointer's target id exists; 'Does a graph beat SQL?' appears nowhere on `index.html`; the explainer contains 'link table' and does not contain 'only when'; and its fixed 'both come out close' is held by asserting that round 3 is measured `close` **and** that round 3 is the blast-radius question (its first row's system is `site.json`'s `blast_radius.system_id`).",
+      "test": "webpage.test_site.SiteTests.test_ac2_025_explainer_before_comparison",
       "status": "pending"
     },
     {
       "id": "AC-3",
-      "when": "the `#rounds` section opens",
-      "then": "it begins with the explainer **'What is a knowledge graph?'** (copy below, the owner's request 2026-11-22, placed here by the owner's choice), marked `data-statement=\"kg-explainer\"`, before 'Graph or SQL?': what a relational database and a knowledge graph each store, a one-line text diagram of one chain (system, control, risk, auditable entity, business unit) captioned as the direction a failure reaches, not the stored link direction, and the fair-to-SQL statement that both hold the same facts, that the graph writes a chain as a path and SQL as joins, and that the example question comes out close (round 3). No figure, no speed word. A test checks the explainer comes first in `#rounds`, before 'Graph or SQL?', and its fixed text is in `COPY`; the top section's pointer links to it (`href=\"#what-is-a-knowledge-graph\"`).",
-      "test": "webpage.test_site.SiteTests.test_ac3_025_explainer_opens_rounds",
+      "when": "the whole build is checked",
+      "then": "all existing site tests still pass unchanged apart from `COPY`: every marked figure matches its source; no digit outside the allow-list and no number word outside marked elements; no speed word outside a disclosure; one external resource. **The branch starts from main's code** (critique 2026-11-23): after merging main into `change/025`, run `git checkout main -- src tests docs` and confirm `git diff main -- src tests docs` is empty before the first edit, so the earlier build (`count_of_cap`, the three-risks CSS, the removed `.lede` rule that `methods.html` still uses) is gone. At the end, `git diff --stat main -- src tests docs` lists only `src/features/site/template.html`, `src/features/site/site.css`, `src/features/site/README.md` and `tests/webpage/test_site.py`; that output is recorded in the review as the evidence that `site.js`, `methods.html`, `formatters.py` and the exports are untouched. **The owner's visual check** of the local preview (top section and 'Supporting evidence') is recorded in the review.",
+      "test": "webpage.test_site.SiteTests (all), the recorded `git diff --stat main`, plus the owner's recorded check",
       "status": "pending"
     }
   ],
-  "revised": "2026-11-22",
-  "approved": "2026-11-22",
-  "approved_hash": "df22d233dcdc2267"
+  "revised": "2026-11-23"
 }
 ```
 
 ## Why
-O1. Before any reader saw the page, the owner read only its top section and summed it up as "data stored in a knowledge graph offers audit and risk insights that a typical SQL database cannot achieve" (recorded as a pilot in `research/o1-reader-test/results.md`; it does not count as a reader). That misses the page's point, connecting ERM and Internal Audit records to surface planning risks, and draws a conclusion the page does not make. The owner chose to sharpen the top section before spending the reader pool (2026-11-22). The pass rule, fixed in 023, is not changed: this edits the page, not the test.
+O1. Before any reader saw the page, the owner read only its top section and summed it up as "data stored in a knowledge graph offers audit and risk insights that a typical SQL database cannot achieve" (a pilot in `research/o1-reader-test/results.md`; it does not count). The owner then rewrote the page as an audit-planning brief (PRs #1 and #2, merged 2026-11-23, outside a capitan change), which superseded this change's earlier build. Reviewing those PRs found three things left to finish before the reader test: the top section repeats itself (a second intro paragraph and two notes restate the summary), there is no explanation of what a knowledge graph is (asked for on 2026-11-22), and the comparison is still headed 'Does a graph beat SQL?', the framing the pilot picked up. The owner chose to revise 025 to finish the brief (2026-11-23). The reader test's pass rule, fixed in 023, is not changed.
 
-## Copy (the owner's choice, 2026-11-22)
-`[x]` is a rendered figure. Revision 2026-11-22: the owner, previewing the first draft, asked for a top section that cuts to the heart faster and more simply; after a brainstorm the owner chose the outcome as the headline with three one-line risks, the teaser moved out of the top section, and the long intro and the 'In short' paragraph dropped. The first bullet says 'A single' because 'One' would be an unmarked number word. The third bullet says what the data shows (two people each own nine key controls reaching seven units; 'reaching', because the units are reached through the controls' risks), not that all key controls rest with them. After the critique (2026-11-22): the explainer no longer calls chain questions 'natural' for the graph (its example is round 3, measured close, and now says so), the diagram is captioned as the direction of reach (three of its four stored links run the other way), and the node list names every node in the diagram. Scanned against 021's rules before this revision: no digit outside the allow-list, no number word, no speed word outside the disclosure.
+## Copy (revision 2026-11-23)
+`[x]` is a rendered figure (`[Credit]` is `derived:featured.yoy_name`). Critique fixes of 2026-11-23: the explainer now describes the relational store's link tables (it no longer implies SQL lacks the connections), the node list says 'such as', the riser's name is rendered, and 'used to check the queries' is kept. Scanned against 021's rules: no digit outside the allow-list, no number word, no speed word outside a disclosure.
 
-**The top section:**
-> **See the audit risks that sit between your risk register and your audit records.**
-> - A single system failure that reaches [20] business units.
-> - The same control failing again, filed under a new title.
-> - [Two] people each holding [9] key controls reaching [7] business units.
+**The top section** (H1 and executive summary unchanged; then):
+> *Synthetic data throughout: descriptions written by a model ahead of time and committed; names and companies invented. The [Credit] increase in the year-over-year findings is also a planted test case; the planted cases are there to check the queries.*
 >
-> New to knowledge graphs? A short explanation opens the rounds below.
->
-> *Synthetic data: a fictional US regional bank; descriptions AI-written ahead of time; no real institution, person or vendor.*
->
-> (021's three story cards, unchanged, then: *The graph informs auditor judgment; it does not score risk or set the audit plan.*)
+> New to knowledge graphs? A short explanation opens the supporting evidence below.
 
-**Opening the `#rounds` section, first the explainer** (new, the owner's request):
-> **What is a knowledge graph?** A relational database keeps facts in tables and connects them only when a query joins those tables. A knowledge graph stores the connections themselves: each system, control, risk, issue, auditable entity and business unit is a node, and each relationship, such as "this control mitigates that risk" or "this control depends on that system", is a stored link you can follow. Both hold the same facts here. A question that follows a chain of links, such as "what does this system's failure reach?", is written in the graph as a path and in SQL as a series of joins. The rounds below compare how much query each needs; for that question, both come out close.
+**Removed:** "A synthetic US regional bank keeps its risks in the ERM register and in Internal Audit's risk and control matrices. Both lists were reconciled into a single framework, then loaded into a relational database and a graph." and the two notes it replaces ("Synthetic data throughout. Descriptions were written by a model... This is not any employer's data." and "The warehouse, repeat-finding, stale-coverage, and Credit-increase examples are planted test cases...; the ownership tie was not planted."). Each fact they carried is still on the page: the summary says the bank is synthetic, names are invented, it is not any employer's data, which three examples are planted and that the ownership tie is not; the merged note adds the model-written text and the Credit increase.
+
+**Opening 'Supporting evidence', the explainer:**
+> **What is a knowledge graph?** A knowledge graph stores facts as nodes and the links between them: things such as systems, controls, risks, issues, auditable entities and business units are nodes, and each relationship, such as "this control mitigates that risk" or "this control depends on that system", is a link you can follow from node to node. A relational database can hold the same facts in tables, with each relationship as a row in a link table. Here, both stores hold exactly the same links. What differs is how a query is written: a question that follows a chain of links, such as "what does this system's failure reach?", is a path in the graph and a series of joins in SQL. The comparison below counts how much query each needs; for that question, both come out close.
 >
 > How a system failure reaches a business unit: system → control → risk → auditable entity → business unit
 
-**Then the teaser** (moved from the top section):
-> **Graph or SQL?** Both answer the same [seven] planning questions over the same facts, and their answers are proved equal. What differs is how much query each needs, scored by a published rule: SQL wins [once], the graph [three times], and [three] are close. *[disclosure: The difference is how much query each needs, not speed: no speed claims are made at demo scale.]*
+**Then the comparison story**, heading only changed: **Graph or SQL?** (body as merged in PR #1).
 
 ## Before the reader script goes out (preconditions, in change 024)
-1. This change is merged and **deployed**: main's Pages workflow still lacks 024's retry, so the first deploy attempt may fail as before; then re-run **all** jobs of that pages run.
-2. **The owner re-confirms the live page** (light, dark, phone), because 024's AC-3 requires the confirmation for the build the readers see, and the build changes.
-3. **Change 024 re-records** that build (the pages run and commit) in `docs/pages.md` and `results.md`, replacing `7d9c32e`, and notes in `results.md` that the top section was revised after the owner's pilot (change 025) with the pass rule unchanged.
+1. This change is merged and **deployed** (main's Pages workflow still lacks 024's retry; if the first deploy attempt fails, re-run **all** jobs of that pages run).
+2. **The owner re-confirms the live page** (light, dark, phone): 024's AC-3 requires it for the build the readers see.
+3. **Change 024 re-records** that build in `docs/pages.md` and `results.md`, replacing `7d9c32e`, noting that the page was rewritten as a brief (PRs #1, #2) and finished in 025 after the owner's pilot, with the pass rule unchanged.
 
 ## Data impact
 None.
 
 ## Test plan
-`tests/webpage/test_site.py`: the `COPY` list updated; new tests that the list of three risks is the first element after the headline (`test_ac1_025_three_risks_first`), that the teaser sits in `#rounds` (`test_ac1_025_teaser_in_rounds`), and that the explainer opens `#rounds` before the teaser, its text is in `COPY`, and the pointer's `href="#what-is-a-knowledge-graph"` resolves to an element with that `id` (`test_ac3_025_explainer_opens_rounds`); `count_of_cap` unit-tested in `test_ac3_formatters`. The obsolete `test_ac1_025_in_short_first` on the branch is removed with the 'In short' paragraph. The full suite on a fresh checkout (L-022). After the merge, the page redeploys; change 024 then records the new build as the readers' build before the script goes out.
+`tests/webpage/test_site.py`: `COPY` updated (removed paragraph and notes out; merged note, pointer, explainer and new heading in); `test_ac1_025_top_trimmed` (order, removals, a single synthetic disclosure); `test_ac2_025_explainer_before_comparison` (placement, pointer target id exists, no figure/digit/number word/speed word in the explainer, 'link table' present and 'only when' absent, round 3 measured `close` and is the blast-radius question, no 'Does a graph beat SQL?'). `src/features/site/README.md` gets a line on the explainer and the merged note. The branch reset and the final `git diff --stat main` (AC-3). The full suite on a fresh checkout (L-022).
 
 ## Risks
-- **Teaching to the test.** The headline and the three risks say what the page is for in plain words; the pass rule was written in 023 before any answer and is unchanged. A page whose purpose a reader cannot restate is the failure O1 measures, so stating the purpose plainly is the fix, not a workaround.
-- **The disclosure moves.** The no-speed disclosure stays a marked element in the teaser; the speed-word test still scopes to it.
+- **Teaching to the test.** The edit removes repetition and adds an explanation; it states nothing the page did not already show. The pass rule is unchanged.
+- **Losing a disclosure in the merge.** Each fact from the removed notes is listed above with where it still appears; the copy test holds them.
+- **Drift from the README.** The executive summary is untouched, so the README test still holds; the README's own body is out of scope.
 
 ## Out of scope
-- The reader test itself (change 024, which waits for this change's deploy).
-- Any other section.
+- `methods.html`, the executive summary's wording, the root README (already rewritten on main in 2215d61, which removed its old notes and renamed its comparison heading).
+- Restoring the expected verdicts or the 'expected, not measured' claims on `methods.html` (raised in the review of PRs #1 and #2; the owner's call, separately).
+- The reader test itself (change 024).
 
 ## Relevant lessons
 - **L-021, L-012:** figures stay rendered and marked; the new copy types none.
 - **L-022:** the fresh-checkout run before review.
+- **L-023:** every folded-in item above is a named check.
