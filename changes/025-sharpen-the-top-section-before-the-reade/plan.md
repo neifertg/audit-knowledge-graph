@@ -4,7 +4,7 @@
 {
   "id": "025-sharpen-the-top-section-before-the-reade",
   "tier": "standard",
-  "status": "draft",
+  "status": "approved",
   "created": "2026-11-22",
   "objective": "O1",
   "areas": [
@@ -35,7 +35,9 @@
       "status": "pending"
     }
   ],
-  "revised": "2026-11-23"
+  "revised": "2026-11-23",
+  "approved": "2026-11-23",
+  "approved_hash": "10b2309c41eb202c"
 }
 ```
 
