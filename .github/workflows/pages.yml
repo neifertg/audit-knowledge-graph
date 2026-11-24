@@ -1,4 +1,4 @@
-# Publish the page on GitHub Pages (E4 child c, change 023).
+# Publish the page on GitHub Pages (E4 child c, change 023; guard fix in E4 child d, change 024).
 # Deploys only a commit whose tests passed for a push to main, and only while that commit is still
 # main's head: a re-run of an older green run cannot put an older page over the current one.
 # The guard is its own job with no environment, so a refused deploy records no deployment.
@@ -30,6 +30,10 @@ jobs:
         id: head
         run: |
           head=$(git ls-remote "https://github.com/${{ github.repository }}" refs/heads/main | cut -f1)
+          if [ -z "$head" ]; then
+            echo "::error::could not read main's head; refusing to deploy"
+            exit 1
+          fi
           if [ "$head" = "${{ github.event.workflow_run.head_sha }}" ]; then
             echo "current=true" >> "$GITHUB_OUTPUT"
           else
@@ -48,7 +52,7 @@ jobs:
       id-token: write
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.retry.outputs.page_url || steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -67,5 +71,16 @@ jobs:
         with:
           path: _site
 
+      # deploy-pages has twice failed to see the artifact uploaded seconds before, then succeeded on a re-run;
+      # wait and deploy once more in the same job before failing the run (change 024)
       - id: deployment
+        uses: actions/deploy-pages@v5
+        continue-on-error: true
+
+      - name: Wait before retrying the deploy
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 30
+
+      - id: retry
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v5
