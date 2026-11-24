@@ -26,16 +26,25 @@ CDN = "https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.34.4/cytoscape.min.js"
 SRI = "sha512-9oWrVcc9R1+KL87uqCWwsamtDPJknyeNh/xCFh5SHEsgvV7Icb5Vgungsyljhdeyt+LNKGC9bhwKKQ0C6TiPOw=="
 # The brief's fixed text: the words between the figures.
 EXECUTIVE = [
-    "A reconciled map of risks, controls, owners, issues, audits, and systems lets second-line risk and third-line internal audit follow how the ERM register and Internal Audit's matrices connect. This project loads that map into a graph and into SQL and asks the same planning questions in both. The answers match. A graph can make some of those multi-step paths shorter to write; a spreadsheet, a GRC query, or SQL can return the same facts. The comparison here is query size, not ease of use or speed.",
-    "On a synthetic US regional bank (invented names; not any employer's data): 56 reconciled risks that include a high-rated member had no mitigating control tested by an audit ending on or after 2023-12-31, 24 months before the end of the data window. 41 have no Internal Audit member and are untested by construction; the other 15 are coverage candidates. 6 controls failed in different years under different titles: 14 issues, linked through the control and the dates. If Ylvara Data Warehouse fails, 44 controls that depend on it are affected; between them they protect risks in 41 auditable entities across 20 business units, which argues for a cross-unit review of that system. Dorothea Sandoval and Greer Kowalczyk each own 9 key controls whose risks reach 7 business units; that tie was computed from the data, not planted.",
-    "The warehouse, repeat-finding, and stale-coverage examples are planted. The graph took a smaller query in three rounds, SQL in one, and three were close. One synthetic bank, one generator, small samples. The graph informs auditor judgment; it does not score risk or set the audit plan.",
+    # The owner's choice of 2026-11-23 (option A): a hook, four findings, a footnote. Same text in the README.
+    "Your risk register and your audit files describe the same bank in different words. Linked, they show where the next audit plan should look.",
+    "A single point of failure.",
+    "Ylvara Data Warehouse sits under 44 controls that protect risks in 20 business units. Review it across those units in a single audit.",
+    "Repeat findings under new titles.",
+    "6 controls failed again in later years, logged as 14 issues with different titles.",
+    "Coverage gone stale.",
+    "15 high-rated risks in Internal Audit's scope had no control tested in the last 24 months of the data.",
+    "Key-person risk.",
+    "2 people each own 9 key controls reaching 7 business units.",
+    "A synthetic bank with invented names, not any employer's data. Asked in SQL and in a graph, the same questions return the same answers. The graph informs auditor judgment; it does not score risk or set the audit plan.",
 ]
 
 COPY = [
     "Audit planning results from a reconciled risk and control map",
     # 025: the merged note and the pointer
-    "Synthetic data throughout: descriptions written by a model ahead of time and committed; names and companies invented. The",
-    "increase in the year-over-year findings is also a planted test case; the planted cases are there to check the queries.",
+    "Descriptions in the data were written by a model ahead of time and committed. The warehouse, repeat-finding and "
+    "stale-coverage findings and the", "increase are planted test cases that check the queries; the ownership "
+    "concentration was not planted.",
     "New to knowledge graphs? A short explanation opens the supporting evidence below.",
     "For the audit plan",
     "Cover the shared warehouse across units",
@@ -309,9 +318,7 @@ class SiteTests(unittest.TestCase):
             "derived:featured.yoy_mid": next(row[3] for row in by_num[7]["rows"] if row[1] == riser["l1_name"] and row[2] == mid[0]),
             "derived:fourth_party.direct": exposure["direct"],
             "derived:fourth_party.fourth_party_only": exposure["fourth_party_only"],
-            # The executive summary's "One synthetic bank, one generator" is this showcase, not a count from the exports.
-            "derived:showcase.banks": 1,
-            "derived:showcase.generators": 1,
+            "derived:featured.owners": len(site["owners"]["top"]),
         })
         derived = {s: t for s, _, t in marked if s.startswith("derived:")}
         self.assertEqual(set(derived), set(independent))

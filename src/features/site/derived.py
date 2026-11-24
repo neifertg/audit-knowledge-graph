@@ -78,7 +78,8 @@ def featured(sources: dict) -> dict:
     middle = [y for y in sorted(published) if y not in (years[0], years[-1])]
     if len(middle) != 1:
         raise ValueError("the top riser's published rows do not have one year between the endpoints")
-    return {"stale_rows": by[2]["row_count"],
+    return {"owners": len(sources["site.json"]["owners"]["top"]),
+            "stale_rows": by[2]["row_count"],
             "stale_cutoff": sources["rounds.json"]["parameters"]["round_2_cutoff"],
             "vendor": sources["rounds.json"]["parameters"]["round_5_vendor"],
             "vendor_rows": by[5]["row_count"],

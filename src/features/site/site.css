@@ -38,6 +38,11 @@ a { color: var(--link); }
 .nav a, .toggle { white-space: nowrap; }
 h2.group { margin-top: 32px; }
 .pointer { margin: 0 0 8px; }
+.hook { font-size: 21px; line-height: 1.4; font-weight: 500; margin: 0 0 14px; }
+.findings { font-size: 18px; margin: 0 0 14px; padding-left: 22px; }
+.findings li { margin: 8px 0; }
+.findings li::marker { color: var(--accent); }
+.footnote { color: var(--muted); font-size: 15px; margin: 0 0 10px; }
 .explainer { border-left: 4px solid var(--accent); }
 .chain { margin: 10px 0 0; font-weight: 600; }
 .chain-caption { display: block; font-weight: 400; color: var(--muted); font-size: 15px; }

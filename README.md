@@ -2,11 +2,14 @@
 
 ## Executive summary
 
-A reconciled map of risks, controls, owners, issues, audits, and systems lets second-line risk and third-line internal audit follow how the ERM register and Internal Audit's matrices connect. This project loads that map into a graph and into SQL and asks the same planning questions in both. The answers match. A graph can make some of those multi-step paths shorter to write; a spreadsheet, a GRC query, or SQL can return the same facts. The comparison here is query size, not ease of use or speed.
+**Your risk register and your audit files describe the same bank in different words. Linked, they show where the next audit plan should look.**
 
-On a synthetic US regional bank (invented names; not any employer's data): 56 reconciled risks that include a high-rated member had no mitigating control tested by an audit ending on or after 2023-12-31, 24 months before the end of the data window. 41 have no Internal Audit member and are untested by construction; the other 15 are coverage candidates. 6 controls failed in different years under different titles: 14 issues, linked through the control and the dates. If Ylvara Data Warehouse fails, 44 controls that depend on it are affected; between them they protect risks in 41 auditable entities across 20 business units, which argues for a cross-unit review of that system. Dorothea Sandoval and Greer Kowalczyk each own 9 key controls whose risks reach 7 business units; that tie was computed from the data, not planted.
+- **A single point of failure.** Ylvara Data Warehouse sits under 44 controls that protect risks in 20 business units. Review it across those units in a single audit.
+- **Repeat findings under new titles.** 6 controls failed again in later years, logged as 14 issues with different titles.
+- **Coverage gone stale.** 15 high-rated risks in Internal Audit's scope had no control tested in the last 24 months of the data.
+- **Key-person risk.** 2 people each own 9 key controls reaching 7 business units.
 
-The warehouse, repeat-finding, and stale-coverage examples are planted. The graph took a smaller query in three rounds, SQL in one, and three were close. One synthetic bank, one generator, small samples. The graph informs auditor judgment; it does not score risk or set the audit plan.
+A synthetic bank with invented names, not any employer's data. Asked in SQL and in a graph, the same questions return the same answers. The graph informs auditor judgment; it does not score risk or set the audit plan.
 
 [https://neifertg.github.io/audit-knowledge-graph/](https://neifertg.github.io/audit-knowledge-graph/)
 
@@ -16,7 +19,7 @@ The [public page](https://neifertg.github.io/audit-knowledge-graph/) has each fi
 
 [![tests](https://github.com/neifertg/audit-knowledge-graph/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/neifertg/audit-knowledge-graph/actions/workflows/tests.yml)
 
-A model wrote the descriptions in the data once, ahead of time, and they are committed. The Credit increase below is one of the planted test cases too; the queries are checked against all of them.
+A model wrote the descriptions in the data once, ahead of time, and they are committed. The warehouse, repeat-finding and stale-coverage findings and the Credit increase are planted test cases that check the queries; the ownership concentration was not planted.
 
 ### Cover the shared warehouse across units
 
