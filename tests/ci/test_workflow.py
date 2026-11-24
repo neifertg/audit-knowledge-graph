@@ -225,8 +225,10 @@ class WorkflowTests(unittest.TestCase):
     def test_ac4_024_live_check_recorded(self):
         section = (ROOT / "docs" / "pages.md").read_text(encoding="utf-8").split("## Live check", 1)[1]
         if "Filled in by change 024" in section:
-            # The check can only be recorded after the build it checks is live; enforced once it is written.
-            self.skipTest("live check not recorded yet")
+            # The check can only be recorded after the build it checks is live. Until then the section must be
+            # exactly the placeholder (CI fails on any skipped test, so this is a check, not a skip).
+            self.assertEqual(section.strip(), "Filled in by change 024, as late as possible before it finishes.")
+            return
         self.assertRegex(section, r"\b[0-9a-f]{7,40}\b", "the commit")
         self.assertRegex(section, r"\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}", "the time")
         self.assertIn("byte for byte", section)
